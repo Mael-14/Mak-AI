@@ -1,7 +1,7 @@
 {
   "name": "mak-ai",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -15,12 +15,13 @@
     "expo-router": "~6.0.19",
     "expo-status-bar": "~3.0.9",
     "lucide-react-native": "^0.560.0",
-    "react": "^19.2.3",
+    "react": "19.1.0",
     "react-dom": "^19.2.3",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-vector-icons": "^10.3.0"
+    "react-native-vector-icons": "^10.3.0",
+    "expo-linear-gradient": "~15.0.8"
   },
   "private": true
 }
