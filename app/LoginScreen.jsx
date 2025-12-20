@@ -110,15 +110,12 @@ const LoginScreen = ({ navigation }) => {
   const handleGoogleLogin = () => {
     console.log('Google login clicked');
     Alert.alert('Google Login', 'Google authentication will be initiated here');
-    // TODO: Implement Google OAuth
   };
 
   // Handle forgot password
   const handleForgotPassword = () => {
     console.log('Forgot password clicked');
     Alert.alert('Forgot Password', 'Password reset flow will be initiated');
-    // TODO: Navigate to forgot password screen
-    // navigation.navigate('ForgotPassword');
   };
 
   return (
@@ -253,10 +250,10 @@ export default LoginScreen
 const styles = StyleSheet.create({
   blod: {
     position: 'absolute',
-    width: wp('100%'),        // 45% of screen width
-    height: hp('50%'),       // 50% of screen height
-    top: hp('-8%'),         // -15% of screen height
-    left: wp('-20%'),        // -10% of screen width
+    width: wp('100%'),        
+    height: hp('50%'),       
+    top: hp('-8%'),         
+    left: wp('-20%'),        
     zIndex: -1,
     opacity: 0.6
   },
