@@ -1,81 +1,84 @@
-import { StyleSheet, Text, View , StatusBar , Image , TextInput , TouchableOpacity} from 'react-native'
-import React, {useState} from 'react'
+import { StyleSheet, Text, View, StatusBar, Image, TextInput, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Layer1 from '../assets/layerBlur1.png'
-import { AntDesign } from "@expo/vector-icons"; 
+import { AntDesign } from "@expo/vector-icons";
 import Gicon from '../assets/google_icon.png'
 import Aicon from '../assets/avatar.png'
 import Licon from '../assets/lock.png'
 
-const LoginScreen = ({navigation}) => {
+const LoginScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
 
   return (
-    <SafeAreaView style={{flex:1, backgroundColor:'#ffffffff'}}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffffff' }}>
       <StatusBar barStyle="dark-content" />
-      
+
       <Image source={Layer1} style={styles.blod} />
 
       <View style={styles.container}>
 
         <View style={styles.header} >
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={{paddingBottom:30}}>Enter your credentials to continue</Text>
+          <Text style={{ paddingBottom: 30 }}>Enter your credentials to continue</Text>
         </View>
 
         <View style={styles.inputContainer}>
-            <View style={{paddingRight: 20}}>
-              <Image source={Aicon} style={{width:12, height: 15}} />
-            </View>
-            <TextInput
-              style={styles.enterBtn}
-              placeholder="Name"
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor="#666"
-            />
+          <View style={{ paddingRight: 20 }}>
+            <Image source={Aicon} style={{ width: 12, height: 15 }} />
+          </View>
+          <TextInput
+            style={styles.enterBtn}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+            placeholderTextColor="#666"
+          />
         </View>
-        
-        <View style={[styles.inputContainer ]}>
-            <View style={{paddingRight: 20}}>
-              <Image source={Licon} style={{width:12, height: 15}} />
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#666"
-            />
+
+        <View style={[styles.inputContainer]}>
+          <View style={{ paddingRight: 20 }}>
+            <Image source={Licon} style={{ width: 12, height: 15 }} />
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <TouchableOpacity style={{ flexDirection: 'row-reverse', paddingBottom: 10 }}>
+          <Text style={styles.forgotPasswordText}>Forgot password ?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.loginButton}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.googleButton}>
+          <View >
+            <Image source={Gicon} style={{ width: 25, height: 25, marginRight: 10 }} />
           </View>
 
-          <TouchableOpacity style={{flexDirection: 'row-reverse' , paddingBottom:10}}>
-            <Text style={styles.forgotPasswordText}>Forgot password ?</Text>
-          </TouchableOpacity>
+          {/* <AntDesign name="google" size={22} color="#373130ff" style={{paddingRight: 10}} /> */}
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.googleButton}>
-              <Image source={Gicon} style={{width:19, height: 22 , marginRight: 10}} />
-            {/* <AntDesign name="google" size={22} color="#373130ff" style={{paddingRight: 10}} /> */}
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          
 
 
       </View>
       <Image source={Layer1} style={styles.blod} />
 
       <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity>
-              <Text style={[styles.signUpText]} onPress={() => navigation.navigate('Signup')} >SignUp</Text>
-            </TouchableOpacity>
+        <Text style={styles.footerText}>Don't have an account? </Text>
+        <TouchableOpacity>
+          <Text style={[styles.signUpText]} onPress={() => navigation.navigate('Signup')} >SignUp</Text>
+        </TouchableOpacity>
       </View>
 
       {/* <Text>LoginScreen</Text> */}
@@ -86,32 +89,32 @@ const LoginScreen = ({navigation}) => {
 export default LoginScreen
 
 const styles = StyleSheet.create({
-  blod:{
-    position:'absolute',
+  blod: {
+    position: 'absolute',
     width: 459,
     height: 500,
     top: -150,
     left: -100,
-    zIndex:1,
-    opacity:0.5
+    zIndex: 1,
+    opacity: 0.5
   },
-  container:{
-    position:'absolute',
-    top:206,
-    left:32,
+  container: {
+    position: 'absolute',
+    top: 206,
+    left: 32,
     //alignItems:'center',
-    justifyContent:'center',
-    marginHorizontal:20,
-    zIndex:2
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    zIndex: 2
   },
-  title:{
-    fontSize:32,
-    fontWeight:'700',
-    color:'#000',
-    marginBottom:8,
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
     fontFamily: 'Georgia',
   },
-  inputContainer:{
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     width: 300,
@@ -153,10 +156,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     width: 300,
-    marginTop:16
+    marginTop: 16
   },
   footer: {
-    flexDirection:'row',
+    flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 'auto',
   },
