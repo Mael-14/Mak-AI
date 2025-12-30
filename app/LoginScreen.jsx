@@ -98,7 +98,7 @@ const LoginScreen = ({ navigation }) => {
       // Simulate API call
       setTimeout(() => {
         console.log('Login data:', formData);
-        Alert.alert('Success', 'Login successful!');
+        showModal('Success', 'Login successful!');
         setIsLoading(false);
         // TODO: Navigate to home screen after successful login
         // navigation.navigate('Home');

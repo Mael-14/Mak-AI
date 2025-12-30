@@ -5,13 +5,14 @@ import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 const CustomAlert = ({ visible, onClose, title, message }) => {
   return (
+
     <Modal
       transparent={true}
       visible={visible}
       animationType="fade"
       onRequestClose={onClose}
     >
-      <BlurView intensity={80} style={styles.blurContainer}>
+      <BlurView intensity={80} tint="dark"  style={styles.blurContainer}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
@@ -20,6 +21,7 @@ const CustomAlert = ({ visible, onClose, title, message }) => {
           </TouchableOpacity>
         </View>
       </BlurView>
+      
     </Modal>
   );
 };
