@@ -13,7 +13,7 @@ import { BlurView } from '@react-native-community/blur';
 import Aicon from '../assets/avatar.png'
 import Licon from '../assets/lock.png'
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const [formData, setFormData] = useState({
     name: '',
     password: ''
@@ -48,8 +48,8 @@ const LoginScreen = ({ navigation }) => {
 
     // Validate on change if field was touched
     if (touched[field]) {
-      const error = field === 'name' 
-        ? validateName(value) 
+      const error = field === 'name'
+        ? validateName(value)
         : validatePassword(value);
       setErrors(prev => ({
         ...prev,
@@ -66,8 +66,8 @@ const LoginScreen = ({ navigation }) => {
     }));
 
     const value = formData[field];
-    const error = field === 'name' 
-      ? validateName(value) 
+    const error = field === 'name'
+      ? validateName(value)
       : validatePassword(value);
     setErrors(prev => ({
       ...prev,
@@ -175,7 +175,7 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#a1a1a1ff"
             autoCapitalize="none"
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
             style={{ paddingLeft: 10 }}
           >
@@ -194,7 +194,7 @@ const LoginScreen = ({ navigation }) => {
         )}
 
         {/* Forgot Password */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{ flexDirection: 'row-reverse', paddingBottom: 10, paddingTop: 5 }}
           onPress={handleForgotPassword}
         >
@@ -202,7 +202,7 @@ const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Login Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.loginButton,
             isLoading && styles.loginButtonDisabled
@@ -218,7 +218,7 @@ const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Google Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.googleButton}
           onPress={handleGoogleLogin}
         >
@@ -233,8 +233,8 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
         <TouchableOpacity>
-          <Text 
-            style={[styles.signUpText]} 
+          <Text
+            style={[styles.signUpText]}
             onPress={() => navigation.navigate('Signup')}
           >
             SignUp
@@ -250,10 +250,10 @@ export default LoginScreen
 const styles = StyleSheet.create({
   blod: {
     position: 'absolute',
-    width: wp('100%'),        
-    height: hp('50%'),       
-    top: hp('-8%'),         
-    left: wp('-20%'),        
+    width: wp('100%'),
+    height: hp('50%'),
+    top: hp('-8%'),
+    left: wp('-20%'),
     zIndex: -1,
     opacity: 0.6
   },

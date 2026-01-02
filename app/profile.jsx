@@ -29,7 +29,7 @@ const profile = () => {
         <ThemedView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity >
-                    <MoveLeft size={24} color='#ffffff' />
+                    <MoveLeft size={24} color='#fff' />
                 </TouchableOpacity>
 
                 <ThemedText style={styles.headerTitle}>Profile</ThemedText>

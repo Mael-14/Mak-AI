@@ -19,7 +19,7 @@ const papersData = [
   { id: 3, title: 'Mathematics Paper 3', questions: 40, answers: 35 },
 ];
 
-const MathematicsScreen = ({ navigation }) => {
+const MathematicsScreen = () => {
   const [activeTab, setActiveTab] = useState('Questions');
 
   const handleDownload = (paperTitle) => {

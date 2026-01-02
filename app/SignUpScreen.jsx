@@ -12,7 +12,7 @@ import Aicon from '../assets/avatar.png'
 import Licon from '../assets/lock.png'
 import Eicon from '../assets/email.png'
 
-const SignUpScreen = ({ navigation }) => {
+const SignUpScreen = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -62,7 +62,7 @@ const SignUpScreen = ({ navigation }) => {
       if (field === 'name') error = validateName(value);
       else if (field === 'email') error = validateEmail(value);
       else if (field === 'password') error = validatePassword(value);
-      
+
       setErrors(prev => ({
         ...prev,
         [field]: error
@@ -82,7 +82,7 @@ const SignUpScreen = ({ navigation }) => {
     if (field === 'name') error = validateName(value);
     else if (field === 'email') error = validateEmail(value);
     else if (field === 'password') error = validatePassword(value);
-    
+
     setErrors(prev => ({
       ...prev,
       [field]: error
@@ -122,7 +122,7 @@ const SignUpScreen = ({ navigation }) => {
       setTimeout(() => {
         console.log('SignUp data:', formData);
         Alert.alert(
-          'Success', 
+          'Success',
           'Account created successfully!',
           [
             {
@@ -157,9 +157,9 @@ const SignUpScreen = ({ navigation }) => {
       <View style={styles.objectContainer}>
         <Image source={Layer1} style={styles.blod} />
       </View>
-      
 
-      <ScrollView 
+
+      <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -241,12 +241,12 @@ const SignUpScreen = ({ navigation }) => {
               placeholderTextColor="#a1a1a1ff"
               autoCapitalize="none"
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               style={{ paddingLeft: 10 }}
             >
               <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline' }
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                 size={20}
                 color="#000000ff"
               />
@@ -268,7 +268,7 @@ const SignUpScreen = ({ navigation }) => {
           )}
 
           {/* Terms and Conditions Checkbox */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.termsContainer}
             onPress={toggleTermsAgreement}
           >
@@ -284,7 +284,7 @@ const SignUpScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* SignUp Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
               styles.loginButton,
               isLoading && styles.loginButtonDisabled
@@ -300,7 +300,7 @@ const SignUpScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Google Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleSignUp}
           >
@@ -310,14 +310,14 @@ const SignUpScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-     <Image source={Layer1} style={styles.blod} />
+      <Image source={Layer1} style={styles.blod} />
 
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account? </Text>
         <TouchableOpacity>
-          <Text 
-            style={styles.signUpText} 
+          <Text
+            style={styles.signUpText}
             onPress={() => navigation.navigate('Login')}
           >
             Login
@@ -376,10 +376,10 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
     borderWidth: 1,
   },
-//   enterBtn: {
-//     flex: 1,
-//     color: '#000',
-//   },
+  //   enterBtn: {
+  //     flex: 1,
+  //     color: '#000',
+  //   },
   input: {
     flex: 1,
     color: '#000',

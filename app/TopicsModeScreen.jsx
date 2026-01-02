@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Dummy topics data (replace with real data as needed)
 const topics = [
@@ -81,7 +82,7 @@ const TopicsModeScreen = () => {
         {/* Card Section for Topics */}
         <View style={styles.coursesContainer}>
           {topics.map((topic) => (
-            <View key={topic.id} style={[styles.courseCard, { backgroundColor: '#b8b8f0' }] }>
+            <View key={topic.id} style={[styles.courseCard, { backgroundColor: '#b8b8f0' }]}>
               <View style={styles.courseHeader}>
                 <View style={styles.courseIconContainer}>
                   <Ionicons name="document-text-outline" size={24} color="#171717ff" />
