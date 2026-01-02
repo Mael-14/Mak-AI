@@ -45,9 +45,9 @@ const Stats = () => {
                                 <LottieView
                                     autoPlay
                                     loop
-                                    style={{ width: 100, height: 100 }}
+                                    style={{ width: 150, height: 150 }}
                                     // Replace with your local lottie file path
-                                    source={require('../assets/fire-animation.json')}
+                                    source={require('../animations/fire-animation.json')}
                                 />
 
                             </View>
