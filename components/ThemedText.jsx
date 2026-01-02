@@ -4,7 +4,7 @@ import { COLORS } from '../constant/color'
 
 const ThemedText = ({ style, ...props }) => {
     const scheme = useColorScheme()
-    const theme = COLORS[scheme] ?? COLORS.dark
+    const theme = COLORS[scheme] ?? COLORS.light
     return (
         <View>
             <Text style={[style, { color: theme.text }]}

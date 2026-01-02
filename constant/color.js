@@ -8,7 +8,8 @@ export const COLORS = {
     },
     light: {
         background: '#FFF9F9FF',
-        text: '#1C1C1E'
+        text: '#1C1C1E',
+        card: '#FFFFFF',
     }
 
 }
