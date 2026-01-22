@@ -24,7 +24,7 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
       {state.routes.map((route, index) => {
         console.log("route:", route);
 
-        if (['LoginScreen', 'SignUpScreen', '(auth)/ResetPassword'].includes(route.name)) {
+        if ([ 'SignUpScreen', 'auth/ResetPassword','CustomsExamScreen','TopicsModeScreen','SelectedCourseScreen', 'RevisionMode', 'ExamMode', 'OnboardingScreen', 'JunesModeScreen',"subject/[id]"].includes(route.name)) {
           return null; // Skip rendering this tab
         }
         const { options } = descriptors[route.key];

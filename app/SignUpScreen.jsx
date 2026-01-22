@@ -11,6 +11,17 @@ import {
 import Aicon from '../assets/avatar.png'
 import Licon from '../assets/lock.png'
 import Eicon from '../assets/email.png'
+import { useRouter } from 'expo-router';
+import { createUserWithEmailAndPassword, updateProfile, signInWithCustomToken } from 'firebase/auth';
+import { auth, db } from '../config/firebase';
+import { authAPI } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+// Complete web browser authentication
+WebBrowser.maybeCompleteAuthSession();
 
 const SignUpScreen = () => {
   const [formData, setFormData] = useState({
@@ -90,7 +101,7 @@ const SignUpScreen = () => {
   };
 
   // Handle form submission
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     // Validate all fields
     const nameError = validateName(formData.name);
     const emailError = validateEmail(formData.email);
@@ -118,37 +129,239 @@ const SignUpScreen = () => {
     if (!nameError && !emailError && !passwordError) {
       setIsLoading(true);
 
-      // Simulate API call
-      setTimeout(() => {
-        console.log('SignUp data:', formData);
+      try {
+        // Step 1: Create user in Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          formData.email,
+          formData.password
+        );
+
+        // Step 2: Update Firebase Auth profile with display name
+        await updateProfile(userCredential.user, {
+          displayName: formData.name
+        });
+
+        // Step 3: Get ID token
+        const idToken = await userCredential.user.getIdToken();
+
+        // Step 4: Create user document in Firestore via backend API
+        // Note: User is already created in Firebase Auth, now we create Firestore document
+        try {
+          const response = await authAPI.signup({
+            idToken: idToken,
+            name: formData.name,
+            email: formData.email
+          });
+
+          // Step 5: Store token and user data for future use
+          await AsyncStorage.setItem('authToken', idToken);
+          await AsyncStorage.setItem('userData', JSON.stringify({
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            name: formData.name
+          }));
+
+          // Step 6: Success - show alert and navigate
+          Alert.alert(
+            'Success',
+            'Account created successfully!',
+            [
+              {
+                text: 'OK',
+                onPress: () => router.push('/LoginScreen')
+              }
+            ]
+          );
+        } catch (apiError) {
+          // Fallback: If backend fails, create Firestore document directly from frontend
+          try {
+            // Create user document directly in Firestore as fallback
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+              uid: userCredential.user.uid,
+              email: formData.email,
+              name: formData.name,
+              displayName: formData.name,
+              emailVerified: userCredential.user.emailVerified || false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+
+            // Store token and user data
+            await AsyncStorage.setItem('authToken', idToken);
+            await AsyncStorage.setItem('userData', JSON.stringify({
+              uid: userCredential.user.uid,
+              email: userCredential.user.email,
+              name: formData.name
+            }));
+
+            // Success with fallback
         Alert.alert(
           'Success',
           'Account created successfully!',
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('Login')
+                  onPress: () => router.push('/LoginScreen')
+                }
+              ]
+            );
+          } catch (firestoreError) {
+            // If both backend and Firestore direct creation fail, still store auth token
+            await AsyncStorage.setItem('authToken', idToken);
+            await AsyncStorage.setItem('userData', JSON.stringify({
+              uid: userCredential.user.uid,
+              email: userCredential.user.email,
+              name: formData.name
+            }));
+
+            const errorMessage = apiError?.response?.data?.message || apiError?.message || 'Account created but could not save profile. Please try logging in.';
+            setTimeout(() => {
+              Alert.alert('Partial Success', errorMessage, [
+                {
+                  text: 'OK',
+                  onPress: () => router.push('/LoginScreen')
             }
-          ]
-        );
+              ]);
+            }, 0);
+          }
+        }
+      } catch (error) {
+        // Handle errors gracefully without triggering verbose call stack
+        let errorMessage = 'Signup failed. Please try again.';
+        
+        // Handle Firebase Auth errors
+        if (error?.code === 'auth/email-already-in-use') {
+          errorMessage = 'This email is already registered. Please login instead.';
+        } else if (error?.code === 'auth/invalid-email') {
+          errorMessage = 'Invalid email address. Please check and try again.';
+        } else if (error?.code === 'auth/weak-password') {
+          errorMessage = 'Password is too weak. Please use a stronger password.';
+        } else if (error?.code === 'auth/network-request-failed') {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        // Use setTimeout to prevent error propagation that triggers call stack
+        setTimeout(() => {
+          Alert.alert('Error', errorMessage);
+        }, 0);
+      } finally {
         setIsLoading(false);
-        // TODO: Navigate to verification screen or login after successful signup
-        // navigation.navigate('EmailVerification');
-      }, 1500);
+      }
     }
   };
 
-  // Handle Google signup
-  const handleGoogleSignUp = () => {
-    console.log('Google signup clicked');
-    Alert.alert('Google Sign Up', 'Google authentication will be initiated here');
-    // TODO: Implement Google OAuth
+  // Handle Google signup via backend OAuth
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Step 1: Get Google OAuth URL from backend
+      let response;
+      try {
+        response = await authAPI.getGoogleAuthUrl();
+      } catch (apiError) {
+        // Handle network errors specifically
+        if (apiError.code === 'ECONNREFUSED' || apiError.message?.includes('Network Error')) {
+          throw new Error('Cannot connect to server. Please ensure the backend is running on port 5000.');
+        }
+        if (apiError.response?.status === 500) {
+          const errorMsg = apiError.response?.data?.message || 'Backend error. Check server logs.';
+          throw new Error(errorMsg);
+        }
+        throw apiError;
+      }
+      
+      const authUrl = response?.data?.authUrl || response?.authUrl;
+      
+      if (!authUrl) {
+        throw new Error('Failed to get Google OAuth URL from backend');
+      }
+
+      // Step 2: Open Google OAuth URL in browser
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        Linking.createURL('/auth/google/callback')
+      );
+
+      if (result.type === 'success') {
+        // Parse the callback URL
+        const url = new URL(result.url);
+        const token = url.searchParams.get('token');
+        const uid = url.searchParams.get('uid');
+        const error = url.searchParams.get('error');
+
+        if (error) {
+          throw new Error('Google authentication failed');
+        }
+
+        if (!token) {
+          throw new Error('No token received from backend');
+    }
+
+        // Step 3: Sign in to Firebase with custom token from backend
+        const userCredential = await signInWithCustomToken(auth, token);
+        
+        // Step 4: Get Firebase ID token
+        const firebaseIdToken = await userCredential.user.getIdToken();
+        
+        // Step 5: Store authentication data
+        await AsyncStorage.setItem('authToken', firebaseIdToken);
+        await AsyncStorage.setItem('userData', JSON.stringify({
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          name: userCredential.user.displayName || userCredential.user.email?.split('@')[0]
+        }));
+
+        Alert.alert(
+          'Success',
+          'Account created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.push('/index')
+            }
+          ]
+        );
+      } else {
+        throw new Error('Google sign-up was cancelled');
+      }
+    } catch (error) {
+      let errorMessage = 'Google sign-up failed. Please try again.';
+      
+      // Network/connection errors
+      if (error?.message?.includes('Cannot connect to server')) {
+        errorMessage = error.message;
+      } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('Network Error')) {
+        errorMessage = 'Cannot connect to backend server. Please ensure the backend is running.';
+      } else if (error?.response?.status === 500) {
+        errorMessage = error?.response?.data?.message || 'Backend server error. Please check server configuration.';
+      } else if (error?.message?.includes('cancelled')) {
+        errorMessage = 'Google sign-up was cancelled.';
+      } else if (error?.code === 'auth/invalid-custom-token') {
+        errorMessage = 'Invalid authentication token. Please try again.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('Google signup error:', error);
+      
+      setTimeout(() => {
+        Alert.alert('Error', errorMessage);
+      }, 0);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Toggle terms agreement
   const toggleTermsAgreement = () => {
     setAgreedToTerms(!agreedToTerms);
   };
+
+  const router = useRouter();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffffff' }}>
@@ -318,7 +531,7 @@ const SignUpScreen = () => {
         <TouchableOpacity>
           <Text
             style={styles.signUpText}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => router.push('Login')}
           >
             Login
           </Text>

@@ -3,6 +3,59 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaVi
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TestSetupAlert from '../components/TestAlert';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+// Subject data mapping - matches the subjects from home screen
+const SUBJECTS_DATA = {
+  1: {
+    id: 1,
+    title: 'Mathematics',
+    image: require('../assets/Maths.png'),
+    headerColor: '#ffb380',
+  },
+  2: {
+    id: 2,
+    title: 'Biology',
+    image: require('../assets/Biology.png'),
+    headerColor: '#90EE90',
+  },
+  3: {
+    id: 3,
+    title: 'Chemistry',
+    image: require('../assets/Chemistry.png'),
+    headerColor: '#FFD700',
+  },
+  4: {
+    id: 4,
+    title: 'Physics',
+    image: require('../assets/Physics.png'),
+    headerColor: '#87CEEB',
+  },
+  5: {
+    id: 5,
+    title: 'Computer Science',
+    image: require('../assets/Computer science.png'),
+    headerColor: '#DDA0DD',
+  },
+  6: {
+    id: 6,
+    title: 'Math Stats',
+    image: require('../assets/Math Statistic.png'),
+    headerColor: '#F0E68C',
+  },
+  7: {
+    id: 7,
+    title: 'Geography',
+    image: require('../assets/Geography.png'),
+    headerColor: '#98D8C8',
+  },
+  8: {
+    id: 8,
+    title: 'Further Math',
+    image: require('../assets/FurtherMath.png'),
+    headerColor: '#FFA07A',
+  },
+};
 
 // Dummy data for passed custom exams/sessions
 const customExamHistory = [
@@ -36,6 +89,13 @@ const customExamHistory = [
 
 const CustomsExamScreen = () => {
   const navigation = useNavigation();
+  const router = useRouter();
+  const { subjectId, subjectName } = useLocalSearchParams();
+  
+  // Get subject data based on ID
+  const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
+  const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
+  
   const [showAlert, setShowAlert] = useState(false);
   const [showTestSetup, setShowTestSetup] = useState(false);
 
@@ -51,14 +111,14 @@ const CustomsExamScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* Header Section */}
-        <View style={styles.headerSection}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <View style={[styles.headerSection, { backgroundColor: subject.headerColor }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
           <View style={styles.illustrationContainer}>
-            <Image source={require('../assets/math.png')} style={styles.illustrationImage} />
+            <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
           </View>
-          <Text style={styles.headerTitle}>Mathemathics{"\n"}course</Text>
+          <Text style={styles.headerTitle}>{subject.title}{"\n"}course</Text>
           {/* Custom Exam Button */}
           <TouchableOpacity style={styles.customExamButton} onPress={() => setShowTestSetup(true)}>
             <Ionicons name="sparkles-outline" size={18} color="#a35dafff" />
@@ -87,11 +147,21 @@ const CustomsExamScreen = () => {
                 style={styles.questionModeTab}
                 onPress={() => {
                   if (questionMode.name === 'All') {
-                    navigation.navigate('Ss');
+                    router.push({
+                          pathname: '/SelectedCourseScreen',
+                          params: { userId: 42 }
+                       })
+                    // navigation.navigate('Ss');
                   } else if (questionMode.name === 'Junes') {
-                    navigation.navigate('JunesMode');
+                    router.push({
+                          pathname: '/JunesModeScreen',
+                          params: { subjectId: subjectIdNum, subjectName: subject.title }
+                       })
                   } else if (questionMode.name === 'Topics') {
-                    navigation.navigate('TopicsMode');
+                    router.push({
+                          pathname: '/TopicsModeScreen',
+                          params: { subjectId: subjectIdNum, subjectName: subject.title }
+                       })
                   } else if (questionMode.name === 'Customs exam') {
                     // Already on CustomsExamScreen, do nothing or scroll to top
                   } else {

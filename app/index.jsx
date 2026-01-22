@@ -7,6 +7,8 @@ import SubjectCard from '../components/SubjectCard'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter } from 'expo-router';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const scale = (size) => (SCREEN_WIDTH / 375) * size
@@ -53,12 +55,12 @@ const Home = () => {
             title: 'Further Math',
             image: require('../assets/FurtherMath.png'),
         },
-
-
     ]
 
     const scheme = useColorScheme()
     const theme = COLORS[scheme] ?? COLORS.light
+    const router = useRouter();
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <ThemedView style={styles.container}>
@@ -93,14 +95,30 @@ const Home = () => {
                 </View>
                 <FlatList
                     data={SUBJECT}
-                    renderItem={({ item }) => <SubjectCard title={item.title} image={item.image} />}
                     keyExtractor={(item) => item.id.toString()}
                     numColumns={2}
-
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listPadding}
                     columnWrapperStyle={styles.columnWrapper}
-                    showsVerticalScrollIndicator={false}
-                />
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={{ flex: 1 }}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                                // Navigate to subject screen with the subject ID
+                                router.push({
+                                    pathname: '/subject/[id]',
+                                    params: { id: item.id.toString() }
+                                });
+                            }}
+                        >
+                            <SubjectCard
+                                title={item.title}
+                                image={item.image}
+                            />
+                        </TouchableOpacity>
+                    )}
+                    />
             </ThemedView>
         </SafeAreaView>
     )
