@@ -45,8 +45,8 @@ const _layout = () => {
             // If onboarding not completed, redirect to onboarding screen
             if (!completed) {
                 // Only redirect if not already on onboarding/auth screens
-                if (currentRoute !== 'OnboardingScreen' && 
-                    currentRoute !== 'LoginScreen' && 
+                if (currentRoute !== 'OnboardingScreen' &&
+                    currentRoute !== 'LoginScreen' &&
                     currentRoute !== 'SignUpScreen' &&
                     currentRoute !== 'auth') {
                     router.replace('/OnboardingScreen');
@@ -61,8 +61,8 @@ const _layout = () => {
             console.error('Error checking onboarding status:', error);
             // On error, redirect to onboarding to be safe
             const currentRoute = segments[0] || '';
-            if (currentRoute !== 'OnboardingScreen' && 
-                currentRoute !== 'LoginScreen' && 
+            if (currentRoute !== 'OnboardingScreen' &&
+                currentRoute !== 'LoginScreen' &&
                 currentRoute !== 'SignUpScreen' &&
                 currentRoute !== 'auth') {
                 router.replace('/OnboardingScreen');
@@ -88,11 +88,12 @@ const _layout = () => {
 
     return (
         <Tabs
-            tabBar={(props) => tabBarVisible && <CustomNavBar {...props} />}
+            tabBar={(props) => <CustomNavBar {...props} />}
             screenOptions={{ headerShown: false }}
         >
             <Tabs.Screen name='index' options={{ title: 'Home' }} />
             <Tabs.Screen name='Chat' options={{ title: 'Chat' }} />
+            <Tabs.Screen name='Stats' options={{ title: 'Stats' }} />
             <Tabs.Screen name='profile' options={{ title: 'Profile' }} />
         </Tabs>
     )

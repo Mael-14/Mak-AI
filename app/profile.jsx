@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, useColorScheme } from 'react-native'
 import React from 'react'
 import { COLORS } from '../constant/color'
 import { Icon, MoveLeft, Activity, Star, UserPlus, Contact } from 'lucide-react-native'
@@ -9,7 +9,8 @@ import ThemedText from '../components/ThemedText'
 
 
 const profile = () => {
-    const theme = COLORS
+    const scheme = useColorScheme()
+    const theme = COLORS[scheme] ?? COLORS.light
 
     const settingOptions = [
         { id: '1', title: 'My Stats', icon: 'Activity' },
@@ -26,15 +27,15 @@ const profile = () => {
     };
 
     return (
-        <ThemedView style={styles.container}>
+        <ThemedView style={[styles.container, { backgroundcolor: 'green' }]}>
             <View style={styles.header}>
                 <TouchableOpacity >
-                    <MoveLeft size={24} color='#fff' />
+                    <MoveLeft size={24} color={theme.icon} />
                 </TouchableOpacity>
 
                 <ThemedText style={styles.headerTitle}>Profile</ThemedText>
             </View>
-            <View style={styles.profileCard}>
+            <ThemedView style={[styles.profileCard, { color: theme.card }]}>
 
                 <Image
                     source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQF02Jj8T2t7PdkytAw42HDuuSz7yXguKn8Lg&s' }} // Replace with actual image source
@@ -42,7 +43,7 @@ const profile = () => {
                 />
                 <ThemedText style={styles.nameText}>Kam Nathanael</ThemedText>
                 <Text style={styles.emailText}>Kamnathanael@gmail.com</Text>
-            </View>
+            </ThemedView>
             <ThemedText style={styles.sectionHeader}>Setting</ThemedText>
             {settingOptions.map((item) => (
                 <SettingsItem
@@ -62,61 +63,67 @@ export default profile
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000', // Solid black background
     },
-
-    // A. Header Styles
+    // 1. Refined Header
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 50, // For notch/status bar spacing
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingTop: 60,
         paddingBottom: 20,
     },
     headerTitle: {
-
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 23,
+        fontWeight: '700',
+        marginLeft: 15, // Aligns title better with the back button
+        letterSpacing: -0.5,
     },
+    // 2. Elevated Profile Card
     profileCard: {
-        backgroundColor: '#1C1C1C', // Dark gray card background
         marginHorizontal: 20,
-        padding: 20,
-        borderRadius: 15,
+        paddingVertical: 30,
+        paddingHorizontal: 20,
+        borderRadius: 28, // Matches your Stats screen radius
         alignItems: 'center',
-        marginBottom: 30,
-        // Add subtle shadow for depth on iOS
+        marginBottom: 25,
+        // Softer, more professional shadow
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(150, 150, 150, 0.1)', // Subtle border for definition
     },
     profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50, // Half of width/height for a circle
-        marginBottom: 10,
-        borderWidth: 2,
-        borderColor: '#D2FF5E', // Subtle border
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        marginBottom: 15,
+        borderWidth: 3,
+        borderColor: '#C084FC', // Using your "Mastered" purple color for brand consistency
     },
     nameText: {
-
-        fontSize: 20,
-        fontWeight: '600',
-        marginTop: 5,
+        fontSize: 22,
+        fontWeight: '700',
+        letterSpacing: -0.5,
     },
     emailText: {
-        color: '#A9A9A9',
-        fontSize: 14,
-        marginBottom: 15,
+        color: '#8E8E93', // Standard iOS Tertiary color
+        fontSize: 15,
+        marginTop: 4,
+        fontWeight: '500',
     },
+    // 3. Structured Section Header
     sectionHeader: {
-
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 20,
-        marginTop: 15,
-        marginBottom: 10,
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#C084FC', // Brand accent color
+        marginLeft: 24,
+        marginTop: 10,
+        marginBottom: 15,
+        textTransform: 'uppercase', // Professional labeling style
+        letterSpacing: 1.5,
     },
-})
+});

@@ -1,0 +1,663 @@
+[
+    {
+        "subjectCode": "0570",
+        "mathType": "Mathematics (Ordinary Level)",
+        "paper": "Paper 1",
+        "year": 2025,
+        "questions": [
+            {
+                "id": "Q1",
+                "topic": "Arithmetic",
+                "text": "The value of the digit 7 in the number 5.074 is",
+                "options": {
+                    "A": "70",
+                    "B": "7",
+                    "C": "5.07",
+                    "D": "0.07"
+                },
+                "answer": "D",
+                "explanation": "The first digit after the decimal is tenths, the second is hundredths. 7 is in the hundredths place, so its value is 0.07."
+            },
+            {
+                "id": "Q2",
+                "topic": "Algebra",
+                "text": "The Highest Common Factor (HCF) of $x^5, x^3, x^9$ is",
+                "options": {
+                    "A": "$x$",
+                    "B": "$x^3$",
+                    "C": "$x^5$",
+                    "D": "$x^9$"
+                },
+                "answer": "B",
+                "explanation": "For HCF of variables with exponents, always choose the lowest power shared by all terms."
+            },
+            {
+                "id": "Q3",
+                "topic": "Arithmetic",
+                "text": "Arranging the decimals 0.33, 0.42, 0.25 in ascending order gives",
+                "options": {
+                    "A": "0.25, 0.33, 0.42",
+                    "B": "0.42, 0.33, 0.25",
+                    "C": "0.25, 0.42, 0.33",
+                    "D": "0.33, 0.42, 0.25"
+                },
+                "answer": "A",
+                "explanation": "Ascending order means smallest to largest. 0.25 < 0.33 < 0.42."
+            },
+            {
+                "id": "Q4",
+                "topic": "Sets",
+                "text": "The number line that represents the set of elements in the set $T=\\{x: 0 \\leq x \\leq 5\\}$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "Diagram A",
+                    "B": "Diagram B",
+                    "C": "Diagram C",
+                    "D": "Diagram D"
+                },
+                "answer": "A",
+                "explanation": "The 'less than or equal to' sign (≤) means the endpoints are included, which is shown by solid/closed circles on 0 and 5."
+            },
+            {
+                "id": "Q5",
+                "topic": "Arithmetic",
+                "text": "The number -5 belongs to the set",
+                "options": {
+                    "A": "Natural numbers",
+                    "B": "Rational numbers",
+                    "C": "Irrational numbers",
+                    "D": "Integers"
+                },
+                "answer": "D",
+                "explanation": "Integers include all whole numbers and their negative counterparts. -5 is a negative whole number."
+            },
+            {
+                "id": "Q6",
+                "topic": "Arithmetic",
+                "text": "The fraction 'two and one fifth' in figures gives",
+                "options": {
+                    "A": "$2 \\frac{1}{5}$",
+                    "B": "$\\frac{2}{5}$",
+                    "C": "$1 \\frac{2}{5}$",
+                    "D": "$2 \\frac{2}{5}$"
+                },
+                "answer": "A",
+                "explanation": "'Two' is the whole number, and 'one fifth' is the fraction 1/5."
+            },
+            {
+                "id": "Q7",
+                "topic": "Arithmetic",
+                "text": "The number $234.5 \\times 10^3$ written in standard form is",
+                "options": {
+                    "A": "$2.345 \\times 10^4$",
+                    "B": "$2.345 \\times 10^5$",
+                    "C": "$2.345 \\times 10^2$",
+                    "D": "$2.345 \\times 10^1$"
+                },
+                "answer": "B",
+                "explanation": "Standard form requires one non-zero digit before the decimal. Moving the decimal two places left increases the power of 10 by 2 ($3+2=5$)."
+            },
+            {
+                "id": "Q8",
+                "topic": "Arithmetic",
+                "text": "The number 17.561 correct to the nearest whole number is",
+                "options": {
+                    "A": "18",
+                    "B": "17.6",
+                    "C": "17",
+                    "D": "17.60"
+                },
+                "answer": "A",
+                "explanation": "The first decimal digit is 5. Since it is 5 or greater, we round the whole number 17 up to 18."
+            },
+            {
+                "id": "Q9",
+                "topic": "Arithmetic",
+                "text": "In a class of 105 students, there are 60 girls. The ratio of boys to girls is",
+                "options": {
+                    "A": "4:3",
+                    "B": "7:4",
+                    "C": "3:4",
+                    "D": "4:7"
+                },
+                "answer": "C",
+                "explanation": "Number of boys = $105 - 60 = 45$. Ratio of boys to girls = $45:60$. Simplified by dividing by 15, we get $3:4$."
+            },
+            {
+                "id": "Q10",
+                "topic": "Arithmetic",
+                "text": "The rate at which 2,000,000 FCFA is invested for 2 years to yield an interest of 200,000 FCFA is",
+                "options": {
+                    "A": "2%",
+                    "B": "4%",
+                    "C": "10%",
+                    "D": "5%"
+                },
+                "answer": "D",
+                "explanation": "Using $I = (P \\times R \\times T) / 100$: $200,000 = (2,000,000 \\times R \\times 2) / 100$. Solving for R gives 5%."
+            },
+            {
+                "id": "Q11",
+                "topic": "Sets",
+                "text": "An empty set is represented as",
+                "options": {
+                    "A": "$\\{\\varnothing\\}$",
+                    "B": "$\\{\\}$",
+                    "C": "$\\{0\\}$",
+                    "D": "O"
+                },
+                "answer": "B",
+                "explanation": "An empty set contains no elements. It is represented by either the symbol $\\varnothing$ or empty braces $\\{\\}$."
+            },
+            {
+                "id": "Q12",
+                "topic": "Sets",
+                "text": "Given the set M = {prime factors of 25}, M is",
+                "options": {
+                    "A": "{1, 5, 25}",
+                    "B": "{5, 25}",
+                    "C": "{5}",
+                    "D": "{1, 5, 10, 25}"
+                },
+                "answer": "C",
+                "explanation": "Factors of 25 are 1, 5, 25. The only prime number in that list is 5."
+            },
+            {
+                "id": "Q13",
+                "topic": "Sets",
+                "text": "In set notation, the number of elements in P and not in Q is",
+                "options": {
+                    "A": "$n(P \\cap Q)$",
+                    "B": "$n(Q' \\cup P)$",
+                    "C": "$n(P' \\cap Q)$",
+                    "D": "$n(P \\cap Q')$"
+                },
+                "answer": "D",
+                "explanation": "'Not in Q' is $Q'$. 'In P AND not in Q' is the intersection: $P \\cap Q'$."
+            },
+            {
+                "id": "Q14",
+                "topic": "Logic",
+                "text": "Given that p: John is a Cameroonian and q: John is bilingual, 'If John is bilingual then he is a Cameroonian' is",
+                "options": {
+                    "A": "$p \\rightarrow q$",
+                    "B": "$q \\rightarrow p$",
+                    "C": "$p \\rightarrow \\sim q$",
+                    "D": "$q \\rightarrow \\sim p$"
+                },
+                "answer": "B",
+                "explanation": "In logic, 'If A then B' is written as $A \\rightarrow B$. Here, John being bilingual (q) is the condition for him being Cameroonian (p)."
+            },
+            {
+                "id": "Q15",
+                "topic": "Functions",
+                "text": "A mapping for which $x$ maps to $2x+1$ is called",
+                "options": {
+                    "A": "one-one",
+                    "B": "many-many",
+                    "C": "many-one",
+                    "D": "one-many"
+                },
+                "answer": "A",
+                "explanation": "For every distinct value of $x$, there is exactly one distinct value of $y$. This is a one-to-one mapping."
+            },
+            {
+                "id": "Q16",
+                "topic": "Functions",
+                "text": "Given that $f(x)=3-2x$, then $f(-1)$ gives",
+                "options": {
+                    "A": "5",
+                    "B": "1",
+                    "C": "-1",
+                    "D": "6"
+                },
+                "answer": "A",
+                "explanation": "Substitute -1 for $x$: $3 - 2(-1) = 3 + 2 = 5$."
+            },
+            {
+                "id": "Q17",
+                "topic": "Functions",
+                "text": "Given the function $f: x \\mapsto 3x+1$ and $g: x \\mapsto 2x$, $fg(x)$ is",
+                "options": {
+                    "A": "$6x+1$",
+                    "B": "$6x^2+1$",
+                    "C": "$6x+2$",
+                    "D": "$6x$"
+                },
+                "answer": "A",
+                "explanation": "Substitute $g(x)$ into $f(x)$: $f(2x) = 3(2x) + 1 = 6x + 1$."
+            },
+            {
+                "id": "Q18",
+                "topic": "Geometry",
+                "text": "The point at which two lines meet is called an",
+                "options": {
+                    "A": "angle",
+                    "B": "intercept",
+                    "C": "edge",
+                    "D": "origin"
+                },
+                "answer": "A",
+                "explanation": "An angle is formed at the intersection point (vertex) where two lines or rays meet."
+            },
+            {
+                "id": "Q19",
+                "topic": "Geometry",
+                "text": "Given that the interior angle of a polygon is $76^{\\circ}$, its exterior angle is",
+                "options": {
+                    "A": "$104^{\\circ}$",
+                    "B": "$14^{\\circ}$",
+                    "C": "$76^{\\circ}$",
+                    "D": "$38^{\\circ}$"
+                },
+                "answer": "A",
+                "explanation": "The sum of an interior angle and its adjacent exterior angle is always $180^{\\circ}$. $180 - 76 = 104$."
+            },
+            {
+                "id": "Q20",
+                "topic": "Geometry",
+                "text": "A regular solid with 11 nets is a",
+                "options": {
+                    "A": "square",
+                    "B": "cylinder",
+                    "C": "cuboid",
+                    "D": "cube"
+                },
+                "answer": "D",
+                "explanation": "A cube is unique because there are exactly 11 distinct ways its surfaces can be unfolded into a flat net."
+            },
+            {
+                "id": "Q21",
+                "topic": "Geometry",
+                "text": "In a construction, PQ is a perpendicular bisector of RS at T. The value of the angle PTS is",
+                "options": {
+                    "A": "$180^{\\circ}$",
+                    "B": "$60^{\\circ}$",
+                    "C": "$90^{\\circ}$",
+                    "D": "$45^{\\circ}$"
+                },
+                "answer": "C",
+                "explanation": "'Perpendicular' means the lines meet at a right angle, which is $90^{\\circ}$."
+            },
+            {
+                "id": "Q22",
+                "topic": "Geometry",
+                "text": "Given parallel lines $l_1, l_2$ and transversal $l_s$ with angle $b=85^{\\circ}$, the value of angle $a$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "$125^{\\circ}$",
+                    "B": "$85^{\\circ}$",
+                    "C": "$95^{\\circ}$",
+                    "D": "$175^{\\circ}$"
+                },
+                "answer": "C",
+                "explanation": "Consecutive interior angles (on the same side of the transversal) are supplementary. $180 - 85 = 95$."
+            },
+            {
+                "id": "Q23",
+                "topic": "Mensuration",
+                "text": "The circumference of a circle with radius 3 cm in terms of $\\pi$ is",
+                "options": {
+                    "A": "$3\\pi$",
+                    "B": "$6\\pi$",
+                    "C": "$18\\pi$",
+                    "D": "$9\\pi$"
+                },
+                "answer": "B",
+                "explanation": "$C = 2\\pi r$. Substituting $r=3$ gives $2 \\times \\pi \\times 3 = 6\\pi$."
+            },
+            {
+                "id": "Q24",
+                "topic": "Mensuration",
+                "text": "The area of a rectangle with dimensions 9 cm by 3 cm is",
+                "options": {
+                    "A": "$12 cm^2$",
+                    "B": "$24 cm^2$",
+                    "C": "$54 cm^2$",
+                    "D": "$27 cm^2$"
+                },
+                "answer": "D",
+                "explanation": "$Area = length \\times width$. $9 \\times 3 = 27$."
+            },
+            {
+                "id": "Q25",
+                "topic": "Mensuration",
+                "text": "The volume of a cone with base radius 3 cm and height 7 cm ($\\pi=22/7$) is",
+                "options": {
+                    "A": "$66 cm^3$",
+                    "B": "$198 cm^3$",
+                    "C": "$22 cm^3$",
+                    "D": "$44 cm^3$"
+                },
+                "answer": "A",
+                "explanation": "$V = (1/3)\\pi r^2 h$. $V = (1/3) \\times (22/7) \\times 3^2 \\times 7 = 66$."
+            },
+            {
+                "id": "Q26",
+                "topic": "Coordinate Geometry",
+                "text": "The $y$-intercept of the line $3y+4x=12$ is",
+                "options": {
+                    "A": "4",
+                    "B": "3",
+                    "C": "7",
+                    "D": "-4"
+                },
+                "answer": "A",
+                "explanation": "To find the $y$-intercept, set $x=0$: $3y + 4(0) = 12 \\Rightarrow 3y = 12 \\Rightarrow y = 4$."
+            },
+            {
+                "id": "Q27",
+                "topic": "Coordinate Geometry",
+                "text": "Two lines are perpendicular if their gradients $m_1, m_2$ satisfy",
+                "options": {
+                    "A": "$m_1m_2=1$",
+                    "B": "$m_1m_2=-1$",
+                    "C": "$m_1=m_2$",
+                    "D": "$2m_1=m_2$"
+                },
+                "answer": "B",
+                "explanation": "Perpendicular lines have gradients that are negative reciprocals of each other, meaning their product is -1."
+            },
+            {
+                "id": "Q28",
+                "topic": "Algebra",
+                "text": "The graph of the function $f(x)=2x^2-3x-2$ has",
+                "options": {
+                    "A": "maximum",
+                    "B": "no turning point",
+                    "C": "both",
+                    "D": "minimum turning point"
+                },
+                "answer": "D",
+                "explanation": "Because the coefficient of $x^2$ is positive (2), the parabola opens upwards and has a minimum turning point."
+            },
+            {
+                "id": "Q29",
+                "topic": "Algebra",
+                "text": "The number of factors in the expression $(x+1)(x+2)$ is",
+                "options": {
+                    "A": "1",
+                    "B": "4",
+                    "C": "3",
+                    "D": "2"
+                },
+                "answer": "D",
+                "explanation": "The expression is already factored into two distinct linear binomials: $(x+1)$ and $(x+2)$."
+            },
+            {
+                "id": "Q30",
+                "topic": "Algebra",
+                "text": "Simplifying $8a+3+5-3a$ gives",
+                "options": {
+                    "A": "$5a+8$",
+                    "B": "$11a+8$",
+                    "C": "$5a+5$",
+                    "D": "$8a+5$"
+                },
+                "answer": "A",
+                "explanation": "Group like terms: $(8a - 3a) + (3 + 5) = 5a + 8$."
+            },
+            {
+                "id": "Q31",
+                "topic": "Algebra",
+                "text": "Simplifying $2^2 \\times 2^{-3}$ gives",
+                "options": {
+                    "A": "$2^{-1}$",
+                    "B": "$2^5$",
+                    "C": "$2^1$",
+                    "D": "$2^4$"
+                },
+                "answer": "A",
+                "explanation": "When multiplying same bases, add the exponents: $2 + (-3) = -1$."
+            },
+            {
+                "id": "Q32",
+                "topic": "Algebra",
+                "text": "Given $A=\\pi r^2$, expressing $r$ in terms of $A$ and $\\pi$ is",
+                "options": {
+                    "A": "$A/\\pi$",
+                    "B": "$\\sqrt{A/\\pi}$",
+                    "C": "$\\sqrt{A}/\\pi$",
+                    "D": "$A/\\sqrt{\\pi^2}$"
+                },
+                "answer": "B",
+                "explanation": "Divide by $\\pi$ to get $r^2 = A/\\pi$, then take the square root of both sides."
+            },
+            {
+                "id": "Q33",
+                "topic": "Arithmetic",
+                "text": "The next term in the sequence 1, 1, 2, 3, 5, ... is",
+                "options": {
+                    "A": "7",
+                    "B": "9",
+                    "C": "10",
+                    "D": "8"
+                },
+                "answer": "D",
+                "explanation": "This is the Fibonacci sequence where each term is the sum of the previous two: $3 + 5 = 8$."
+            },
+            {
+                "id": "Q34",
+                "topic": "Arithmetic",
+                "text": "Given that y varies directly as x, the equation is",
+                "options": {
+                    "A": "$y \\propto 1/x$",
+                    "B": "$y \\propto x$",
+                    "C": "$y=kx$",
+                    "D": "$xy=k$"
+                },
+                "answer": "C",
+                "explanation": "Direct variation means $y$ is equal to $x$ multiplied by a constant $k$ ($y=kx$)."
+            },
+            {
+                "id": "Q35",
+                "topic": "Algebra",
+                "text": "The solution set of $3x-4 \\leq 8$ is",
+                "options": {
+                    "A": "$\\{x: x \\geq 4\\}$",
+                    "B": "$\\{x: x \\leq 4\\}$",
+                    "C": "$\\{x: x \\leq 4/3\\}$",
+                    "D": "$\\{x: x \\geq 4/3\\}$"
+                },
+                "answer": "B",
+                "explanation": "Add 4 to both sides: $3x \\leq 12$. Divide by 3: $x \\leq 4$."
+            },
+            {
+                "id": "Q36",
+                "topic": "Networks",
+                "text": "In a network with 4 vertices and 5 edges. The number of regions is",
+                "options": {
+                    "A": "6",
+                    "B": "2",
+                    "C": "5",
+                    "D": "3"
+                },
+                "answer": "D",
+                "explanation": "Using Euler's formula for networks: $V + R = E + 2$. $4 + R = 5 + 2 \\Rightarrow R = 3$."
+            },
+            {
+                "id": "Q37",
+                "topic": "Trigonometry",
+                "text": "In the right-angled triangle PQR, the adjacent side to $\\theta$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "PR",
+                    "B": "PQ",
+                    "C": "QR",
+                    "D": "PQR"
+                },
+                "answer": "C",
+                "explanation": "The adjacent side is the leg of the triangle that touches the angle $\\theta$ but is not the hypotenuse."
+            },
+            {
+                "id": "Q38",
+                "topic": "Trigonometry",
+                "text": "The value of $\\frac{\\sin 30^{\\circ}}{\\cos 30^{\\circ}}$ is",
+                "options": {
+                    "A": "$\\sqrt{3}$",
+                    "B": "$\\frac{\\sqrt{3}}{2}$",
+                    "C": "$\\frac{1}{\\sqrt{3}}$",
+                    "D": "$\\frac{2}{\\sqrt{3}}$"
+                },
+                "answer": "C",
+                "explanation": "$\\sin 30/ \\cos 30 = \\tan 30$. The value of $\\tan 30^{\\circ}$ is $1/\\sqrt{3}$."
+            },
+            {
+                "id": "Q39",
+                "topic": "Trigonometry",
+                "text": "The angle of elevation to a bird is $40^{\\circ}$. The angle of depression from the bird is",
+                "options": {
+                    "A": "$40^{\\circ}$",
+                    "B": "$50^{\\circ}$",
+                    "C": "$90^{\\circ}$",
+                    "D": "$10^{\\circ}$"
+                },
+                "answer": "A",
+                "explanation": "Angles of elevation and depression are alternate interior angles, so they are always equal."
+            },
+            {
+                "id": "Q40",
+                "topic": "Vectors",
+                "text": "Given $\\mathbf{a}=\\binom{7}{3}$ and $\\mathbf{b}=\\binom{2}{-9}$, then $\\mathbf{a}+\\mathbf{b}$ is",
+                "options": {
+                    "A": "$\\binom{-5}{-12}$",
+                    "B": "$\\binom{-12}{-5}$",
+                    "C": "$\\binom{6}{-9}$",
+                    "D": "$\\binom{9}{-6}$"
+                },
+                "answer": "D",
+                "explanation": "Add the components: $\\binom{7+2}{3+(-9)} = \\binom{9}{-6}$."
+            },
+            {
+                "id": "Q41",
+                "topic": "Vectors",
+                "text": "The vector $\\mathbf{OP}=\\mathbf{i}-\\mathbf{j}$ lies in the",
+                "options": {
+                    "A": "1st quadrant",
+                    "B": "2nd quadrant",
+                    "C": "4th quadrant",
+                    "D": "3rd quadrant"
+                },
+                "answer": "C",
+                "explanation": "The vector has a positive x (+1) and a negative y (-1), which corresponds to the 4th quadrant."
+            },
+            {
+                "id": "Q42",
+                "topic": "Vectors",
+                "text": "The magnitude of the vector $-5\\mathbf{i}+12\\mathbf{j}$ is",
+                "options": {
+                    "A": "$\\sqrt{119}$",
+                    "B": "13",
+                    "C": "7",
+                    "D": "17"
+                },
+                "answer": "B",
+                "explanation": "Magnitude $= \\sqrt{x^2 + y^2}$. $\\sqrt{(-5)^2 + 12^2} = \\sqrt{25 + 144} = 13$."
+            },
+            {
+                "id": "Q43",
+                "topic": "Matrices",
+                "text": "Given the matrix $A=\\begin{pmatrix}3 \\\\ 4 \\\\ 2\\end{pmatrix}$, $A^T$ is",
+                "options": {
+                    "A": "$(3, 4, 2)$",
+                    "B": "Vertical",
+                    "C": "Diagonal",
+                    "D": "Null"
+                },
+                "answer": "A",
+                "explanation": "The transpose ($A^T$) of a column matrix is a row matrix containing the same elements."
+            },
+            {
+                "id": "Q44",
+                "topic": "Matrices",
+                "text": "Find m if the matrix $\\begin{pmatrix}m+2 & 3 \\\\ 4 & -3\\end{pmatrix}$ is singular",
+                "options": {
+                    "A": "6",
+                    "B": "2",
+                    "C": "-6",
+                    "D": "-2"
+                },
+                "answer": "C",
+                "explanation": "A singular matrix has a determinant of 0. $(m+2)(-3) - (3 \\times 4) = 0 \\Rightarrow -3m - 6 - 12 = 0 \\Rightarrow m = -6$."
+            },
+            {
+                "id": "Q45",
+                "topic": "Transformations",
+                "text": "Coordinates of A(1, 3) reflected on the x-axis are",
+                "options": {
+                    "A": "(1, -3)",
+                    "B": "(-1, 3)",
+                    "C": "(-1,-3)",
+                    "D": "(-3, -1)"
+                },
+                "answer": "A",
+                "explanation": "Reflection in the x-axis keeps x the same but changes the sign of y: $(x, y) \\rightarrow (x, -y)$."
+            },
+            {
+                "id": "Q46",
+                "topic": "Matrices",
+                "text": "Given P and Q, calculate P+Q",
+                "options": {
+                    "A": "Matrix A",
+                    "B": "Matrix B",
+                    "C": "Matrix C",
+                    "D": "Matrix D"
+                },
+                "answer": "B",
+                "explanation": "Add corresponding elements from matrix P and matrix Q."
+            },
+            {
+                "id": "Q47",
+                "topic": "Statistics",
+                "text": "Mode, median and mean are measures of",
+                "options": {
+                    "A": "deviation",
+                    "B": "frequency",
+                    "C": "central tendency",
+                    "D": "dispersion"
+                },
+                "answer": "C",
+                "explanation": "These are the three standard ways to find the 'center' or average of a data set."
+            },
+            {
+                "id": "Q48",
+                "topic": "Statistics",
+                "text": "The median of 3, 7, 9, 11, 13 is",
+                "options": {
+                    "A": "11",
+                    "B": "13",
+                    "C": "8.6",
+                    "D": "9"
+                },
+                "answer": "D",
+                "explanation": "The median is the middle value in an ordered list. In this list of 5 numbers, the 3rd number is 9."
+            },
+            {
+                "id": "Q49",
+                "topic": "Statistics",
+                "text": "The range of 3, 2, 0, 5, 6, 4 is",
+                "options": {
+                    "A": "4",
+                    "B": "3.5",
+                    "C": "2",
+                    "D": "6"
+                },
+                "answer": "D",
+                "explanation": "Range = Largest value - Smallest value. $6 - 0 = 6$."
+            },
+            {
+                "id": "Q50",
+                "topic": "Statistics",
+                "text": "If probability of doing math is 0.6, the probability of NOT doing it is",
+                "options": {
+                    "A": "0.6",
+                    "B": "0.5",
+                    "C": "0.4",
+                    "D": "0.2"
+                },
+                "answer": "C",
+                "explanation": "The sum of probabilities is always 1. $1 - 0.6 = 0.4$."
+            }
+        ]
+    }
+]

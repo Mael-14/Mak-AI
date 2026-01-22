@@ -138,7 +138,7 @@ const LoginScreen = () => {
               email: userCredential.user.email,
               name: userCredential.user.displayName
             }));
-            
+
             Alert.alert('Success', 'Login successful!');
             router.push('/index');
           } catch (storageError) {
@@ -150,7 +150,7 @@ const LoginScreen = () => {
       } catch (error) {
         // Handle errors gracefully without triggering verbose call stack
         let errorMessage = 'Login failed. Please try again.';
-        
+
         // Handle Firebase Auth errors
         if (error?.code === 'auth/user-not-found') {
           errorMessage = 'No account found with this email. Please sign up first.';
@@ -167,9 +167,9 @@ const LoginScreen = () => {
         } else if (error?.message) {
           errorMessage = error.message;
         }
-        
+
         // Use setTimeout to prevent error propagation that triggers call stack
-      setTimeout(() => {
+        setTimeout(() => {
           Alert.alert('Error', errorMessage);
         }, 0);
       } finally {
@@ -181,7 +181,7 @@ const LoginScreen = () => {
   // Handle Google login via backend OAuth
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
+
     try {
       // Step 1: Get Google OAuth URL from backend
       let response;
@@ -195,12 +195,12 @@ const LoginScreen = () => {
         if (apiError.response?.status === 500) {
           const errorMsg = apiError.response?.data?.message || 'Backend error. Check server logs.';
           throw new Error(errorMsg);
-    }
+        }
         throw apiError;
       }
-      
+
       const authUrl = response?.data?.authUrl || response?.authUrl;
-      
+
       if (!authUrl) {
         throw new Error('Failed to get Google OAuth URL from backend');
       }
@@ -228,10 +228,10 @@ const LoginScreen = () => {
 
         // Step 3: Sign in to Firebase with custom token from backend
         const userCredential = await signInWithCustomToken(auth, token);
-        
+
         // Step 4: Get Firebase ID token
         const firebaseIdToken = await userCredential.user.getIdToken();
-        
+
         // Step 5: Store authentication data
         await AsyncStorage.setItem('authToken', firebaseIdToken);
         await AsyncStorage.setItem('userData', JSON.stringify({
@@ -247,7 +247,7 @@ const LoginScreen = () => {
       }
     } catch (error) {
       let errorMessage = 'Google sign-in failed. Please try again.';
-      
+
       // Network/connection errors
       if (error?.message?.includes('Cannot connect to server')) {
         errorMessage = error.message;
@@ -262,9 +262,9 @@ const LoginScreen = () => {
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       console.error('Google login error:', error);
-      
+
       setTimeout(() => {
         Alert.alert('Error', errorMessage);
       }, 0);
@@ -302,7 +302,7 @@ const LoginScreen = () => {
     } catch (error) {
       console.error('Forgot password error:', error);
       let errorMessage = 'Failed to send password reset email.';
-      
+
       if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email.';
       } else if (error.code === 'auth/invalid-email') {
@@ -310,7 +310,7 @@ const LoginScreen = () => {
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your internet connection.';
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);

@@ -22,10 +22,12 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: secondary }]}>
       {state.routes.map((route, index) => {
-        console.log("route:", route);
 
-        if ([ 'SignUpScreen', 'auth/ResetPassword','CustomsExamScreen','TopicsModeScreen','SelectedCourseScreen', 'RevisionMode', 'ExamMode', 'OnboardingScreen', 'JunesModeScreen',"subject/[id]"].includes(route.name)) {
-          return null; // Skip rendering this tab
+
+        // Only render these specific tabs (case-insensitive): home, stats, profile, onboarding
+        const allowedTabs = ['index', 'Stats', 'Chat', 'profile', 'ResetPassword'];
+        if (!allowedTabs.includes(String(route.name))) {
+          return null; // Skip rendering all other tabs
         }
         const { options } = descriptors[route.key];
 
@@ -67,12 +69,12 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
             testID={options.tabBarButtonTestID}
             onPress={onPress}
             onLongPress={onLongPress}
-            style={[styles.tabItem, { backgroundColor: isFocused ? bg : 'transparent' }]}
+            style={[styles.tabItem, { backgroundColor: isFocused ? 'transparent' : 'transparent' }]}
           >
-            {getIconByrouteName(route.name, isFocused ? secondary : bg)}
-            {isFocused && <Text style={styles.text}>
+            {getIconByrouteName(route.name, isFocused ? bg : 'gray')}
+            {/* {isFocused && <Text style={styles.text}>
               {label}
-            </Text>}
+            </Text>}*/}
           </PlatformPressable>
         );
       })}
@@ -84,6 +86,8 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
         return <Ionicons name="home-outline" size={24} color={color} />;
       case 'Chat':
         return <Ionicons name="chatbubble-outline" size={24} color={color} />;
+      case 'Stats':
+        return <Ionicons name="stats-chart-outline" size={24} color={color} />;
       case 'profile':
         return <Ionicons name="person-outline" size={24} color={color} />;
       default:
@@ -107,7 +111,7 @@ const styles = StyleSheet.create({
     bottom: 40,
     borderRadius: 40,
     paddingHorizontal: 12,
-    height: 43,
+    height: 50,
   },
   tabItem: {
     flexDirection: 'row',

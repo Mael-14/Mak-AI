@@ -9,11 +9,16 @@ import { COLORS } from '../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const scale = (size) => (SCREEN_WIDTH / 375) * size
 
 const Home = () => {
+    const router = useRouter()
+    const goToCards = () => {
+        router.push('/Flashcards')
+    }
     const SUBJECT = [
         {
             id: 1,
@@ -59,7 +64,7 @@ const Home = () => {
 
     const scheme = useColorScheme()
     const theme = COLORS[scheme] ?? COLORS.light
-    const router = useRouter();
+
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -76,7 +81,7 @@ const Home = () => {
                     <LinearGradient colors={['#7085FC', '#A6B2FF']} style={styles.bannerGradient}>
                         <View style={styles.bannerContent}>
                             <ThemedText style={styles.bannerTitle}>Flashcards</ThemedText>
-                            <TouchableOpacity style={styles.startButton}>
+                            <TouchableOpacity style={styles.startButton} onPress={goToCards}>
                                 <Text style={styles.startButtonText}>Start Now</Text>
                             </TouchableOpacity>
                         </View>
@@ -118,7 +123,7 @@ const Home = () => {
                             />
                         </TouchableOpacity>
                     )}
-                    />
+                />
             </ThemedView>
         </SafeAreaView>
     )
