@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
-const db = admin.firestore();
+const { db } = require('../config/firebase')
 
 router.get('/questions/:subjectCode', async (req, res) => {
     try {
