@@ -3,26 +3,35 @@ import React, { use } from 'react'
 import Onboarding from 'react-native-onboarding-swiper';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-//import { Button } from 'react-native-elements';
+import { useRouter } from 'expo-router';
+import { setOnboardingCompleted } from '../utils/onboardingStorage';
 
 const {width,height} = Dimensions.get('window')
 
 
 
 const OnboardingScreen = () => {
-    const navigation = useNavigation();
+    const router = useRouter();
 
-    const handleSkip = () => {
-      navigation.navigate('Login')
+    const handleSkip = async () => {
+      // Mark onboarding as completed
+      await setOnboardingCompleted();
+      // Navigate to login screen
+      router.replace('/LoginScreen');
     }
 
-    const handleDone = () => {
-      navigation.navigate('Login')
+    const handleDone = async () => {
+      // Mark onboarding as completed
+      await setOnboardingCompleted();
+      // Navigate to login screen
+      router.replace('/LoginScreen');
     }
 
     const doneButton = ({...props}) => (
-      <TouchableOpacity style={{margin:20}}>
+      <TouchableOpacity 
+        style={{margin:20}}
+        onPress={handleDone}
+      >
         <Text style={styles.onboardBtn} {...props}>Get Started</Text>
       </TouchableOpacity>
     )
@@ -34,7 +43,10 @@ const OnboardingScreen = () => {
     )
 
     const Skip = ({...props}) => (
-      <TouchableOpacity style={{margin:20}}>
+      <TouchableOpacity 
+        style={{margin:20}}
+        onPress={handleSkip}
+      >
         <Text style={styles.onboardBtn} {...props}>Skip</Text>
       </TouchableOpacity>
     )
