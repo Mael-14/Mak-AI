@@ -3,9 +3,8 @@ import React, { use } from 'react'
 import Onboarding from 'react-native-onboarding-swiper';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-//import { Button } from 'react-native-elements';
+import { setOnboardingCompleted } from '../utils/onboardingStorage';
 
 const { width, height } = Dimensions.get('window')
 
@@ -15,18 +14,27 @@ const handleDone = () => {
 }
 
 const OnboardingScreen = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
 
-  const handleSkip = () => {
-    navigation.navigate('Login')
+  const handleSkip = async () => {
+    // Mark onboarding as completed
+    await setOnboardingCompleted();
+    // Navigate to login screen
+    router.replace('/LoginScreen');
   }
 
-  {/* const handleDone = () => {
-      navigation.navigate('Login')
-    }*/}
+  const handleDone = async () => {
+    // Mark onboarding as completed
+    await setOnboardingCompleted();
+    // Navigate to login screen
+    router.replace('/LoginScreen');
+  }
 
   const doneButton = ({ ...props }) => (
-    <TouchableOpacity style={{ margin: 20 }}>
+    <TouchableOpacity
+      style={{ margin: 20 }}
+      onPress={handleDone}
+    >
       <Text style={styles.onboardBtn} {...props}>Get Started</Text>
     </TouchableOpacity>
   )
@@ -38,7 +46,10 @@ const OnboardingScreen = () => {
   )
 
   const Skip = ({ ...props }) => (
-    <TouchableOpacity style={{ margin: 20 }}>
+    <TouchableOpacity
+      style={{ margin: 20 }}
+      onPress={handleSkip}
+    >
       <Text style={styles.onboardBtn} {...props}>Skip</Text>
     </TouchableOpacity>
   )
@@ -80,8 +91,8 @@ const OnboardingScreen = () => {
             {
               backgroundColor: '#fff',
               image: (
-                <View style={styles.lottie}>
-                  <LottieView source={require('../../animations/WorkHard.json')} autoPlay loop style={styles.lottie} />
+                <View style={styles.lottie} s>
+                  <LottieView source={require('../animations/WorkHard.json')} autoPlay loop style={styles.lottie} />
                 </View>
               ),
               title: 'Boost Productivity',
@@ -91,7 +102,7 @@ const OnboardingScreen = () => {
               backgroundColor: '#fff',
               image: (
                 <View style={styles.lottie}>
-                  <LottieView source={require('../../animations/ReadingBoy.json')} autoPlay loop style={styles.lottie} />
+                  <LottieView source={require('../animations/ReadingBoy.json')} autoPlay loop style={styles.lottie} />
                 </View>
               ),
               title: 'Work Seamlessly',
@@ -101,7 +112,7 @@ const OnboardingScreen = () => {
               backgroundColor: '#fff',
               image: (
                 <View style={styles.lottie}>
-                  <LottieView source={require('../../animations/Books.json')} autoPlay loop style={styles.lottie} />
+                  <LottieView source={require('../animations/Books.json')} autoPlay loop style={styles.lottie} />
                 </View>
               ),
               title: 'Archieve High Goals',

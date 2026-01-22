@@ -8,14 +8,20 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { useModal } from '../context/ModalContext';
-import { BlurView } from '@react-native-community/blur';
-import Aicon from '../assets/avatar.png'
-import Licon from '../assets/lock.png'
+import { useRouter } from 'expo-router';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, signInWithCustomToken } from 'firebase/auth';
+import { auth } from '../config/firebase';
+import { authAPI } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+// Complete web browser authentication
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    email: '',
     password: ''
   });
 
@@ -27,15 +33,15 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Validation functions
-  const validateName = (name) => {
-    if (!name) return 'Name is required';
-    //if (name.length < 3) return 'Name must be at least 3 characters';
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return 'Email is required';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
     return '';
   };
 
   const validatePassword = (password) => {
     if (!password) return 'Password is required';
-    //if (password.length < 6) return 'Password must be at least 6 characters';
     return '';
   };
 
@@ -48,8 +54,8 @@ const LoginScreen = () => {
 
     // Validate on change if field was touched
     if (touched[field]) {
-      const error = field === 'name'
-        ? validateName(value)
+      const error = field === 'email'
+        ? validateEmail(value)
         : validatePassword(value);
       setErrors(prev => ({
         ...prev,
@@ -66,8 +72,8 @@ const LoginScreen = () => {
     }));
 
     const value = formData[field];
-    const error = field === 'name'
-      ? validateName(value)
+    const error = field === 'email'
+      ? validateEmail(value)
       : validatePassword(value);
     setErrors(prev => ({
       ...prev,
@@ -76,47 +82,242 @@ const LoginScreen = () => {
   };
 
   // Handle form submission to verify the inputs
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Validate all fields
-    const nameError = validateName(formData.name);
+    const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
 
     setErrors({
-      name: nameError,
+      email: emailError,
       password: passwordError
     });
 
     setTouched({
-      name: true,
+      email: true,
       password: true
     });
 
     // If no errors, proceed with login
-    if (!nameError && !passwordError) {
+    if (!emailError && !passwordError) {
       setIsLoading(true);
 
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Login data:', formData);
-        Alert.alert('Success', 'Login successful!');
+      try {
+        // Step 1: Sign in with Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          formData.email,
+          formData.password
+        );
+
+        // Step 2: Get ID token
+        const idToken = await userCredential.user.getIdToken();
+
+        // Step 3: Verify token with backend and get user profile
+        try {
+          const response = await authAPI.login(idToken);
+
+          // Step 4: Store token and user data for future use
+          await AsyncStorage.setItem('authToken', idToken);
+          await AsyncStorage.setItem('userData', JSON.stringify({
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            name: userCredential.user.displayName || response.data?.name
+          }));
+
+          // Step 5: Success - show alert and navigate
+          Alert.alert('Success', 'Login successful!');
+          // Navigate to home screen - adjust route as needed
+          router.push('/index'); // or your home route
+        } catch (apiError) {
+          // Silently handle backend errors - user is already authenticated in Firebase
+          // Store token anyway for offline capability
+          try {
+            await AsyncStorage.setItem('authToken', idToken);
+            await AsyncStorage.setItem('userData', JSON.stringify({
+              uid: userCredential.user.uid,
+              email: userCredential.user.email,
+              name: userCredential.user.displayName
+            }));
+
+            Alert.alert('Success', 'Login successful!');
+            router.push('/index');
+          } catch (storageError) {
+            // Handle storage errors silently
+            Alert.alert('Success', 'Login successful!');
+            router.push('/index');
+          }
+        }
+      } catch (error) {
+        // Handle errors gracefully without triggering verbose call stack
+        let errorMessage = 'Login failed. Please try again.';
+
+        // Handle Firebase Auth errors
+        if (error?.code === 'auth/user-not-found') {
+          errorMessage = 'No account found with this email. Please sign up first.';
+        } else if (error?.code === 'auth/wrong-password') {
+          errorMessage = 'Incorrect password. Please try again.';
+        } else if (error?.code === 'auth/invalid-email') {
+          errorMessage = 'Invalid email address. Please check and try again.';
+        } else if (error?.code === 'auth/invalid-credential') {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error?.code === 'auth/network-request-failed') {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (error?.code === 'auth/too-many-requests') {
+          errorMessage = 'Too many failed attempts. Please try again later.';
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        // Use setTimeout to prevent error propagation that triggers call stack
+        setTimeout(() => {
+          Alert.alert('Error', errorMessage);
+        }, 0);
+      } finally {
         setIsLoading(false);
-        // TODO: Navigate to home screen after successful login
-        // navigation.navigate('Home');
-      }, 1500);
+      }
     }
   };
 
-  // Handle Google login
-  const handleGoogleLogin = () => {
-    console.log('Google login clicked');
-    Alert.alert('Google Login', 'Google authentication will be initiated here');
+  // Handle Google login via backend OAuth
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+
+    try {
+      // Step 1: Get Google OAuth URL from backend
+      let response;
+      try {
+        response = await authAPI.getGoogleAuthUrl();
+      } catch (apiError) {
+        // Handle network errors specifically
+        if (apiError.code === 'ECONNREFUSED' || apiError.message?.includes('Network Error')) {
+          throw new Error('Cannot connect to server. Please ensure the backend is running on port 5000.');
+        }
+        if (apiError.response?.status === 500) {
+          const errorMsg = apiError.response?.data?.message || 'Backend error. Check server logs.';
+          throw new Error(errorMsg);
+        }
+        throw apiError;
+      }
+
+      const authUrl = response?.data?.authUrl || response?.authUrl;
+
+      if (!authUrl) {
+        throw new Error('Failed to get Google OAuth URL from backend');
+      }
+
+      // Step 2: Open Google OAuth URL in browser
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        Linking.createURL('/auth/google/callback')
+      );
+
+      if (result.type === 'success') {
+        // Parse the callback URL
+        const url = new URL(result.url);
+        const token = url.searchParams.get('token');
+        const uid = url.searchParams.get('uid');
+        const error = url.searchParams.get('error');
+
+        if (error) {
+          throw new Error('Google authentication failed');
+        }
+
+        if (!token) {
+          throw new Error('No token received from backend');
+        }
+
+        // Step 3: Sign in to Firebase with custom token from backend
+        const userCredential = await signInWithCustomToken(auth, token);
+
+        // Step 4: Get Firebase ID token
+        const firebaseIdToken = await userCredential.user.getIdToken();
+
+        // Step 5: Store authentication data
+        await AsyncStorage.setItem('authToken', firebaseIdToken);
+        await AsyncStorage.setItem('userData', JSON.stringify({
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          name: userCredential.user.displayName || userCredential.user.email?.split('@')[0]
+        }));
+
+        Alert.alert('Success', 'Login successful!');
+        router.push('/index');
+      } else {
+        throw new Error('Google sign-in was cancelled');
+      }
+    } catch (error) {
+      let errorMessage = 'Google sign-in failed. Please try again.';
+
+      // Network/connection errors
+      if (error?.message?.includes('Cannot connect to server')) {
+        errorMessage = error.message;
+      } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('Network Error')) {
+        errorMessage = 'Cannot connect to backend server. Please ensure the backend is running.';
+      } else if (error?.response?.status === 500) {
+        errorMessage = error?.response?.data?.message || 'Backend server error. Please check server configuration.';
+      } else if (error?.message?.includes('cancelled')) {
+        errorMessage = 'Google sign-in was cancelled.';
+      } else if (error?.code === 'auth/invalid-custom-token') {
+        errorMessage = 'Invalid authentication token. Please try again.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      console.error('Google login error:', error);
+
+      setTimeout(() => {
+        Alert.alert('Error', errorMessage);
+      }, 0);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle forgot password
-  const handleForgotPassword = () => {
-    console.log('Forgot password clicked');
-    Alert.alert('Forgot Password', 'Password reset flow will be initiated');
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      Alert.alert('Email Required', 'Please enter your email address first');
+      return;
+    }
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Option 1: Use Firebase Auth SDK directly (recommended)
+      await sendPasswordResetEmail(auth, formData.email);
+      Alert.alert(
+        'Email Sent',
+        'Password reset email has been sent. Please check your inbox.',
+        [{ text: 'OK' }]
+      );
+
+      // Option 2: Use backend API (uncomment if preferred)
+      // await authAPI.forgotPassword(formData.email);
+      // Alert.alert('Success', 'Password reset email sent!');
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      let errorMessage = 'Failed to send password reset email.';
+
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const router = useRouter();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffffff' }}>
@@ -130,29 +331,31 @@ const LoginScreen = () => {
           <Text>Enter your credentials to continue</Text>
         </View>
 
-        {/* Name Input */}
+        {/* Email Input */}
         <View style={[
           styles.inputContainer,
-          errors.name && touched.name && styles.inputError
+          errors.email && touched.email && styles.inputError
         ]}>
           <View style={{ paddingRight: 20 }}>
             {/* <Image source={Aicon} style={{ width: 12, height: 15 }} /> */}
-            <Ionicons name="person-outline" size={22} color="#000000ff" />
+            <Ionicons name="mail-outline" size={22} color="#000000ff" />
           </View>
           <TextInput
             style={styles.input}
-            placeholder="Name"
-            value={formData.name}
-            onChangeText={(value) => handleChange('name', value)}
-            onBlur={() => handleBlur('name')}
+            placeholder="Email"
+            value={formData.email}
+            onChangeText={(value) => handleChange('email', value)}
+            onBlur={() => handleBlur('email')}
             placeholderTextColor="#a1a1a1ff"
-            autoCapitalize="words"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
-        {errors.name && touched.name && (
+        {errors.email && touched.email && (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle" size={14} color="#EF4444" />
-            <Text style={styles.errorText}>{errors.name}</Text>
+            <Text style={styles.errorText}>{errors.email}</Text>
           </View>
         )}
 
@@ -235,7 +438,7 @@ const LoginScreen = () => {
         <TouchableOpacity>
           <Text
             style={[styles.signUpText]}
-            onPress={() => navigation.navigate('Signup')}
+            onPress={() => router.push('/SignUpScreen')}
           >
             SignUp
           </Text>

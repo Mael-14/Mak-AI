@@ -2,8 +2,7 @@ const admin = require('firebase-admin');
 require('dotenv').config();
 
 // Initialize Firebase Admin SDK
-// Make sure to set FIREBASE_SERVICE_ACCOUNT_KEY as environment variable
-// or create a serviceAccountKey.json file in the config directory
+// serviceAccountKey.json file in the config directory
 
 let serviceAccount;
 

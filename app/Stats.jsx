@@ -126,14 +126,12 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-
-
     },
     Streakcontainer: {
         backgroundColor: '#FFEBEE',
         padding: 20,
         marginBottom: 20,
-        marginTop: 10,
+        marginTop: 20,
         marginHorizontal: 8,
         borderRadius: 28,
         shadowColor: "#000",
@@ -257,5 +255,8 @@ const styles = StyleSheet.create({
     scrollPadding: {
         padding: 20,
     },
+    scrollContent: {
+        flex:1,
+    }
 
 })

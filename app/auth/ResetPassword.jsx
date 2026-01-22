@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'reac
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../services/firebaseConfig'
+import { auth } from '../../services/firebaseConfig'
 const ResetPassword = () => {
     const [email, setEmail] = useState('');
     const handleResetPassword = async (email) => {

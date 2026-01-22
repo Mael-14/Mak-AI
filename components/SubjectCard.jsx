@@ -1,10 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, Image, Dimensions } from 'react-native'
 import React from 'react'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const SubjectCard = ({ title, image }) => {
   return (
-    <TouchableOpacity style={[styles.card, { width: (SCREEN_WIDTH - 55) / 2 }]}>
+    <View style={[styles.card, { width: (SCREEN_WIDTH - 55) / 2 }]}>
       <View style={styles.imageContainer}>
         <Image
           source={image}
@@ -13,7 +13,7 @@ const SubjectCard = ({ title, image }) => {
         />
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
   )
 }
 

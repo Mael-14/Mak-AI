@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -9,11 +8,87 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
-import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-const MyCoursesScreen = () => {
-  const navigation = useNavigation();
+// Subject data mapping - matches the subjects from home screen
+const SUBJECTS_DATA = {
+  1: {
+    id: 1,
+    title: 'Mathematics',
+    image: require('../../assets/Maths.png'),
+    headerColor: '#ffb380',
+  },
+  2: {
+    id: 2,
+    title: 'Biology',
+    image: require('../../assets/Biology.png'),
+    headerColor: '#90EE90',
+  },
+  3: {
+    id: 3,
+    title: 'Chemistry',
+    image: require('../../assets/Chemistry.png'),
+    headerColor: '#FFD700',
+  },
+  4: {
+    id: 4,
+    title: 'Physics',
+    image: require('../../assets/Physics.png'),
+    headerColor: '#87CEEB',
+  },
+  5: {
+    id: 5,
+    title: 'Computer Science',
+    image: require('../../assets/Computer science.png'),
+    headerColor: '#DDA0DD',
+  },
+  6: {
+    id: 6,
+    title: 'Math Stats',
+    image: require('../../assets/Math Statistic.png'),
+    headerColor: '#F0E68C',
+  },
+  7: {
+    id: 7,
+    title: 'Geography',
+    image: require('../../assets/Geography.png'),
+    headerColor: '#98D8C8',
+  },
+  8: {
+    id: 8,
+    title: 'Further Math',
+    image: require('../../assets/FurtherMath.png'),
+    headerColor: '#FFA07A',
+  },
+};
+
+const SubjectScreen = () => {
+  const router = useRouter();
+  const { id } = useLocalSearchParams();
+  
+  // Get subject data based on ID
+  const subjectId = parseInt(id);
+  const subject = SUBJECTS_DATA[subjectId];
+
+  // If subject not found, show error or default
+  if (!subject) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Subject not found</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const QuestionMode = [
     { id: 1, name: 'All', icon: (<Ionicons name="grid-outline" size={15} color="black" />), color: '#fff' },
     { id: 2, name: 'Junes', icon: '📚', color: '#fff' },
@@ -68,25 +143,24 @@ const MyCoursesScreen = () => {
       <StatusBar barStyle="dark-content" />
       <ScrollView style={styles.scrollView}>
         {/* Header Section */}
-        <View style={styles.headerSection}>
-          <TouchableOpacity style={styles.backButton}>
+        <View style={[styles.headerSection, { backgroundColor: subject.headerColor }]}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
 
-          {/* Illustration */}
+          {/* Subject Image */}
           <View style={styles.illustrationContainer}>
-            {/* <Text style={styles.starIcon}>⭐</Text>
-            <View style={styles.capContainer}>
-              <View style={styles.graduationCap}>
-                <View style={styles.capTop} />
-                <View style={styles.capBottom} />
-              </View>
-              <View style={styles.tassel} />
-            </View> */}
-            <Image source={require('../assets/math.png')} style={styles.illustrationImage} />
+            <Image 
+              source={subject.image} 
+              style={styles.illustrationImage} 
+              resizeMode="contain"
+            />
           </View>
 
-          <Text style={styles.headerTitle}>Mathemathics{'\n'}course</Text>
+          <Text style={styles.headerTitle}>{subject.title}{'\n'}course</Text>
 
           {/* Stats */}
           <View style={styles.statsContainer}>
@@ -110,11 +184,20 @@ const MyCoursesScreen = () => {
                 style={styles.questionModeTab}
                 onPress={() => {
                   if (questionMode.name === 'Junes') {
-                    navigation.navigate('JunesMode');
+                    router.push({
+                      pathname: '/JunesModeScreen',
+                      params: { subjectId: subjectId, subjectName: subject.title }
+                    });
                   } else if (questionMode.name === 'Topics') {
-                    navigation.navigate('TopicsMode');
+                    router.push({
+                      pathname: '/TopicsModeScreen',
+                      params: { subjectId: subjectId, subjectName: subject.title }
+                    });
                   } else if (questionMode.name === 'Customs exam') {
-                    navigation.navigate('CustomsExamScreen');
+                    router.push({
+                      pathname: '/CustomsExamScreen',
+                      params: { subjectId: subjectId, subjectName: subject.title }
+                    });
                   } else {
                     // Handle other modes if needed
                   }
@@ -239,65 +322,17 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     position: 'absolute',
-    right: 0,
+    right: 20,
     top: 50,
-    left: 180,
-    width: 50,
-    height: 50,
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   illustrationImage: {
-    width: 250,
-    height: 250,
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
-  },
-  starIcon: {
-    fontSize: 20,
-    position: 'absolute',
-    top: 10,
-    left: 30,
-  },
-  capContainer: {
-    position: 'relative',
-    width: 100,
-    height: 100,
-  },
-  graduationCap: {
-    position: 'relative',
-    width: 80,
-    height: 60,
-    marginLeft: 10,
-    marginTop: 20,
-  },
-  capTop: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 50,
-    borderRightWidth: 50,
-    borderBottomWidth: 30,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#5d7ae8',
-    position: 'absolute',
-    top: 0,
-    left: -10,
-  },
-  capBottom: {
-    width: 80,
-    height: 20,
-    backgroundColor: '#8da8ff',
-    position: 'absolute',
-    bottom: 0,
-    borderRadius: 4,
-  },
-  tassel: {
-    width: 3,
-    height: 25,
-    backgroundColor: '#ffcc66',
-    position: 'absolute',
-    right: 20,
-    top: 15,
   },
   headerTitle: {
     fontSize: 30,
@@ -467,6 +502,23 @@ const styles = StyleSheet.create({
   arrowIconDark: {
     color: '#2d2d2d',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 20,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
 });
 
-export default MyCoursesScreen;
+export default SubjectScreen;
+
