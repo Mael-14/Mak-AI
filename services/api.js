@@ -147,11 +147,17 @@ export const examAPI = {
   getYearsBySubjectId: async (subjectId, level) => {
     try {
       const response = await api.get(`/exams/years/${subjectId}`, {
-        params: { level }
+        params: { level },
+        paramsSerializer: {
+          indexes: null // Don't use array notation for params
+        }
       });
       return response.data;
     } catch (error) {
       console.error(`Error fetching years for subject ID ${subjectId} (${level}):`, error);
+      if (error.response) {
+        console.error('Response error:', error.response.data);
+      }
       throw error;
     }
   }

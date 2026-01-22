@@ -204,6 +204,8 @@ router.get('/years/:subjectId', async (req, res) => {
         const { subjectId } = req.params;
         const { level } = req.query;
         
+        console.log(`Fetching years for subjectId: ${subjectId}, level: ${level}`);
+        
         // Validate subjectId
         const subjectIdNum = parseInt(subjectId);
         if (isNaN(subjectIdNum) || subjectIdNum < 1 || subjectIdNum > 8) {
@@ -230,28 +232,38 @@ router.get('/years/:subjectId', async (req, res) => {
             });
         }
         
+        console.log(`Converted subjectId ${subjectIdNum} to code ${subjectCode} for level ${level}`);
+        
         // Get subject name
         const subjectName = getSubjectName(subjectIdNum);
         
         // Query exams for this subject and level
-        let examsQuery = db.collection('exams')
-            .where('subjectCode', '==', subjectCode)
-            .where('level', '==', level);
-        
+        // Note: Firestore requires an index for compound queries with orderBy
+        // If index doesn't exist, we'll fetch without orderBy and sort in memory
         let examsSnapshot;
         try {
-            // Try with orderBy (requires Firestore index)
-            examsQuery = examsQuery.orderBy('year', 'desc');
+            // Try with orderBy first (requires Firestore index)
+            const examsQuery = db.collection('exams')
+                .where('subjectCode', '==', subjectCode)
+                .where('level', '==', level)
+                .orderBy('year', 'desc');
+            
             examsSnapshot = await examsQuery.get();
         } catch (error) {
             // If orderBy fails (no index), fetch without ordering and sort in memory
-            if (error.code === 'failed-precondition') {
-                console.warn('Firestore index missing for year ordering, sorting in memory');
-                examsSnapshot = await db.collection('exams')
+            if (error.code === 'failed-precondition' || error.code === 9 || error.message?.includes('index')) {
+                console.warn('Firestore index missing for year ordering, fetching without orderBy and sorting in memory');
+                const examsQuery = db.collection('exams')
                     .where('subjectCode', '==', subjectCode)
-                    .where('level', '==', level)
-                    .get();
+                    .where('level', '==', level);
+                
+                examsSnapshot = await examsQuery.get();
             } else {
+                console.error('Firestore query error:', {
+                    code: error.code,
+                    message: error.message,
+                    details: error.details
+                });
                 throw error;
             }
         }
@@ -312,9 +324,18 @@ router.get('/years/:subjectId', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching years:', error);
+        console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack
+        });
         res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message || 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? {
+                code: error.code,
+                message: error.message
+            } : undefined
         });
     }
 });
