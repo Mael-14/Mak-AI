@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Backend API base URL - Update this with your backend URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.133:5000/api'
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://10.209.114.254:5000/api'
 
 // Create axios instance
 const api = axios.create({
@@ -89,6 +89,31 @@ export const authAPI = {
     const response = await api.get('/auth/google');
     return response.data; // Return response data
   },
+};
+
+export const examAPI = {
+  /**
+   * Fetches questions for a specific exam code
+   * Example: getQuestions('0570')
+   */
+  getQuestions: async (subjectCode) => {
+    try {
+      const response = await api.get(`/exams/questions/${subjectCode}`);
+      // Returns { success: true, data: [questions...] }
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching questions for ${subjectCode}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetches metadata for all available exams
+   */
+  getExams: async () => {
+    const response = await api.get('/exams');
+    return response.data;
+  }
 };
 
 export default api;
