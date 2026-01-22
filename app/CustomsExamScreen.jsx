@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TestSetupAlert from '../components/TestAlert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -280,15 +281,16 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     position: 'absolute',
-    right: 0,
+    right: 20,
     top: 50,
-    left: 180,
-    width: 50,
-    height: 50,
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   illustrationImage: {
-    width: 250,
-    height: 250,
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
   headerTitle: {

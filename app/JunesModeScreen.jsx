@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { examAPI } from '../services/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -162,9 +163,15 @@ const JunesModeScreen = () => {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
+
           <View style={styles.illustrationContainer}>
-            <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
+            <Image 
+              source={subject.image} 
+              style={styles.illustrationImage} 
+              resizeMode="contain"
+            />
           </View>
+
           <Text style={styles.headerTitle}>{subject.title}{"\n"}course</Text>
           <View style={styles.statsContainer}>
             <View style={styles.statBadge}>
@@ -252,10 +259,12 @@ const JunesModeScreen = () => {
                   <View style={styles.courseIconContainer}>
                     <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
                   </View>
-                  <View style={{flexDirection: 'column', flex: 1}}>
+
+                  <View style={{flexDirection: 'column'}}>
                     <Text style={[styles.courseTitle, styles.courseTitleDark]}>GCE June {yearData.year}</Text>
                     <Text style={styles.courseSubtitle}>{yearData.papers.length} Paper{yearData.papers.length !== 1 ? 's' : ''} Available</Text>
                   </View>
+
                   <TouchableOpacity style={styles.favoriteButton} onPress={() => handleToggleFavorite(yearData.year)}>
                     <Ionicons
                       name={favorites.includes(yearData.year) ? 'heart' : 'heart-outline'}
@@ -264,6 +273,7 @@ const JunesModeScreen = () => {
                       style={styles.heartIcon}
                     />
                   </TouchableOpacity>
+
                 </View>
                 <View style={styles.courseFooter}>
                   <View style={styles.studentsContainer}>
@@ -341,15 +351,16 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     position: 'absolute',
-    right: 0,
+    right: 20,
     top: 50,
-    left: 180,
-    width: 50,
-    height: 50,
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   illustrationImage: {
-    width: 250,
-    height: 250,
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
   headerTitle: {
@@ -455,8 +466,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   arrowButton: {
-    width: 44,
-    height: 44,
+    width: 30,
+    height: 30,
     borderRadius: 22,
     backgroundColor: '#fff',
     justifyContent: 'center',

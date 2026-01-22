@@ -160,6 +160,30 @@ export const examAPI = {
       }
       throw error;
     }
+  },
+
+  /**
+   * Fetches topics for a subject with question counts
+   * Example: getTopicsBySubjectId(1, 'Ordinary Level', 'Paper 1')
+   * @param {number} subjectId - The subject ID (1-8)
+   * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
+   * @param {string} paper - Optional paper type (e.g., 'Paper 1', 'Paper 2')
+   */
+  getTopicsBySubjectId: async (subjectId, level, paper = null) => {
+    try {
+      const params = { level };
+      if (paper) {
+        params.paper = paper;
+      }
+      const response = await api.get(`/exams/topics/${subjectId}`, { params });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching topics for subject ID ${subjectId} (${level}, ${paper || 'all papers'}):`, error);
+      if (error.response) {
+        console.error('Response error:', error.response.data);
+      }
+      throw error;
+    }
   }
 };
 
