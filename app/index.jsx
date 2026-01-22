@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Dimensions, PixelRatio, useColorScheme } from 'react-native'
-import React from 'react'
+import React, { useState } from 'react'
 import ThemedView from '../components/ThemedView'
 import { LinearGradient } from 'expo-linear-gradient'
 import ThemedText from '../components/ThemedText'
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
+import LevelSelectionAlert from '../components/LevelSelectionAlert';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -16,8 +17,29 @@ const scale = (size) => (SCREEN_WIDTH / 375) * size
 
 const Home = () => {
     const router = useRouter()
+    const [showLevelAlert, setShowLevelAlert] = useState(false)
+    const [selectedSubject, setSelectedSubject] = useState(null)
+    
     const goToCards = () => {
         router.push('/Flashcards')
+    }
+    
+    const handleSubjectPress = (item) => {
+        setSelectedSubject(item)
+        setShowLevelAlert(true)
+    }
+    
+    const handleLevelSelect = (level) => {
+        if (selectedSubject) {
+            router.push({
+                pathname: '/subject/[id]',
+                params: { 
+                    id: selectedSubject.id.toString(),
+                    level: level
+                }
+            });
+        }
+        setSelectedSubject(null)
     }
     const SUBJECT = [
         {
@@ -109,13 +131,7 @@ const Home = () => {
                         <TouchableOpacity
                             style={{ flex: 1 }}
                             activeOpacity={0.7}
-                            onPress={() => {
-                                // Navigate to subject screen with the subject ID
-                                router.push({
-                                    pathname: '/subject/[id]',
-                                    params: { id: item.id.toString() }
-                                });
-                            }}
+                            onPress={() => handleSubjectPress(item)}
                         >
                             <SubjectCard
                                 title={item.title}
@@ -125,6 +141,16 @@ const Home = () => {
                     )}
                 />
             </ThemedView>
+            
+            <LevelSelectionAlert
+                visible={showLevelAlert}
+                onClose={() => {
+                    setShowLevelAlert(false)
+                    setSelectedSubject(null)
+                }}
+                onSelectLevel={handleLevelSelect}
+                subjectTitle={selectedSubject?.title}
+            />
         </SafeAreaView>
     )
 }

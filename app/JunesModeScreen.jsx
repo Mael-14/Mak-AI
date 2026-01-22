@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { examAPI } from '../services/api';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -100,17 +101,43 @@ const gceJunes = [
 const JunesModeScreen = () => {
   const navigation = useNavigation();
   const router = useRouter();
-  const { subjectId, subjectName } = useLocalSearchParams();
+  const { subjectId, subjectName, level } = useLocalSearchParams();
   
   // Get subject data based on ID
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
+  const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
   
   const [openDropdown, setOpenDropdown] = useState(null);
   const [favorites, setFavorites] = useState([]);
-  const [moveToAll, setMoveToAll] = useState(false);
-  const [moveToTopic, setMoveToTopic] = useState(false);
-  const [moveToCustom, setMoveToCustom] = useState(false);
+  const [years, setYears] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch years when component mounts
+  useEffect(() => {
+    const fetchYears = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await examAPI.getYearsBySubjectId(subjectIdNum, selectedLevel);
+        if (response.success && response.data) {
+          setYears(response.data);
+        } else {
+          setError(response.error || 'Failed to fetch years');
+        }
+      } catch (err) {
+        console.error('Error fetching years:', err);
+        setError(err.message || 'Failed to load years');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (subjectIdNum && selectedLevel) {
+      fetchYears();
+    }
+  }, [subjectIdNum, selectedLevel]);
   const handleToggleDropdown = (id) => {
     setOpenDropdown(openDropdown === id ? null : id);
   };
@@ -142,11 +169,11 @@ const JunesModeScreen = () => {
           <View style={styles.statsContainer}>
             <View style={styles.statBadge}>
               <View style={styles.dotIcon} />
-              <Text style={styles.statText}>10 Junes</Text>
+              <Text style={styles.statText}>{years.length} Years</Text>
             </View>
             <View style={[styles.statBadge, styles.statBadgeLight]}>
-              <Text style={styles.statIcon}>👤</Text>
-              <Text style={styles.statText}>40 Topics</Text>
+              <Text style={styles.statIcon}>📚</Text>
+              <Text style={styles.statText}>{selectedLevel}</Text>
             </View>
           </View>
         </View>
@@ -188,74 +215,92 @@ const JunesModeScreen = () => {
 
         {/* Card Section for GCE Junes */}
         <View style={styles.coursesContainer}>
-          {gceJunes.map((June) => (
-            <View key={June.id} style={[styles.courseCard, { backgroundColor: '#2d2d2d' }] }>
-              <View style={styles.courseHeader}>
-                <View style={styles.courseIconContainer}>
-                  <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
-                </View>
-                        <View style={{flexDirection: 'culomn'}}>
-                            <Text style={[styles.courseTitle, styles.courseTitleDark]}>{June.title}</Text>
-                            <Text style={styles.courseSubtitle}>GCE Passed June</Text>
-                    </View>
-                <TouchableOpacity style={styles.favoriteButton} onPress={() => handleToggleFavorite(June.id)}>
-                  <Ionicons
-                    name={favorites.includes(June.id) ? 'heart' : 'heart-outline'}
-                    size={15}
-                    color={favorites.includes(June.id) ? 'red' : '#2d2d2d'}
-                    style={styles.heartIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-              {/* <View>
-                <Text style={styles.courseSubtitle}>GCE Passed June</Text>
-                <Text style={[styles.courseTitle, styles.courseTitleDark]}>{June.title}</Text>
-              </View> */}
-              <View style={styles.courseFooter}>
-                <View style={styles.studentsContainer}>
-                  {/* Avatars */}
-                  {June.students && June.students.slice(0, 3).map((student, index) => (
-                    <Image
-                      key={index}
-                      source={{ uri: student }}
-                      style={[
-                        styles.studentAvatar,
-                        index > 0 && { marginLeft: -8 },
-                      ]}
-                    />
-                  ))}
-                  {/* Comment button */}
-                  <TouchableOpacity style={styles.commentButton}>
-                    <Text style={styles.commentIcon}>💬</Text>
-                    <Text style={styles.commentCount}>{June.commentCount}</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity
-                  style={[styles.arrowButton, styles.arrowButtonDark, openDropdown === June.id && { transform: [{ rotate: '90deg' }] }]}
-                  onPress={() => handleToggleDropdown(June.id)}
-                >
-                  <Ionicons name="chevron-forward" size={15} color="black" style={styles.navButtonText} />
-                </TouchableOpacity>
-              </View>
-              {/* Dropdown for papers */}
-              {openDropdown === June.id && (
-                <View style={styles.dropdownContainer}>
-                  <TouchableOpacity style={styles.dropdownItem}>
-                    <Text style={styles.dropdownText}>{June.title} Paper 1</Text>
-                    <Ionicons name="download-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownItem}>
-                    <Text style={styles.dropdownText}>{June.title} Paper 2</Text>
-                    <Ionicons name="download-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownItem}>
-                    <Text style={styles.dropdownText}>{June.title} Paper 3</Text>
-                    <Ionicons name="download-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
-                  </TouchableOpacity>
-                </View>
-              )}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2d2d2d" />
+              <Text style={styles.loadingText}>Loading years...</Text>
             </View>
-          ))}
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={() => {
+                  setError(null);
+                  setLoading(true);
+                  examAPI.getYearsBySubjectId(subjectIdNum, selectedLevel)
+                    .then(response => {
+                      if (response.success && response.data) {
+                        setYears(response.data);
+                      }
+                    })
+                    .catch(err => setError(err.message))
+                    .finally(() => setLoading(false));
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : years.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No years available for this subject</Text>
+            </View>
+          ) : (
+            years.map((yearData) => (
+              <View key={yearData.year} style={[styles.courseCard, { backgroundColor: '#2d2d2d' }]}>
+                <View style={styles.courseHeader}>
+                  <View style={styles.courseIconContainer}>
+                    <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
+                  </View>
+                  <View style={{flexDirection: 'column', flex: 1}}>
+                    <Text style={[styles.courseTitle, styles.courseTitleDark]}>GCE June {yearData.year}</Text>
+                    <Text style={styles.courseSubtitle}>{yearData.papers.length} Paper{yearData.papers.length !== 1 ? 's' : ''} Available</Text>
+                  </View>
+                  <TouchableOpacity style={styles.favoriteButton} onPress={() => handleToggleFavorite(yearData.year)}>
+                    <Ionicons
+                      name={favorites.includes(yearData.year) ? 'heart' : 'heart-outline'}
+                      size={15}
+                      color={favorites.includes(yearData.year) ? 'red' : '#2d2d2d'}
+                      style={styles.heartIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.courseFooter}>
+                  <View style={styles.studentsContainer}>
+                    <TouchableOpacity style={styles.commentButton}>
+                      <Text style={styles.commentIcon}>📄</Text>
+                      <Text style={styles.commentCount}>{yearData.papers.length}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.arrowButton, styles.arrowButtonDark, openDropdown === yearData.year && { transform: [{ rotate: '90deg' }] }]}
+                    onPress={() => handleToggleDropdown(yearData.year)}
+                  >
+                    <Ionicons name="chevron-forward" size={15} color="black" style={styles.navButtonText} />
+                  </TouchableOpacity>
+                </View>
+                {/* Dropdown for papers */}
+                {openDropdown === yearData.year && (
+                  <View style={styles.dropdownContainer}>
+                    {yearData.papers.map((paper) => (
+                      <TouchableOpacity 
+                        key={paper.id} 
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          // Navigate to exam screen or fetch questions
+                          console.log('Selected paper:', paper);
+                          // TODO: Navigate to exam/questions screen
+                        }}
+                      >
+                        <Text style={styles.dropdownText}>GCE June {yearData.year} - {paper.paper}</Text>
+                        <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -511,7 +556,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2d2d2d',
   },
-
-
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#2d2d2d',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
 export default JunesModeScreen;

@@ -1,7 +1,8 @@
 [
     {
         "subjectCode": "0570",
-        "mathType": "Mathematics (Ordinary Level)",
+        "mathType": "Mathematics",
+        "level": "Ordinary Level",
         "paper": "Paper 1",
         "year": 2025,
         "questions": [

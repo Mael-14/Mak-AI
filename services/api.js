@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSubjectCode } from '../utils/subjectMapping';
 
 // Backend API base URL - Update this with your backend URL
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://10.209.114.254:5000/api'
@@ -93,16 +94,38 @@ export const authAPI = {
 
 export const examAPI = {
   /**
-   * Fetches questions for a specific exam code
-   * Example: getQuestions('0570')
+   * Fetches questions for a specific exam code and level
+   * Example: getQuestions('0570', 'Ordinary Level')
+   * @param {string} subjectCode - The subject code (e.g., '0570')
+   * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
    */
-  getQuestions: async (subjectCode) => {
+  getQuestions: async (subjectCode, level = null) => {
     try {
-      const response = await api.get(`/exams/questions/${subjectCode}`);
+      const params = level ? { level } : {};
+      const response = await api.get(`/exams/questions/${subjectCode}`, { params });
       // Returns { success: true, data: [questions...] }
       return response.data;
     } catch (error) {
-      console.error(`Error fetching questions for ${subjectCode}:`, error);
+      console.error(`Error fetching questions for ${subjectCode} (${level}):`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetches questions using subject ID and level (converts ID to code automatically)
+   * Example: getQuestionsBySubjectId(1, 'Ordinary Level')
+   * @param {number} subjectId - The subject ID (1-8)
+   * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
+   */
+  getQuestionsBySubjectId: async (subjectId, level) => {
+    try {
+      const subjectCode = getSubjectCode(subjectId, level);
+      if (!subjectCode) {
+        throw new Error(`Invalid subject ID (${subjectId}) or level (${level})`);
+      }
+      return await examAPI.getQuestions(subjectCode, level);
+    } catch (error) {
+      console.error(`Error fetching questions for subject ID ${subjectId} (${level}):`, error);
       throw error;
     }
   },
@@ -113,6 +136,24 @@ export const examAPI = {
   getExams: async () => {
     const response = await api.get('/exams');
     return response.data;
+  },
+
+  /**
+   * Fetches available years and papers for a subject
+   * Example: getYearsBySubjectId(1, 'Ordinary Level')
+   * @param {number} subjectId - The subject ID (1-8)
+   * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
+   */
+  getYearsBySubjectId: async (subjectId, level) => {
+    try {
+      const response = await api.get(`/exams/years/${subjectId}`, {
+        params: { level }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching years for subject ID ${subjectId} (${level}):`, error);
+      throw error;
+    }
   }
 };
 

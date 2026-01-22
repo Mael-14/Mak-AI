@@ -28,6 +28,7 @@ async function seedDatabase() {
             await subjectRef.set({
                 subjectCode: subject.subjectCode,
                 mathType: subject.mathType,
+                level: subject.level,
                 paper: subject.paper,
                 year: subject.year,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
