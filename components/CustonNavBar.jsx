@@ -25,7 +25,7 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
 
 
         // Only render these specific tabs (case-insensitive): home, stats, profile, onboarding
-        const allowedTabs = ['index', 'Stats', 'Chat', 'profile', 'ResetPassword'];
+        const allowedTabs = ['index', 'Stats', 'Chat', 'profile', 'ExamMode'];
         if (!allowedTabs.includes(String(route.name))) {
           return null; // Skip rendering all other tabs
         }

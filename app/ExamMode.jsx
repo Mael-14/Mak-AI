@@ -9,52 +9,18 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
+import { examAPI } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const quizData = [
-  {
-    id: 1,
-    question: 'What is the smallest prime number?',
-    options: [
-      { label: 'A', value: '1' },
-      { label: 'B', value: '2' },
-      { label: 'C', value: '3' },
-      { label: 'D', value: '4' },
-    ],
-    correct: 'B',
-    explanation: 'The smallest prime number is 2. It is the only even prime number because all other even numbers are divisible by 2.',
-  },
-  {
-    id: 2,
-    question: 'What is 5 × 6?',
-    options: [
-      { label: 'A', value: '25' },
-      { label: 'B', value: '30' },
-      { label: 'C', value: '35' },
-      { label: 'D', value: '40' },
-    ],
-    correct: 'B',
-    explanation: '5 × 6 = 30. This is a basic multiplication fact.',
-  },
-  {
-    id: 3,
-    question: 'What is the sum of angles in a triangle?',
-    options: [
-      { label: 'A', value: '90°' },
-      { label: 'B', value: '180°' },
-      { label: 'C', value: '270°' },
-      { label: 'D', value: '360°' },
-    ],
-    correct: 'B',
-    explanation: 'The sum of all angles in any triangle is always 180°. This is a fundamental theorem in geometry.',
-  },
-];
+
+
 
 function formatTime(seconds) {
   const min = Math.floor(seconds / 60);
@@ -62,7 +28,10 @@ function formatTime(seconds) {
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 }
 
-export default function Exam() {
+export default function Exam({ route }) {
+  const [quizData, setQuizData] = useState([])
+  const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
+  const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timer, setTimer] = useState(60 * 10); // 10 minutes for example
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -70,11 +39,56 @@ export default function Exam() {
   const [showCongrats, setShowCongrats] = useState(false);
 
   useEffect(() => {
+    const loadExamData = async () => {
+      try {
+        // You can get '0570' from route.params if passed from previous screen
+        const subjectCode = route?.params?.subjectCode || '0570';
+        const response = await examAPI.getExams(subjectCode);
+
+        if (response.success) {
+          // Store metadata for the header
+          setExamInfo(response.examDetails);
+
+          // Format questions to match your UI's expected structure
+          const formattedQuestions = response.questions.map(q => ({
+            id: q.id,
+            question: q.text, // Database uses 'text'
+            options: Object.entries(q.options).map(([label, value]) => ({
+              label,
+              value
+            })),
+            correct: q.answer, // Database uses 'answer'
+            explanation: q.explanation,
+            hasImage: q.hasImage
+          }));
+
+          setQuizData(formattedQuestions);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exam:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExamData();
+  }, []);
+
+  useEffect(() => {
     if (timer <= 0) return;
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1e3a8a" />
+        <Text style={styles.loadingText}>Preparing your exam...</Text>
+      </View>
+    );
+  }
+  if (quizData.length === 0) return <View style={styles.container}><Text>No questions found.</Text></View>;
   const explanationHeight = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
 
@@ -174,11 +188,11 @@ export default function Exam() {
           </View>
           {quizData.map((q, idx) => {
             const userAnswer = selectedOptions[idx];
-            const isCorrect = userAnswer === q.correct;
-            const userOption = q.options.find(opt => opt.label === userAnswer);
-            const correctOption = q.options.find(opt => opt.label === q.correct);
+            const isCorrect = userAnswer === q.answer;
+            const userOption = q.options?.find(opt => opt.label === userAnswer);
+            const correctOption = q.options?.find(opt => opt.label === q.answer);
             return (
-              <View key={q.id} style={styles.resultCard}>
+              <View key={q.id || idx} style={styles.resultCard}>
                 <Text style={styles.resultQuestion}>
                   {idx + 1}. {q.question}
                 </Text>
@@ -245,8 +259,8 @@ export default function Exam() {
         <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mathematics</Text>
-        <Text style={styles.headerDate}>June 2020</Text>
+        <Text style={styles.headerTitle}>{examInfo.mathType}</Text>
+        <Text style={styles.headerDate}>June {examInfo.year}</Text>
       </View>
 
       {/* Mode and Timer */}
@@ -533,7 +547,7 @@ const styles = StyleSheet.create({
   resultsHeader: {
     //alignItems: 'center',
     marginBottom: 24,
-   // marginTop: 16,
+    // marginTop: 16,
   },
   resultsTitle: {
     fontSize: 24,
