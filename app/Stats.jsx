@@ -120,6 +120,10 @@ const Stats = () => {
 export default Stats
 
 const styles = StyleSheet.create({
+    scrollContent: {
+        flex: 1,
+        marginTop: 20,
+    },
     container: {
         flex: 1,
 
@@ -132,6 +136,11 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginHorizontal: 8,
         borderRadius: 28,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 15,
+        elevation: 5,
     },
     headerBadge: {
         backgroundColor: '#FDE68A', // Light yellow
@@ -200,6 +209,11 @@ const styles = StyleSheet.create({
         marginHorizontal: 8,
 
         marginBottom: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 15,
+        elevation: 5,
 
 
     },
@@ -209,9 +223,15 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         padding: 20,
         flexDirection: 'row',
-        alignContent: 'space-between',
+        alignItems: 'center',
         marginHorizontal: 8,
         justifyContent: 'space-between',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 15,
+        elevation: 5,
+
     },
     subject: {
         flexDirection: 'row',

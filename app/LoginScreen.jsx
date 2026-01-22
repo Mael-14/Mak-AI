@@ -19,7 +19,7 @@ const LoginScreen = () => {
     password: ''
   });
 
-  const { showModal } = useModal();
+  //const { showModal } = useModal();
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -98,7 +98,7 @@ const LoginScreen = () => {
       // Simulate API call
       setTimeout(() => {
         console.log('Login data:', formData);
-        showModal('Success', 'Login successful!');
+        Alert.alert('Success', 'Login successful!');
         setIsLoading(false);
         // TODO: Navigate to home screen after successful login
         // navigation.navigate('Home');

@@ -1,0 +1,613 @@
+[
+    {
+        "subjectCode": "0570",
+        "mathType": "Mathematics (Ordinary Level)",
+        "paper": "Paper 1",
+        "year": 2025,
+        "questions": [
+            {
+                "id": "Q1",
+                "topic": "Arithmetic",
+                "text": "The value of the digit 7 in the number 5.074 is",
+                "options": {
+                    "A": "70",
+                    "B": "7",
+                    "C": "5.07",
+                    "D": "0.07"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q2",
+                "topic": "Algebra",
+                "text": "The Highest Common Factor (HCF) of $x^5, x^3, x^9$ is",
+                "options": {
+                    "A": "$x$",
+                    "B": "$x^3$",
+                    "C": "$x^5$",
+                    "D": "$x^9$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q3",
+                "topic": "Arithmetic",
+                "text": "Arranging the decimals 0.33, 0.42, 0.25 in ascending order gives",
+                "options": {
+                    "A": "0.25, 0.33, 0.42",
+                    "B": "0.42, 0.33, 0.25",
+                    "C": "0.25, 0.42, 0.33",
+                    "D": "0.33, 0.42, 0.25"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q4",
+                "topic": "Sets",
+                "text": "The number line that represents the set of elements in the set $T=\\{x: 0 \\leq x \\leq 5\\}$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "Diagram A",
+                    "B": "Diagram B",
+                    "C": "Diagram C",
+                    "D": "Diagram D"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q5",
+                "topic": "Arithmetic",
+                "text": "The number -5 belongs to the set",
+                "options": {
+                    "A": "Natural numbers",
+                    "B": "Rational numbers",
+                    "C": "Irrational numbers",
+                    "D": "Integers"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q6",
+                "topic": "Arithmetic",
+                "text": "The fraction 'two and one fifth' in figures gives",
+                "options": {
+                    "A": "$2 \\frac{1}{5}$",
+                    "B": "$\\frac{2}{5}$",
+                    "C": "$1 \\frac{2}{5}$",
+                    "D": "$2 \\frac{2}{5}$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q7",
+                "topic": "Arithmetic",
+                "text": "The number $234.5 \\times 10^3$ written in standard form is",
+                "options": {
+                    "A": "$2.345 \\times 10^4$",
+                    "B": "$2.345 \\times 10^5$",
+                    "C": "$2.345 \\times 10^2$",
+                    "D": "$2.345 \\times 10^1$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q8",
+                "topic": "Arithmetic",
+                "text": "The number 17.561 correct to the nearest whole number is",
+                "options": {
+                    "A": "18",
+                    "B": "17.6",
+                    "C": "17",
+                    "D": "17.60"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q9",
+                "topic": "Arithmetic",
+                "text": "In a class of 105 students, there are 60 girls. The ratio of boys to girls is",
+                "options": {
+                    "A": "4:3",
+                    "B": "7:4",
+                    "C": "3:4",
+                    "D": "4:7"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q10",
+                "topic": "Arithmetic",
+                "text": "The rate at which 2,000,000 FCFA is invested for 2 years to yield an interest of 200,000 FCFA is",
+                "options": {
+                    "A": "2%",
+                    "B": "4%",
+                    "C": "10%",
+                    "D": "5%"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q11",
+                "topic": "Sets",
+                "text": "An empty set is represented as",
+                "options": {
+                    "A": "$\\{\\varnothing\\}$",
+                    "B": "$\\{\\}$",
+                    "C": "$\\{0\\}$",
+                    "D": "O"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q12",
+                "topic": "Sets",
+                "text": "Given the set M = {prime factors of 25}, M is",
+                "options": {
+                    "A": "{1, 5, 25}",
+                    "B": "{5, 25}",
+                    "C": "{5}",
+                    "D": "{1, 5, 10, 25}"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q13",
+                "topic": "Sets",
+                "text": "In set notation, the number of elements in P and not in Q is",
+                "options": {
+                    "A": "$n(P \\cap Q)$",
+                    "B": "$n(Q' \\cup P)$",
+                    "C": "$n(P' \\cap Q)$",
+                    "D": "$n(P \\cap Q')$"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q14",
+                "topic": "Logic",
+                "text": "Given that p: John is a Cameroonian and q: John is bilingual, the statement 'If John is bilingual then he is a Cameroonian' is",
+                "options": {
+                    "A": "$p \\rightarrow q$",
+                    "B": "$q \\rightarrow p$",
+                    "C": "$p \\rightarrow \\sim q$",
+                    "D": "$q \\rightarrow \\sim p$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q15",
+                "topic": "Functions",
+                "text": "A mapping for which $x$ maps to $2x+1$ is called",
+                "options": {
+                    "A": "one-one",
+                    "B": "many-many",
+                    "C": "many-one",
+                    "D": "one-many"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q16",
+                "topic": "Functions",
+                "text": "Given that $f(x)=3-2x$, then $f(-1)$ gives",
+                "options": {
+                    "A": "5",
+                    "B": "1",
+                    "C": "-1",
+                    "D": "6"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q17",
+                "topic": "Functions",
+                "text": "Given the function $f: x \\mapsto 3x+1$ and $g: x \\mapsto 2x$, $fg(x)$ is",
+                "options": {
+                    "A": "$6x+1$",
+                    "B": "$6x^2+1$",
+                    "C": "$6x+2$",
+                    "D": "$6x$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q18",
+                "topic": "Geometry",
+                "text": "The point at which two lines meet is called an",
+                "options": {
+                    "A": "angle",
+                    "B": "intercept",
+                    "C": "edge",
+                    "D": "origin"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q19",
+                "topic": "Geometry",
+                "text": "Given that the interior angle of a polygon is $76^{\\circ}$, its exterior angle is",
+                "options": {
+                    "A": "$104^{\\circ}$",
+                    "B": "$14^{\\circ}$",
+                    "C": "$76^{\\circ}$",
+                    "D": "$38^{\\circ}$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q20",
+                "topic": "Geometry",
+                "text": "A regular solid with 11 nets is a",
+                "options": {
+                    "A": "square",
+                    "B": "cylinder",
+                    "C": "cuboid",
+                    "D": "cube"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q21",
+                "topic": "Geometry",
+                "text": "In a construction, PQ is a perpendicular bisector of RS at T. The value of the angle PTS is",
+                "options": {
+                    "A": "$180^{\\circ}$",
+                    "B": "$60^{\\circ}$",
+                    "C": "$90^{\\circ}$",
+                    "D": "$45^{\\circ}$"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q22",
+                "topic": "Geometry",
+                "text": "Given parallel lines $l_1, l_2$ and transversal $l_s$ with angle $b=85^{\\circ}$, the value of angle $a$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "$125^{\\circ}$",
+                    "B": "$85^{\\circ}$",
+                    "C": "$95^{\\circ}$",
+                    "D": "$175^{\\circ}$"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q23",
+                "topic": "Mensuration",
+                "text": "The circumference of a circle with radius 3 cm in terms of $\\pi$ is",
+                "options": {
+                    "A": "$3\\pi$",
+                    "B": "$6\\pi$",
+                    "C": "$18\\pi$",
+                    "D": "$9\\pi$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q24",
+                "topic": "Mensuration",
+                "text": "The area of a rectangle with dimensions 9 cm by 3 cm is",
+                "options": {
+                    "A": "$12 cm^2$",
+                    "B": "$24 cm^2$",
+                    "C": "$54 cm^2$",
+                    "D": "$27 cm^2$"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q25",
+                "topic": "Mensuration",
+                "text": "The volume of a cone with base radius 3 cm and height 7 cm ($\\pi=22/7$) is",
+                "options": {
+                    "A": "$66 cm^3$",
+                    "B": "$198 cm^3$",
+                    "C": "$22 cm^3$",
+                    "D": "$44 cm^3$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q26",
+                "topic": "Coordinate Geometry",
+                "text": "The $y$-intercept of the line $3y+4x=12$ is",
+                "options": {
+                    "A": "4",
+                    "B": "3",
+                    "C": "7",
+                    "D": "-4"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q27",
+                "topic": "Coordinate Geometry",
+                "text": "Two lines are perpendicular if their gradients $m_1, m_2$ satisfy",
+                "options": {
+                    "A": "$m_1m_2=1$",
+                    "B": "$m_1m_2=-1$",
+                    "C": "$m_1=m_2$",
+                    "D": "$2m_1=m_2$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q28",
+                "topic": "Algebra",
+                "text": "The graph of the function $f(x)=2x^2-3x-2$ has",
+                "options": {
+                    "A": "maximum",
+                    "B": "no turning point",
+                    "C": "both",
+                    "D": "minimum turning point"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q29",
+                "topic": "Algebra",
+                "text": "The number of factors in the expression $(x+1)(x+2)$ is",
+                "options": {
+                    "A": "1",
+                    "B": "4",
+                    "C": "3",
+                    "D": "2"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q30",
+                "topic": "Algebra",
+                "text": "Simplifying $8a+3+5-3a$ gives",
+                "options": {
+                    "A": "$5a+8$",
+                    "B": "$11a+8$",
+                    "C": "$5a+5$",
+                    "D": "$8a+5$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q31",
+                "topic": "Algebra",
+                "text": "Simplifying $2^2 \\times 2^{-3}$ gives",
+                "options": {
+                    "A": "$2^{-1}$",
+                    "B": "$2^5$",
+                    "C": "$2^1$",
+                    "D": "$2^4$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q32",
+                "topic": "Algebra",
+                "text": "Given $A=\\pi r^2$, expressing $r$ in terms of $A$ and $\\pi$ is",
+                "options": {
+                    "A": "$A/\\pi$",
+                    "B": "$\\sqrt{A/\\pi}$",
+                    "C": "$\\sqrt{A}/\\pi$",
+                    "D": "$A/\\sqrt{\\pi^2}$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q33",
+                "topic": "Arithmetic",
+                "text": "The next term in the sequence 1, 1, 2, 3, 5, ... is",
+                "options": {
+                    "A": "7",
+                    "B": "9",
+                    "C": "10",
+                    "D": "8"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q34",
+                "topic": "Arithmetic",
+                "text": "Given that y varies directly as x, the equation is",
+                "options": {
+                    "A": "$y \\propto 1/x$",
+                    "B": "$y \\propto x$",
+                    "C": "$y=kx$",
+                    "D": "$xy=k$"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q35",
+                "topic": "Algebra",
+                "text": "The solution set of $3x-4 \\leq 8$ is",
+                "options": {
+                    "A": "$\\{x: x \\geq 4\\}$",
+                    "B": "$\\{x: x \\leq 4\\}$",
+                    "C": "$\\{x: x \\leq 4/3\\}$",
+                    "D": "$\\{x: x \\geq 4/3\\}$"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q36",
+                "topic": "Networks",
+                "text": "In a network with 4 vertices and 5 edges. The number of regions is",
+                "options": {
+                    "A": "6",
+                    "B": "2",
+                    "C": "5",
+                    "D": "3"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q37",
+                "topic": "Trigonometry",
+                "text": "In the right-angled triangle PQR, the adjacent side to $\\theta$ is",
+                "hasImage": true,
+                "options": {
+                    "A": "PR",
+                    "B": "PQ",
+                    "C": "QR",
+                    "D": "PQR"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q38",
+                "topic": "Trigonometry",
+                "text": "The value of $\\frac{\\sin 30^{\\circ}}{\\cos 30^{\\circ}}$ is",
+                "options": {
+                    "A": "$\\sqrt{3}$",
+                    "B": "$\\frac{\\sqrt{3}}{2}$",
+                    "C": "$\\frac{1}{\\sqrt{3}}$",
+                    "D": "$\\frac{2}{\\sqrt{3}}$"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q39",
+                "topic": "Trigonometry",
+                "text": "The angle of elevation to a bird is $40^{\\circ}$. The angle of depression from the bird is",
+                "options": {
+                    "A": "$40^{\\circ}$",
+                    "B": "$50^{\\circ}$",
+                    "C": "$90^{\\circ}$",
+                    "D": "$10^{\\circ}$"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q40",
+                "topic": "Vectors",
+                "text": "Given $\\mathbf{a}=\\binom{7}{3}$ and $\\mathbf{b}=\\binom{2}{-9}$, then $\\mathbf{a}+\\mathbf{b}$ is",
+                "options": {
+                    "A": "$\\binom{-5}{-12}$",
+                    "B": "$\\binom{-12}{-5}$",
+                    "C": "$\\binom{6}{-9}$",
+                    "D": "$\\binom{9}{-6}$"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q41",
+                "topic": "Vectors",
+                "text": "The vector $\\mathbf{OP}=\\mathbf{i}-\\mathbf{j}$ lies in the",
+                "options": {
+                    "A": "1st quadrant",
+                    "B": "2nd quadrant",
+                    "C": "4th quadrant",
+                    "D": "3rd quadrant"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q42",
+                "topic": "Vectors",
+                "text": "The magnitude of the vector $-5\\mathbf{i}+12\\mathbf{j}$ is",
+                "options": {
+                    "A": "$\\sqrt{119}$",
+                    "B": "13",
+                    "C": "7",
+                    "D": "17"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q43",
+                "topic": "Matrices",
+                "text": "Given the matrix $A=\\begin{pmatrix}3 \\\\ 4 \\\\ 2\\end{pmatrix}$, $A^T$ is",
+                "options": {
+                    "A": "$(3, 4, 2)$",
+                    "B": "Vertical",
+                    "C": "Diagonal",
+                    "D": "Null"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q44",
+                "topic": "Matrices",
+                "text": "Find m if the matrix $\\begin{pmatrix}m+2 & 3 \\\\ 4 & -3\\end{pmatrix}$ is singular",
+                "options": {
+                    "A": "6",
+                    "B": "2",
+                    "C": "-6",
+                    "D": "-2"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q45",
+                "topic": "Transformations",
+                "text": "Coordinates of A(1, 3) reflected on the x-axis are",
+                "options": {
+                    "A": "(1, -3)",
+                    "B": "(-1, 3)",
+                    "C": "(-1,-3)",
+                    "D": "(-3, -1)"
+                },
+                "answer": "A"
+            },
+            {
+                "id": "Q46",
+                "topic": "Matrices",
+                "text": "Given P and Q, calculate P+Q",
+                "options": {
+                    "A": "Matrix A",
+                    "B": "Matrix B",
+                    "C": "Matrix C",
+                    "D": "Matrix D"
+                },
+                "answer": "B"
+            },
+            {
+                "id": "Q47",
+                "topic": "Statistics",
+                "text": "Mode, median and mean are measures of",
+                "options": {
+                    "A": "deviation",
+                    "B": "frequency",
+                    "C": "central tendency",
+                    "D": "dispersion"
+                },
+                "answer": "C"
+            },
+            {
+                "id": "Q48",
+                "topic": "Statistics",
+                "text": "The median of 3, 7, 9, 11, 13 is",
+                "options": {
+                    "A": "11",
+                    "B": "13",
+                    "C": "8.6",
+                    "D": "9"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q49",
+                "topic": "Statistics",
+                "text": "The range of 3, 2, 0, 5, 6, 4 is",
+                "options": {
+                    "A": "4",
+                    "B": "3.5",
+                    "C": "2",
+                    "D": "6"
+                },
+                "answer": "D"
+            },
+            {
+                "id": "Q50",
+                "topic": "Statistics",
+                "text": "If probability of doing math is 0.6, the probability of NOT doing it is",
+                "options": {
+                    "A": "0.6",
+                    "B": "0.5",
+                    "C": "0.4",
+                    "D": "0.2"
+                },
+                "answer": "C"
+            }
+        ]
+    }
+]
