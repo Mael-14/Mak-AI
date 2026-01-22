@@ -7,7 +7,7 @@ node_modules/
 .env.production
 
 # Firebase service account key
-serviceAccountKey.json
+serviceAccountKey.json/
 
 # Logs
 logs
