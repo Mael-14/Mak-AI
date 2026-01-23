@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 import { examAPI } from '../services/api';
-
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import Katex from 'react-native-katex';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -30,13 +30,15 @@ function formatTime(seconds) {
 }
 
 export default function Exam({ route }) {
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const formatQuestion = (str) => {
     // If the string doesn't start with a LaTeX command like \frac or \sqrt,
     // we can wrap the whole thing in \text{} but keep the math symbols outside.
     // This is a quick fix for "Sentence style" questions.
     return `\\text{${str}}`.replace(/\$/g, '} $ {\\text');
   };
-
+  const { subjectCode, level, topic, examTitle, paper } = params;
   const [quizData, setQuizData] = useState([])
   const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
   const [loading, setLoading] = useState(true);
@@ -48,40 +50,60 @@ export default function Exam({ route }) {
 
   const explanationHeight = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
+
   useEffect(() => {
     const loadExamData = async () => {
       try {
-        // You can get '0570' from route.params if passed from previous screen
-        const subjectCode = route?.params?.subjectCode || '0570';
-        const response = await examAPI.getQuestions(subjectCode);
+        setLoading(true);
+
+        // 3. Validation: Ensure we have the minimum data to fetch
+        if (!subjectCode) {
+          console.error("No subjectCode provided");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch questions based on subject and level
+        const response = await examAPI.getQuestions(subjectCode, level || null);
 
         if (response.success) {
-          // Store metadata for the header
+          let questions = response.data;
+
+          // 4. THE FILTER: This will now work because 'topic' comes from useLocalSearchParams
+          if (topic) {
+            console.log("Filtering Exam Mode for topic:", topic);
+            questions = questions.filter(q =>
+              q.topic?.toString().toLowerCase().trim() === topic.toLowerCase().trim()
+            );
+          }
+
+          // 5. Update Header Info
           setExamInfo({
-            mathType: response.examInfo.mathType || 'Mathematics',
-            year: response.examInfo.year,
-            paper: response.examInfo.paper,
-            level: response.examInfo.level
+            mathType: examTitle || response.examInfo?.mathType || 'Mathematics',
+            year: response.examInfo?.year || '',
+            paper: paper || response.examInfo?.paper || '',
           });
 
-          // Format questions to match your UI's expected structure
-          const formattedQuestions = response.data.map(q => ({
+          // Formatting logic (Keep your existing map function)
+          const formattedQuestions = questions.map(q => ({
             id: q.id,
-            question: q.text, // Database uses 'text'
-            options: Object.entries(q.options).map(([label, value]) => ({
+            question: q.text,
+            options: Object.entries(q.options || {}).map(([label, value]) => ({
               label,
               value
             })),
-            correct: q.answer, // Database uses 'answer'
+            correct: q.answer,
             explanation: q.explanation,
-            hasImage: q.hasImage
+            topic: q.topic
           }));
 
+          // Sort and set
           const sortedQuestions = formattedQuestions.sort((a, b) => {
-            const numA = parseInt(a.id.replace(/^\D+/g, ''));
-            const numB = parseInt(b.id.replace(/^\D+/g, ''));
+            const numA = parseInt(a.id.replace(/^\D+/g, '')) || 0;
+            const numB = parseInt(b.id.replace(/^\D+/g, '')) || 0;
             return numA - numB;
           });
+
           setQuizData(sortedQuestions);
         }
       } catch (error) {
@@ -92,7 +114,7 @@ export default function Exam({ route }) {
     };
 
     loadExamData();
-  }, [route?.params?.subjectCode]);
+  }, [subjectCode, topic, level]); // Update dependency array
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -319,7 +341,7 @@ export default function Exam({ route }) {
                 <Text style={styles.icon}>🎓</Text>
                 <Text style={styles.askMalakText}>Ask Mak</Text>
               </View>
-              <Text style={styles.questionNumber}>Question {currentQuestion.id}</Text>
+              <Text style={styles.questionNumber}>Question {currentQuestionIndex + 1} of {totalQuestions}</Text>
             </View>
             {/* Question */}
             <View style={styles.katexContainer}>

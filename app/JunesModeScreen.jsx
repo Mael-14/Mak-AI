@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { examAPI } from '../services/api';
+import ModeSelectionModal from '../components/ModeSelectionModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Subject data mapping - matches the subjects from home screen
@@ -114,8 +115,8 @@ const JunesModeScreen = () => {
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedPaperData, setSelectedPaperData] = useState(null);
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [selectedPaper, setSelectedPaper] = useState(null);
 
   // Fetch years when component mounts
   useEffect(() => {
@@ -148,6 +149,41 @@ const JunesModeScreen = () => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]
     );
+  };
+
+  const handlePaperSelect = (paper) => {
+    setSelectedPaper(paper);
+    setShowModeModal(true);
+  };
+
+  const handleModeSelect = (mode) => {
+    if (!selectedPaper) return;
+
+    const examTitle = `GCE June ${selectedPaper.year} - ${selectedPaper.paper}`;
+
+    if (mode === 'revision') {
+      router.push({
+        pathname: '/RevisionMode',
+        params: {
+          subjectCode: selectedPaper.subjectCode,
+          examTitle: examTitle,
+          subjectName: subject.title,
+          level: selectedLevel,
+          paper: selectedPaper.paper,
+          year: selectedPaper.year
+        }
+      });
+    } else if (mode === 'exam') {
+      router.push({
+        pathname: '/ExamMode',
+        params: {
+          examId: selectedPaper.id,
+          examTitle: examTitle,
+          subjectCode: selectedPaper.subjectCode,
+          level: selectedLevel
+        }
+      });
+    }
   };
   // QuestionMode tabs as in Ss.jsx
   const QuestionMode = [
@@ -197,13 +233,13 @@ const JunesModeScreen = () => {
                 onPress={() => {
                   if (questionMode.name === 'All') {
                     router.push({
-                      pathname: '/SelectedCourseScreen',
-                      params: { userId: 42 }
+                      pathname: '/subject/[id]',
+                      params: { id: subjectIdNum.toString(), level: selectedLevel }
                     })
                   } else if (questionMode.name === 'Customs exam') {
                     router.push({
                       pathname: '/CustomsExamScreen',
-                      params: { subjectId: subjectIdNum, subjectName: subject.title }
+                      params: { subjectId: subjectIdNum, subjectName: subject.title, level: selectedLevel }
                     })
                   } else if (questionMode.name === 'Topics') {
                     router.push({
@@ -298,14 +334,10 @@ const JunesModeScreen = () => {
                       <TouchableOpacity
                         key={paper.id}
                         style={styles.dropdownItem}
-                        onPress={() => {
-                          setSelectedPaperData({
-                            id: paper.id,
-                            year: yearData.year,
-                            paperName: paper.paper
-                          });
-                          setModalVisible(true);
-                        }}
+                        onPress={() => handlePaperSelect({
+                          ...paper,
+                          year: yearData.year
+                        })}
                       >
                         <Text style={styles.dropdownText}>GCE June {yearData.year} - {paper.paper}</Text>
                         <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" />
@@ -318,64 +350,16 @@ const JunesModeScreen = () => {
           )}
         </View>
       </ScrollView>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Exam Mode</Text>
-            <Text style={styles.modalSubtitle}>
-              {subject.title} - {selectedPaperData?.year} ({selectedPaperData?.paperName})
-            </Text>
 
-            <TouchableOpacity
-              style={styles.modeButton}
-              onPress={() => {
-                setModalVisible(false);
-                router.push({
-                  pathname: '/ExamMode',
-                  params: {
-                    paperId: selectedPaperData.id,
-                    mode: 'exam',
-                    subjectTitle: subject.title,
-                    year: selectedPaperData.year
-                  }
-                });
-              }}
-            >
-              <Ionicons name="timer-outline" size={24} color="white" />
-              <View style={styles.modeButtonTextContainer}>
-                <Text style={styles.modeButtonTitle}>Exam Mode</Text>
-                <Text style={styles.modeButtonDesc}>Timed session, results at the end.</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.modeButton, { backgroundColor: '#4b5563' }]}
-              onPress={() => {
-                setModalVisible(false);
-                router.push({
-                  pathname: '/RevisionMode',
-                  params: { paperId: selectedPaperData.id, mode: 'practice' }
-                });
-              }}
-            >
-              <Ionicons name="book-outline" size={24} color="white" />
-              <View style={styles.modeButtonTextContainer}>
-                <Text style={styles.modeButtonTitle}>Practice Mode</Text>
-                <Text style={styles.modeButtonDesc}>See answers immediately after each question.</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeModal}>
-              <Text style={styles.closeModalText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <ModeSelectionModal
+        visible={showModeModal}
+        onClose={() => {
+          setShowModeModal(false);
+          setSelectedPaper(null);
+        }}
+        onSelectMode={handleModeSelect}
+        examTitle={selectedPaper ? `GCE June ${selectedPaper.year} - ${selectedPaper.paper}` : ''}
+      />
     </SafeAreaView>
   );
 };

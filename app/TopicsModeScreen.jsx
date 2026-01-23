@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { examAPI } from '../services/api';
+import { getSubjectCode } from '../utils/subjectMapping';
+import ModeSelectionModal from '../components/ModeSelectionModal';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -74,6 +76,8 @@ const TopicsModeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [availablePapers, setAvailablePapers] = useState([]);
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [selectedTopicPaper, setSelectedTopicPaper] = useState(null);
   
   // Fetch topics when component mounts or when paper selection changes
   useEffect(() => {
@@ -121,6 +125,54 @@ const TopicsModeScreen = () => {
     setOpenDropdown(openDropdown === id ? null : id);
   };
 
+  const handleTopicPaperSelect = (topic, paper) => {
+    setSelectedTopicPaper({ topic, paper });
+    setShowModeModal(true);
+  };
+
+  const handleModeSelect = async (mode) => {
+    if (!selectedTopicPaper) return;
+    
+    try {
+      // Get subject code from subjectId
+      const subjectCode = getSubjectCode(subjectIdNum, selectedLevel);
+      
+      if (!subjectCode) {
+        Alert.alert('Error', 'Could not determine subject code');
+        return;
+      }
+
+      const examTitle = `${selectedTopicPaper.topic.name} - ${selectedTopicPaper.paper}`;
+      
+      if (mode === 'revision') {
+        router.push({
+          pathname: '/RevisionMode',
+          params: {
+            subjectCode: subjectCode,
+            examTitle: examTitle,
+            topic: selectedTopicPaper.topic.name,
+            paper: selectedTopicPaper.paper,
+            subjectName: subject.title,
+            level: selectedLevel
+          }
+        });
+      } else if (mode === 'exam') {
+        router.push({
+          pathname: '/ExamMode',
+          params: {
+            subjectCode: subjectCode,
+            examTitle: examTitle,
+            level: selectedLevel,
+            topic: selectedTopicPaper.topic.name
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error navigating:', error);
+      Alert.alert('Error', 'Failed to navigate. Please try again.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -155,8 +207,8 @@ const TopicsModeScreen = () => {
                 onPress={() => {
                   if (questionMode.name === 'All') {
                     router.push({
-                          pathname: '/SelectedCourseScreen',
-                          params: { userId: 42 }
+                          pathname: '/subject/[id]',
+                          params: { id: subjectIdNum.toString(), level: selectedLevel }
                        })
                   } else if (questionMode.name === 'Junes') {
                     router.push({
@@ -280,11 +332,7 @@ const TopicsModeScreen = () => {
                       <TouchableOpacity 
                         key={paper}
                         style={styles.dropdownItem}
-                        onPress={() => {
-                          // Navigate to questions for this topic and paper
-                          console.log('Selected topic:', topic.name, 'Paper:', paper);
-                          // TODO: Navigate to questions screen filtered by topic and paper
-                        }}
+                        onPress={() => handleTopicPaperSelect(topic, paper)}
                       >
                         <Text style={styles.dropdownText}>{topic.name} - {paper}</Text>
                         <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
@@ -297,6 +345,16 @@ const TopicsModeScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      <ModeSelectionModal
+        visible={showModeModal}
+        onClose={() => {
+          setShowModeModal(false);
+          setSelectedTopicPaper(null);
+        }}
+        onSelectMode={handleModeSelect}
+        examTitle={selectedTopicPaper ? `${selectedTopicPaper.topic.name} - ${selectedTopicPaper.paper}` : ''}
+      />
     </SafeAreaView>
   );
 };

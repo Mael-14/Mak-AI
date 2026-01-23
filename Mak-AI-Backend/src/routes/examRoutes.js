@@ -156,6 +156,90 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
 });
 
 /**
+ * Get questions by exam ID
+ * GET /api/exams/exam/:examId?topic=Algebra
+ * Returns questions for a specific exam document, optionally filtered by topic
+ */
+router.get('/exam/:examId', async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const { topic } = req.query; // Optional topic filter
+        
+        console.log(`Fetching questions for examId: ${examId}${topic ? `, topic: ${topic}` : ''}`);
+        
+        // Get the exam document
+        const examDoc = await db.collection('exams').doc(examId).get();
+        
+        if (!examDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                error: `Exam not found: ${examId}`
+            });
+        }
+        
+        const examData = examDoc.data();
+        
+        // Build query for questions
+        let questionsQuery = examDoc.ref.collection('questions');
+        let questionsSnapshot;
+        
+        // If topic is provided, filter by topic
+        if (topic) {
+            // When filtering by topic, we can't use orderBy without a composite index
+            // So we'll fetch without orderBy and sort in memory
+            try {
+                questionsQuery = questionsQuery.where('topic', '==', topic).orderBy('id');
+                questionsSnapshot = await questionsQuery.get();
+            } catch (error) {
+                // If orderBy fails (no composite index), fetch without ordering
+                if (error.code === 'failed-precondition' || error.code === 9 || error.message?.includes('index')) {
+                    console.warn(`Firestore index missing for topic filtering with orderBy. Fetching without orderBy and sorting in memory.`);
+                    questionsQuery = examDoc.ref.collection('questions').where('topic', '==', topic);
+                    questionsSnapshot = await questionsQuery.get();
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            // No topic filter, can use orderBy
+            questionsQuery = questionsQuery.orderBy('id');
+            questionsSnapshot = await questionsQuery.get();
+        }
+        
+        let questions = questionsSnapshot.docs.map(doc => doc.data());
+        
+        // Sort by question ID if we didn't use orderBy
+        if (topic) {
+            questions = questions.sort((a, b) => {
+                const numA = parseInt(a.id.replace(/^\D+/g, '')) || 0;
+                const numB = parseInt(b.id.replace(/^\D+/g, '')) || 0;
+                return numA - numB;
+            });
+        }
+        
+        res.status(200).json({
+            success: true,
+            data: questions,
+            examInfo: {
+                examId: examId,
+                subjectCode: examData.subjectCode,
+                mathType: examData.mathType,
+                level: examData.level,
+                paper: examData.paper,
+                year: examData.year,
+                topic: topic || null
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching questions by exam ID:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * Get all available exams
  * GET /api/exams
  */

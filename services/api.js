@@ -184,6 +184,26 @@ export const examAPI = {
       }
       throw error;
     }
+  },
+
+  /**
+   * Fetches questions by exam ID
+   * Example: getQuestionsByExamId('0570_P1_2025', 'Algebra')
+   * @param {string} examId - The exam ID (e.g., '0570_P1_2025')
+   * @param {string} topic - Optional topic filter
+   */
+  getQuestionsByExamId: async (examId, topic = null) => {
+    try {
+      const params = topic ? { topic } : {};
+      const response = await api.get(`/exams/exam/${examId}`, { params });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching questions for exam ID ${examId}${topic ? ` (topic: ${topic})` : ''}:`, error);
+      if (error.response) {
+        console.error('Response error:', error.response.data);
+      }
+      throw error;
+    }
   }
 };
 
