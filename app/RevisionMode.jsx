@@ -7,55 +7,26 @@ import {
   Dimensions,
   Animated,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { examAPI } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 
-const quizData = [
-  {
-    id: 1,
-    question: 'What is the smallest prime number?',
-    options: [
-      { label: 'A', value: '1' },
-      { label: 'B', value: '2' },
-      { label: 'C', value: '3' },
-      { label: 'D', value: '4' },
-    ],
-    correct: 'B',
-    hint: 'A prime number is only divisible by 1 and itself. Think about the smallest number that fits this definition.',
-    explanation: 'The smallest prime number is 2. It is the only even prime number because all other even numbers are divisible by 2.',
-  },
-  {
-    id: 2,
-    question: 'What is 5 × 6?',
-    options: [
-      { label: 'A', value: '25' },
-      { label: 'B', value: '30' },
-      { label: 'C', value: '35' },
-      { label: 'D', value: '40' },
-    ],
-    correct: 'B',
-    hint: 'Multiply 5 by 6. You can think of it as adding 5 six times.',
-    explanation: '5 × 6 = 30. This is a basic multiplication fact.',
-  },
-  {
-    id: 3,
-    question: 'What is the sum of angles in a triangle?',
-    options: [
-      { label: 'A', value: '90°' },
-      { label: 'B', value: '180°' },
-      { label: 'C', value: '270°' },
-      { label: 'D', value: '360°' },
-    ],
-    correct: 'B',
-    hint: 'This is a fundamental property of all triangles, regardless of their type.',
-    explanation: 'The sum of all angles in any triangle is always 180°. This is a fundamental theorem in geometry.',
-  },
-];
-
 export default function Revision() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { subjectCode, examTitle, topic, paper, subjectName, level, year } = params;
+  
+  const [quizData, setQuizData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [examInfo, setExamInfo] = useState({
+    title: examTitle || subjectName || 'Mathematics',
+    date: paper || '',
+  });
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isExplanationVisible, setIsExplanationVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -63,6 +34,110 @@ export default function Revision() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
   const [selectedOptions, setSelectedOptions] = useState({});
+
+  // Simple approach: Fetch questions using subjectCode + level
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setLoading(true);
+        
+        // Simple validation
+        if (!subjectCode || !level) {
+          Alert.alert('Error', 'Subject code and level are required');
+          router.back();
+          return;
+        }
+
+        console.log('Fetching questions for subjectCode:', subjectCode, 'level:', level);
+
+        // Simple approach: Use subjectCode + level to fetch questions
+        const response = await examAPI.getQuestions(subjectCode, level);
+
+        if (response.success) {
+          // Filter by topic if provided
+          let questions = response.data;
+          if (topic) {
+            questions = questions.filter(q => q.topic === topic);
+          }
+
+          // Format questions to match UI structure
+          const formattedQuestions = questions.map(q => ({
+            id: q.id,
+            question: q.text,
+            options: Object.entries(q.options || {}).map(([label, value]) => ({
+              label,
+              value
+            })),
+            correct: q.answer,
+            hint: `This question is about ${q.topic || 'this topic'}. Think carefully about the concepts involved.`,
+            explanation: q.explanation || 'No explanation available.',
+            hasImage: q.hasImage,
+            topic: q.topic
+          }));
+
+          // Sort by question ID
+          const sortedQuestions = formattedQuestions.sort((a, b) => {
+            const numA = parseInt(a.id.replace(/^\D+/g, '')) || 0;
+            const numB = parseInt(b.id.replace(/^\D+/g, '')) || 0;
+            return numA - numB;
+          });
+
+          setQuizData(sortedQuestions);
+          
+          // Update exam info
+          setExamInfo({
+            title: response.examInfo?.mathType || subjectName || 'Mathematics',
+            date: year && paper 
+              ? `${paper} - ${year}` 
+              : response.examInfo?.paper && response.examInfo?.year
+              ? `${response.examInfo.paper} - ${response.examInfo.year}`
+              : paper || '',
+          });
+        } else {
+          Alert.alert('Error', response.error || 'Failed to load questions');
+          router.back();
+        }
+      } catch (error) {
+        console.error('Failed to fetch questions:', error);
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to load questions. Please try again.';
+        Alert.alert(
+          'Error', 
+          errorMessage,
+          [
+            { text: 'Retry', onPress: () => loadQuestions() },
+            { text: 'Go Back', onPress: () => router.back(), style: 'cancel' }
+          ]
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadQuestions();
+  }, [subjectCode, level, topic]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1e3a8a" />
+        <Text style={styles.loadingText}>Loading questions...</Text>
+      </View>
+    );
+  }
+
+  if (quizData.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>No questions available</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const currentQuestion = quizData[currentQuestionIndex];
   const totalQuestions = quizData.length;
@@ -121,11 +196,11 @@ export default function Revision() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mathematics</Text>
-        <Text style={styles.headerDate}>June 2020</Text>
+        <Text style={styles.headerTitle}>{examInfo.title}</Text>
+        <Text style={styles.headerDate}>{examInfo.date}</Text>
       </View>
 
       {/* Mode */}
@@ -147,7 +222,7 @@ export default function Revision() {
                 <Text style={styles.icon}>🎓</Text>
                 <Text style={styles.askMalakText}>Ask Mak</Text>
               </View>
-              <Text style={styles.questionNumber}>Question {currentQuestion.id}</Text>
+              <Text style={styles.questionNumber}>Question {currentQuestionIndex + 1} of {totalQuestions}</Text>
               <TouchableOpacity style={styles.hintButton} onPress={setShowHint}>
                 <Text style={styles.icon}>💡</Text>
                 <Text style={styles.hintText}>Hint</Text>
@@ -229,20 +304,25 @@ export default function Revision() {
         {currentQuestionIndex === quizData.length - 1 ? (
           <TouchableOpacity
             style={styles.navButton}
-            onPress={() => Alert.alert('Done', 'You have completed the exam!', [{ text: 'OK' }])}
+            onPress={() => {
+              Alert.alert(
+                'Completed!', 
+                `You have completed all ${totalQuestions} questions!`,
+                [
+                  { text: 'Review Again', onPress: () => setCurrentQuestionIndex(0) },
+                  { text: 'Done', onPress: () => router.back() }
+                ]
+              );
+            }}
           >
-            <Ionicons name="checkmark-done" size={28} color="white" style={styles.navButtonText} />
+            <Ionicons name="checkmark-done" size={28} color="white" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[
-              styles.navButton,
-              currentQuestionIndex === quizData.length - 1 && styles.navButtonDisabled,
-            ]}
+            style={styles.navButton}
             onPress={handleNext}
-            disabled={currentQuestionIndex === quizData.length - 1}
           >
-            <Ionicons name="chevron-forward" size={24} color="black" style={styles.navButtonText} />
+            <Ionicons name="chevron-forward" size={24} color="white" />
           </TouchableOpacity>
         )}
       </View>
@@ -441,5 +521,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  backButtonText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#1e3a8a',
+    fontWeight: '600',
   },
 });

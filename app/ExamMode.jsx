@@ -48,38 +48,56 @@ export default function Exam({ route }) {
 
   const explanationHeight = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
+  
   useEffect(() => {
     const loadExamData = async () => {
       try {
-        // You can get '0570' from route.params if passed from previous screen
-        const subjectCode = route?.params?.subjectCode || '0570';
-        const response = await examAPI.getQuestions(subjectCode);
+        let response;
+        
+        // Check if examId is provided (preferred method)
+        if (route?.params?.examId) {
+          response = await examAPI.getQuestionsByExamId(route.params.examId);
+        } else if (route?.params?.subjectCode) {
+          // Fallback to subject code method
+          const level = route?.params?.level || null;
+          response = await examAPI.getQuestions(route.params.subjectCode, level);
+        } else {
+          // Default fallback
+          response = await examAPI.getQuestions('0570');
+        }
 
         if (response.success) {
+          // Filter by topic if provided
+          let questions = response.data;
+          if (route?.params?.topic) {
+            questions = questions.filter(q => q.topic === route.params.topic);
+          }
+
           // Store metadata for the header
           setExamInfo({
-            mathType: response.examInfo.mathType || 'Mathematics',
-            year: response.examInfo.year,
-            paper: response.examInfo.paper,
-            level: response.examInfo.level
+            mathType: response.examInfo?.mathType || route?.params?.examTitle || 'Mathematics',
+            year: response.examInfo?.year || '',
+            paper: response.examInfo?.paper || route?.params?.paper || '',
+            level: response.examInfo?.level || route?.params?.level || ''
           });
 
           // Format questions to match your UI's expected structure
-          const formattedQuestions = response.data.map(q => ({
+          const formattedQuestions = questions.map(q => ({
             id: q.id,
             question: q.text, // Database uses 'text'
-            options: Object.entries(q.options).map(([label, value]) => ({
+            options: Object.entries(q.options || {}).map(([label, value]) => ({
               label,
               value
             })),
             correct: q.answer, // Database uses 'answer'
             explanation: q.explanation,
-            hasImage: q.hasImage
+            hasImage: q.hasImage,
+            topic: q.topic
           }));
 
           const sortedQuestions = formattedQuestions.sort((a, b) => {
-            const numA = parseInt(a.id.replace(/^\D+/g, ''));
-            const numB = parseInt(b.id.replace(/^\D+/g, ''));
+            const numA = parseInt(a.id.replace(/^\D+/g, '')) || 0;
+            const numB = parseInt(b.id.replace(/^\D+/g, '')) || 0;
             return numA - numB;
           });
           setQuizData(sortedQuestions);
@@ -92,7 +110,7 @@ export default function Exam({ route }) {
     };
 
     loadExamData();
-  }, [route?.params?.subjectCode]);
+  }, [route?.params?.examId, route?.params?.subjectCode, route?.params?.topic]);
 
   useEffect(() => {
     if (timer <= 0) return;

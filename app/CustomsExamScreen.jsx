@@ -91,11 +91,12 @@ const customExamHistory = [
 const CustomsExamScreen = () => {
   const navigation = useNavigation();
   const router = useRouter();
-  const { subjectId, subjectName } = useLocalSearchParams();
+  const { subjectId, subjectName, level } = useLocalSearchParams();
   
   // Get subject data based on ID
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
+  const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
   
   const [showAlert, setShowAlert] = useState(false);
   const [showTestSetup, setShowTestSetup] = useState(false);
@@ -149,10 +150,9 @@ const CustomsExamScreen = () => {
                 onPress={() => {
                   if (questionMode.name === 'All') {
                     router.push({
-                          pathname: '/SelectedCourseScreen',
-                          params: { userId: 42 }
+                          pathname: '/subject/[id]',
+                          params: { id: subjectIdNum.toString(), level: selectedLevel }
                        })
-                    // navigation.navigate('Ss');
                   } else if (questionMode.name === 'Junes') {
                     router.push({
                           pathname: '/JunesModeScreen',
