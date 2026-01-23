@@ -145,6 +145,13 @@ export default function Exam({ route }) {
     });
     return score;
   };
+  const handleFinishEarly = () => {
+    // We don't need to manually mark them as 'not done' 
+    // because your getScore() and Results logic already checks 
+    // if an index exists in selectedOptions.
+    setShowCongrats(false);
+    setShowResults(true);
+  };
 
   if (showCongrats) {
     return (
@@ -210,7 +217,7 @@ export default function Exam({ route }) {
             const userAnswer = selectedOptions[idx];
             const isCorrect = userAnswer === q.answer;
             const userOption = q.options?.find(opt => opt.label === userAnswer);
-            const correctOption = q.options?.find(opt => opt.label === q.answer);
+            const correctOption = q.options?.find(opt => opt.label === q.correct);
             return (
               <View key={q.id || idx} style={styles.resultCard}>
                 <Text style={styles.resultQuestion}>
@@ -224,7 +231,9 @@ export default function Exam({ route }) {
                 </Text>
                 {!isCorrect && (
                   <Text style={styles.correctAnswer}>
-                    Correct answer: {correctOption.label}. {correctOption.value}
+                    Correct answer: {correctOption
+                      ? `${correctOption.label}. ${correctOption.value}`
+                      : 'Unknown (Check Database)'}
                   </Text>
                 )}
                 <Text style={styles.resultExplanation}>
@@ -282,6 +291,8 @@ export default function Exam({ route }) {
         <Text style={styles.headerTitle}>{examInfo.mathType}</Text>
         <Text style={styles.headerDate}>June {examInfo.year}</Text>
       </View>
+
+
 
       {/* Mode and Timer */}
       <View style={styles.modeContainer}>
@@ -357,6 +368,12 @@ export default function Exam({ route }) {
           disabled={currentQuestionIndex === 0}
         >
           <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.doneHeaderButton}
+          onPress={handleFinishEarly}
+        >
+          <Text style={styles.doneHeaderText}>Done</Text>
         </TouchableOpacity>
         {currentQuestionIndex === quizData.length - 1 ? (
           <TouchableOpacity
@@ -652,17 +669,18 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 4,
   },
-  doneButton: {
-    backgroundColor: '#1e3a8a',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 24,
+  doneHeaderButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ef4444', // Red outline
+    backgroundColor: 'transparent', // No background makes it look smaller
   },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  doneHeaderText: {
+    color: '#ef4444',
+    fontWeight: '600',
+    fontSize: 12, // Small font
   },
   resultsButtonsContainer: {
     flexDirection: 'row',
@@ -767,6 +785,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 12,
     marginBottom: 8,
+  },
+  doneHeaderButton: {
+    backgroundColor: '#ef4444', // Red color for 'End' action
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  doneHeaderText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   statsBox: {
     fontSize: 16,
