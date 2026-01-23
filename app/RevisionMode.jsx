@@ -9,6 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { examAPI } from '../services/api';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
@@ -296,7 +298,7 @@ const styles = StyleSheet.create({
   modeValue: {
     fontSize: 14,
     color: '#a3a2a2ff',
-    
+
   },
   cardContainer: {
     flex: 1,
@@ -316,9 +318,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    
+
   },
-    questionHeaderleft: {
+  questionHeaderleft: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 12,
@@ -362,7 +364,7 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     marginBottom: 16,
-    
+
   },
   optionButton: {
     flexDirection: 'row',
