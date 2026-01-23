@@ -4,6 +4,7 @@ import { Tabs, useRouter, useSegments } from 'expo-router'
 import CustomNavBar from '../../components/CustonNavBar'
 import { useNavigationState } from '@react-navigation/native';
 import { isOnboardingCompleted } from '../../utils/onboardingStorage';
+import { useAuth } from '../../context/AuthContext';
 import SplashScreen from '../../components/SplashScreen';
 
 const _layout = () => {
@@ -12,6 +13,7 @@ const _layout = () => {
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
     const router = useRouter();
     const segments = useSegments();
+    const { isAuthenticated, loading: authLoading, isInitialized } = useAuth();
 
     const currentRouteName = useNavigationState((state) => {
         const route = state.routes[state.index];
@@ -52,8 +54,25 @@ const _layout = () => {
                     router.replace('/OnboardingScreen');
                 }
             } else {
+                // If onboarding completed, check auth status
+                if (isInitialized) {
+                    if (!isAuthenticated) {
+                        // Not authenticated - redirect to login if not already there
+                        if (currentRoute !== 'LoginScreen' &&
+                            currentRoute !== 'SignUpScreen' &&
+                            currentRoute !== 'OnboardingScreen') {
+                            router.replace('/LoginScreen');
+                        }
+                    } else {
+                        // Authenticated - if on login/signup screens, redirect to home
+                        if (currentRoute === 'LoginScreen' || currentRoute === 'SignUpScreen' || currentRoute === 'OnboardingScreen') {
+                            router.replace('/(tabs)');
+                        }
+                    }
+                }
+                
                 // If onboarding completed and on onboarding screen, redirect to login
-                if (currentRoute === 'OnboardingScreen') {
+                if (currentRoute === 'OnboardingScreen' && !isAuthenticated) {
                     router.replace('/LoginScreen');
                 }
             }
@@ -71,14 +90,21 @@ const _layout = () => {
             setIsCheckingOnboarding(false);
         }
     };
+    
+    // Re-check when auth state changes
+    useEffect(() => {
+        if (isInitialized && !authLoading) {
+            checkOnboardingStatus();
+        }
+    }, [isAuthenticated, isInitialized, authLoading]);
 
     // Show splash screen for 5 seconds
     if (showSplash) {
         return <SplashScreen />;
     }
 
-    // Show loading screen while checking onboarding status
-    if (isCheckingOnboarding) {
+    // Show loading screen while checking auth or onboarding status
+    if (authLoading || !isInitialized || isCheckingOnboarding) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7085FC" />

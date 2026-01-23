@@ -379,7 +379,7 @@ const SignUpScreen = () => {
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
-            <Text>SignUp to get Started with Mak AI</Text>
+            <Text style={{ fontSize: wp('3.5%'), color: '#666' }}>SignUp to get Started with Mak AI</Text>
           </View>
 
           {/* Name Input */}
@@ -387,8 +387,8 @@ const SignUpScreen = () => {
             styles.inputContainer,
             errors.name && touched.name && styles.inputError
           ]}>
-            <View style={{ paddingRight: 20 }}>
-              <Ionicons name="person-outline" size={22} color="#000000ff" />
+            <View style={{ paddingRight: wp('5%') }}>
+              <Ionicons name="person-outline" size={wp('5.5%')} color="#000000ff" />
             </View>
             <TextInput
               style={styles.input}
@@ -402,7 +402,7 @@ const SignUpScreen = () => {
           </View>
           {errors.name && touched.name && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={14} color="#EF4444" />
+              <Ionicons name="alert-circle" size={wp('3.5%')} color="#EF4444" />
               <Text style={styles.errorText}>{errors.name}</Text>
             </View>
           )}
@@ -412,9 +412,9 @@ const SignUpScreen = () => {
             styles.inputContainer,
             errors.email && touched.email && styles.inputError
           ]}>
-            <View style={{ paddingRight: 20 }}>
+            <View style={{ paddingRight: wp('5%') }}>
               {/* <Image source={Eicon} style={{ width: 12, height: 16 }} /> */}
-              <Ionicons name="mail-outline" size={22} color="#000000ff" />
+              <Ionicons name="mail-outline" size={wp('5.5%')} color="#000000ff" />
             </View>
             <TextInput
               style={styles.input}
@@ -430,7 +430,7 @@ const SignUpScreen = () => {
           </View>
           {errors.email && touched.email && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={14} color="#EF4444" />
+              <Ionicons name="alert-circle" size={wp('3.5%')} color="#EF4444" />
               <Text style={styles.errorText}>{errors.email}</Text>
             </View>
           )}
@@ -440,9 +440,9 @@ const SignUpScreen = () => {
             styles.inputContainer,
             errors.password && touched.password && styles.inputError
           ]}>
-            <View style={{ paddingRight: 20 }}>
+            <View style={{ paddingRight: wp('5%') }}>
               {/* <Image source={Licon} style={{ width: 12, height: 15 }} /> */}
-              <Ionicons name="lock-closed-outline" size={22} color="#000000ff" />
+              <Ionicons name="lock-closed-outline" size={wp('5.5%')} color="#000000ff" />
             </View>
             <TextInput
               style={styles.input}
@@ -456,18 +456,18 @@ const SignUpScreen = () => {
             />
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
-              style={{ paddingLeft: 10 }}
+              style={{ paddingLeft: wp('2.5%') }}
             >
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
+                size={wp('5%')}
                 color="#000000ff"
               />
             </TouchableOpacity>
           </View>
           {errors.password && touched.password && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={14} color="#EF4444" />
+              <Ionicons name="alert-circle" size={wp('3.5%')} color="#EF4444" />
               <Text style={styles.errorText}>{errors.password}</Text>
             </View>
           )}
@@ -475,7 +475,7 @@ const SignUpScreen = () => {
           {/* Password Requirements Info */}
           {formData.password && !errors.password && touched.password && (
             <View style={styles.successContainer}>
-              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={wp('3.5%')} color="#10B981" />
               <Text style={styles.successText}>Password meets all requirements</Text>
             </View>
           )}
@@ -487,7 +487,7 @@ const SignUpScreen = () => {
           >
             <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
               {agreedToTerms && (
-                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Ionicons name="checkmark" size={wp('4%')} color="#fff" />
               )}
             </View>
             <Text style={styles.termsText}>
@@ -517,7 +517,7 @@ const SignUpScreen = () => {
             style={styles.googleButton}
             onPress={handleGoogleSignUp}
           >
-            <Image source={Gicon} style={{ width: 25, height: 25, marginRight: 10 }} />
+            <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
         </View>
@@ -531,7 +531,7 @@ const SignUpScreen = () => {
         <TouchableOpacity>
           <Text
             style={styles.signUpText}
-            onPress={() => router.push('Login')}
+            onPress={() => router.push('/LoginScreen')}
           >
             Login
           </Text>
@@ -546,12 +546,18 @@ export default SignUpScreen
 const styles = StyleSheet.create({
   blod: {
     position: 'absolute',
-    width: wp('100%'),        // 45% of screen width
-    height: hp('50%'),       // 50% of screen height
-    top: hp('-11%'),         // -15% of screen height
-    left: wp('-20%'),        // -10% of screen width
+    width: wp('100%'),
+    height: hp('50%'),
+    top: hp('-11%'),
+    left: wp('-20%'),
     zIndex: -1,
     opacity: 0.6
+  },
+  objectContainer: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    zIndex: -1,
   },
   container: {
     position: 'absolute',
@@ -559,80 +565,78 @@ const styles = StyleSheet.create({
     left: wp('8%'),
     right: wp('8%'),
     justifyContent: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: wp('5%'),
     zIndex: 2,
   },
   header: {
-    paddingBottom: 30,
-    //zIndex: 2
+    paddingBottom: hp('3.5%'),
   },
   title: {
-    fontSize: 32,
+    fontSize: wp('8%'),
     fontWeight: '700',
     color: '#000',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
     fontFamily: 'Georgia',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 300,
-    height: 40,
+    width: wp('75%'),
+    maxWidth: 400,
+    height: hp('5%'),
+    minHeight: 40,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
     borderWidth: 0.3,
     borderColor: '#bebbbbff',
-    marginBottom: 8,
-    paddingHorizontal: 14,
+    marginBottom: hp('1%'),
+    paddingHorizontal: wp('3.5%'),
   },
   inputError: {
     borderColor: '#EF4444',
     borderWidth: 1,
   },
-  //   enterBtn: {
-  //     flex: 1,
-  //     color: '#000',
-  //   },
   input: {
     flex: 1,
     color: '#000',
     letterSpacing: 1,
+    fontSize: wp('4%'),
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: -4,
+    marginBottom: hp('1%'),
+    marginTop: hp('-0.5%'),
   },
   errorText: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#EF4444',
-    marginLeft: 4,
+    marginLeft: wp('1%'),
   },
   successContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: -4,
+    marginBottom: hp('1%'),
+    marginTop: hp('-0.5%'),
   },
   successText: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#10B981',
-    marginLeft: 4,
+    marginLeft: wp('1%'),
   },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: hp('2%'),
+    marginTop: hp('1%'),
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('1%'),
     borderWidth: 2,
     borderColor: '#bebbbbff',
-    marginRight: 10,
+    marginRight: wp('2.5%'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -641,9 +645,9 @@ const styles = StyleSheet.create({
     borderColor: '#4a4aff',
   },
   termsText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#666',
-    flexD: 1,
+    flex: 1,
   },
   termsLink: {
     color: '#4a4aff',
@@ -651,11 +655,13 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#AAB6FF',
-    borderRadius: 12,
-    paddingVertical: 5,
-    paddingHorizontal: 24,
-    width: 300,
-    height: 50,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    paddingHorizontal: wp('6%'),
+    width: wp('75%'),
+    maxWidth: 400,
+    height: hp('6%'),
+    minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -664,7 +670,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
   },
   googleButton: {
@@ -672,30 +678,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    height: 56,
+    borderRadius: wp('3%'),
+    height: hp('7%'),
+    minHeight: 56,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    width: 300,
-    marginTop: 16
+    width: wp('75%'),
+    maxWidth: 400,
+    marginTop: hp('2%')
   },
   googleButtonText: {
     color: '#373130ff',
-    fontSize: 15,
+    fontSize: wp('3.75%'),
     fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 'auto',
-    //paddingBottom: 20,
+    paddingBottom: hp('2%'),
   },
   footerText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#666',
   },
   signUpText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#4a4aff',
     fontWeight: '600',
     textDecorationLine: 'underline',
