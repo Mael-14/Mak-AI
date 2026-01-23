@@ -20,7 +20,7 @@ export default function Revision() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { subjectCode, examTitle, topic, paper, subjectName, level, year } = params;
-  
+
   const [quizData, setQuizData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [examInfo, setExamInfo] = useState({
@@ -40,7 +40,7 @@ export default function Revision() {
     const loadQuestions = async () => {
       try {
         setLoading(true);
-        
+
         // Simple validation
         if (!subjectCode || !level) {
           Alert.alert('Error', 'Subject code and level are required');
@@ -83,15 +83,15 @@ export default function Revision() {
           });
 
           setQuizData(sortedQuestions);
-          
+
           // Update exam info
           setExamInfo({
             title: response.examInfo?.mathType || subjectName || 'Mathematics',
-            date: year && paper 
-              ? `${paper} - ${year}` 
+            date: year && paper
+              ? `${paper} - ${year}`
               : response.examInfo?.paper && response.examInfo?.year
-              ? `${response.examInfo.paper} - ${response.examInfo.year}`
-              : paper || '',
+                ? `${response.examInfo.paper} - ${response.examInfo.year}`
+                : paper || '',
           });
         } else {
           Alert.alert('Error', response.error || 'Failed to load questions');
@@ -101,7 +101,7 @@ export default function Revision() {
         console.error('Failed to fetch questions:', error);
         const errorMessage = error.response?.data?.error || error.message || 'Failed to load questions. Please try again.';
         Alert.alert(
-          'Error', 
+          'Error',
           errorMessage,
           [
             { text: 'Retry', onPress: () => loadQuestions() },
@@ -129,7 +129,7 @@ export default function Revision() {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>No questions available</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -306,7 +306,7 @@ export default function Revision() {
             style={styles.navButton}
             onPress={() => {
               Alert.alert(
-                'Completed!', 
+                'Completed!',
                 `You have completed all ${totalQuestions} questions!`,
                 [
                   { text: 'Review Again', onPress: () => setCurrentQuestionIndex(0) },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   modeValue: {
     fontSize: 14,
     color: '#a3a2a2ff',
-    
+
   },
   cardContainer: {
     flex: 1,
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    
+
   },
-    questionHeaderleft: {
+  questionHeaderleft: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: 12,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     marginBottom: 16,
-    
+
   },
   optionButton: {
     flexDirection: 'row',

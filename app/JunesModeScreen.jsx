@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -104,12 +104,12 @@ const JunesModeScreen = () => {
   const navigation = useNavigation();
   const router = useRouter();
   const { subjectId, subjectName, level } = useLocalSearchParams();
-  
+
   // Get subject data based on ID
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
   const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
-  
+
   const [openDropdown, setOpenDropdown] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [years, setYears] = useState([]);
@@ -117,7 +117,7 @@ const JunesModeScreen = () => {
   const [error, setError] = useState(null);
   const [showModeModal, setShowModeModal] = useState(false);
   const [selectedPaper, setSelectedPaper] = useState(null);
-  
+
   // Fetch years when component mounts
   useEffect(() => {
     const fetchYears = async () => {
@@ -137,7 +137,7 @@ const JunesModeScreen = () => {
         setLoading(false);
       }
     };
-    
+
     if (subjectIdNum && selectedLevel) {
       fetchYears();
     }
@@ -158,9 +158,9 @@ const JunesModeScreen = () => {
 
   const handleModeSelect = (mode) => {
     if (!selectedPaper) return;
-    
+
     const examTitle = `GCE June ${selectedPaper.year} - ${selectedPaper.paper}`;
-    
+
     if (mode === 'revision') {
       router.push({
         pathname: '/RevisionMode',
@@ -203,9 +203,9 @@ const JunesModeScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.illustrationContainer}>
-            <Image 
-              source={subject.image} 
-              style={styles.illustrationImage} 
+            <Image
+              source={subject.image}
+              style={styles.illustrationImage}
               resizeMode="contain"
             />
           </View>
@@ -233,19 +233,19 @@ const JunesModeScreen = () => {
                 onPress={() => {
                   if (questionMode.name === 'All') {
                     router.push({
-                          pathname: '/subject/[id]',
-                          params: { id: subjectIdNum.toString(), level: selectedLevel }
-                       })
+                      pathname: '/subject/[id]',
+                      params: { id: subjectIdNum.toString(), level: selectedLevel }
+                    })
                   } else if (questionMode.name === 'Customs exam') {
                     router.push({
-                          pathname: '/CustomsExamScreen',
-                          params: { subjectId: subjectIdNum, subjectName: subject.title, level: selectedLevel }
-                       })
+                      pathname: '/CustomsExamScreen',
+                      params: { subjectId: subjectIdNum, subjectName: subject.title, level: selectedLevel }
+                    })
                   } else if (questionMode.name === 'Topics') {
                     router.push({
-                          pathname: '/TopicsModeScreen',
-                          params: { subjectId: subjectIdNum, subjectName: subject.title }
-                       })
+                      pathname: '/TopicsModeScreen',
+                      params: { subjectId: subjectIdNum, subjectName: subject.title }
+                    })
                   } else {
                     // Handle other modes if needed
                   }
@@ -268,7 +268,7 @@ const JunesModeScreen = () => {
           ) : error ? (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.retryButton}
                 onPress={() => {
                   setError(null);
@@ -298,7 +298,7 @@ const JunesModeScreen = () => {
                     <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
                   </View>
 
-                  <View style={{flexDirection: 'column'}}>
+                  <View style={{ flexDirection: 'column' }}>
                     <Text style={[styles.courseTitle, styles.courseTitleDark]}>GCE June {yearData.year}</Text>
                     <Text style={styles.courseSubtitle}>{yearData.papers.length} Paper{yearData.papers.length !== 1 ? 's' : ''} Available</Text>
                   </View>
@@ -331,8 +331,8 @@ const JunesModeScreen = () => {
                 {openDropdown === yearData.year && (
                   <View style={styles.dropdownContainer}>
                     {yearData.papers.map((paper) => (
-                      <TouchableOpacity 
-                        key={paper.id} 
+                      <TouchableOpacity
+                        key={paper.id}
                         style={styles.dropdownItem}
                         onPress={() => handlePaperSelect({
                           ...paper,
@@ -340,7 +340,7 @@ const JunesModeScreen = () => {
                         })}
                       >
                         <Text style={styles.dropdownText}>GCE June {yearData.year} - {paper.paper}</Text>
-                        <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
+                        <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" />
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -362,8 +362,8 @@ const JunesModeScreen = () => {
       />
     </SafeAreaView>
   );
-  };
-  // Styles for QuestionMode tabs (copied from Ss.jsx)
+};
+// Styles for QuestionMode tabs (copied from Ss.jsx)
 
 const styles = StyleSheet.create({
   container: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#2d2d2d',
   },
-    QuestionModeContainer: {
+  QuestionModeContainer: {
     backgroundColor: '#fff',
     paddingVertical: 16,
     paddingHorizontal: 12,
@@ -655,6 +655,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 25,
+  },
+  modeButton: {
+    flexDirection: 'row',
+    backgroundColor: '#1e3a8a',
+    width: '100%',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  modeButtonTextContainer: {
+    marginLeft: 15,
+  },
+  modeButtonTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modeButtonDesc: {
+    color: '#cbd5e1',
+    fontSize: 12,
+  },
+  closeModal: {
+    marginTop: 10,
+    padding: 10,
+  },
+  closeModalText: {
+    color: '#ef4444',
+    fontWeight: '600',
   },
 });
 export default JunesModeScreen;
