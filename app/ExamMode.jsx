@@ -9,52 +9,19 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
+import { examAPI } from '../services/api';
 
+import Katex from 'react-native-katex';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const quizData = [
-  {
-    id: 1,
-    question: 'What is the smallest prime number?',
-    options: [
-      { label: 'A', value: '1' },
-      { label: 'B', value: '2' },
-      { label: 'C', value: '3' },
-      { label: 'D', value: '4' },
-    ],
-    correct: 'B',
-    explanation: 'The smallest prime number is 2. It is the only even prime number because all other even numbers are divisible by 2.',
-  },
-  {
-    id: 2,
-    question: 'What is 5 × 6?',
-    options: [
-      { label: 'A', value: '25' },
-      { label: 'B', value: '30' },
-      { label: 'C', value: '35' },
-      { label: 'D', value: '40' },
-    ],
-    correct: 'B',
-    explanation: '5 × 6 = 30. This is a basic multiplication fact.',
-  },
-  {
-    id: 3,
-    question: 'What is the sum of angles in a triangle?',
-    options: [
-      { label: 'A', value: '90°' },
-      { label: 'B', value: '180°' },
-      { label: 'C', value: '270°' },
-      { label: 'D', value: '360°' },
-    ],
-    correct: 'B',
-    explanation: 'The sum of all angles in any triangle is always 180°. This is a fundamental theorem in geometry.',
-  },
-];
+
+
 
 function formatTime(seconds) {
   const min = Math.floor(seconds / 60);
@@ -62,12 +29,70 @@ function formatTime(seconds) {
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 }
 
-export default function Exam() {
+export default function Exam({ route }) {
+  const formatQuestion = (str) => {
+    // If the string doesn't start with a LaTeX command like \frac or \sqrt,
+    // we can wrap the whole thing in \text{} but keep the math symbols outside.
+    // This is a quick fix for "Sentence style" questions.
+    return `\\text{${str}}`.replace(/\$/g, '} $ {\\text');
+  };
+
+  const [quizData, setQuizData] = useState([])
+  const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
+  const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timer, setTimer] = useState(60 * 10); // 10 minutes for example
   const [selectedOptions, setSelectedOptions] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
+
+  const explanationHeight = useRef(new Animated.Value(0)).current;
+  const position = useRef(new Animated.ValueXY()).current;
+  useEffect(() => {
+    const loadExamData = async () => {
+      try {
+        // You can get '0570' from route.params if passed from previous screen
+        const subjectCode = route?.params?.subjectCode || '0570';
+        const response = await examAPI.getQuestions(subjectCode);
+
+        if (response.success) {
+          // Store metadata for the header
+          setExamInfo({
+            mathType: response.examInfo.mathType || 'Mathematics',
+            year: response.examInfo.year,
+            paper: response.examInfo.paper,
+            level: response.examInfo.level
+          });
+
+          // Format questions to match your UI's expected structure
+          const formattedQuestions = response.data.map(q => ({
+            id: q.id,
+            question: q.text, // Database uses 'text'
+            options: Object.entries(q.options).map(([label, value]) => ({
+              label,
+              value
+            })),
+            correct: q.answer, // Database uses 'answer'
+            explanation: q.explanation,
+            hasImage: q.hasImage
+          }));
+
+          const sortedQuestions = formattedQuestions.sort((a, b) => {
+            const numA = parseInt(a.id.replace(/^\D+/g, ''));
+            const numB = parseInt(b.id.replace(/^\D+/g, ''));
+            return numA - numB;
+          });
+          setQuizData(sortedQuestions);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exam:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExamData();
+  }, [route?.params?.subjectCode]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -75,11 +100,20 @@ export default function Exam() {
     return () => clearInterval(interval);
   }, [timer]);
 
-  const explanationHeight = useRef(new Animated.Value(0)).current;
-  const position = useRef(new Animated.ValueXY()).current;
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1e3a8a" />
+        <Text style={styles.loadingText}>Preparing your exam...</Text>
+      </View>
+    );
+  }
+  if (quizData.length === 0) return <View style={styles.container}><Text>No questions found.</Text></View>;
+
 
   const currentQuestion = quizData[currentQuestionIndex];
   const totalQuestions = quizData.length;
+
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -110,6 +144,13 @@ export default function Exam() {
       if (selectedOptions[idx] === q.correct) score += 1;
     });
     return score;
+  };
+  const handleFinishEarly = () => {
+    // We don't need to manually mark them as 'not done' 
+    // because your getScore() and Results logic already checks 
+    // if an index exists in selectedOptions.
+    setShowCongrats(false);
+    setShowResults(true);
   };
 
   if (showCongrats) {
@@ -174,11 +215,11 @@ export default function Exam() {
           </View>
           {quizData.map((q, idx) => {
             const userAnswer = selectedOptions[idx];
-            const isCorrect = userAnswer === q.correct;
-            const userOption = q.options.find(opt => opt.label === userAnswer);
-            const correctOption = q.options.find(opt => opt.label === q.correct);
+            const isCorrect = userAnswer === q.answer;
+            const userOption = q.options?.find(opt => opt.label === userAnswer);
+            const correctOption = q.options?.find(opt => opt.label === q.correct);
             return (
-              <View key={q.id} style={styles.resultCard}>
+              <View key={q.id || idx} style={styles.resultCard}>
                 <Text style={styles.resultQuestion}>
                   {idx + 1}. {q.question}
                 </Text>
@@ -190,7 +231,9 @@ export default function Exam() {
                 </Text>
                 {!isCorrect && (
                   <Text style={styles.correctAnswer}>
-                    Correct answer: {correctOption.label}. {correctOption.value}
+                    Correct answer: {correctOption
+                      ? `${correctOption.label}. ${correctOption.value}`
+                      : 'Unknown (Check Database)'}
                   </Text>
                 )}
                 <Text style={styles.resultExplanation}>
@@ -245,9 +288,11 @@ export default function Exam() {
         <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mathematics</Text>
-        <Text style={styles.headerDate}>June 2020</Text>
+        <Text style={styles.headerTitle}>{examInfo.mathType}</Text>
+        <Text style={styles.headerDate}>June {examInfo.year}</Text>
       </View>
+
+
 
       {/* Mode and Timer */}
       <View style={styles.modeContainer}>
@@ -277,12 +322,19 @@ export default function Exam() {
               <Text style={styles.questionNumber}>Question {currentQuestion.id}</Text>
             </View>
             {/* Question */}
-            <Text style={styles.questionText}>{currentQuestion.question}</Text>
+            <View style={styles.katexContainer}>
+              <Katex
+                expression={`\\text{${currentQuestion.question}}`}
+                style={styles.katexStyle} // Use a specific style for math
+                inlineStyle={katexInlineStyle} // Optional: styling the internal HTML
+              />
+            </View>
           </View>
 
           {/* Options */}
           <View style={styles.optionsContainer}>
             {currentQuestion.options.map((option) => (
+
               <TouchableOpacity
                 key={option.label}
                 style={[
@@ -292,7 +344,13 @@ export default function Exam() {
                 onPress={() => handleSelectOption(option.label)}
               >
                 <Text style={styles.optionLabel}>{option.label}</Text>
-                <Text style={styles.optionValue}>{option.value}</Text>
+                <View style={styles.optionMathContainer}>
+                  <Katex
+                    expression={option.value}
+                    inlineStyle={KATEX_OPTION_CSS}
+                    style={styles.optionKatex}
+                  />
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -310,6 +368,12 @@ export default function Exam() {
           disabled={currentQuestionIndex === 0}
         >
           <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.doneHeaderButton}
+          onPress={handleFinishEarly}
+        >
+          <Text style={styles.doneHeaderText}>Done</Text>
         </TouchableOpacity>
         {currentQuestionIndex === quizData.length - 1 ? (
           <TouchableOpacity
@@ -368,9 +432,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
+  optionMathContainer: {
+    flex: 1,
+    // Fixed height for the WebView box
+    justifyContent: 'center',
+  },
+  optionKatex: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   modeContainer: {
     backgroundColor: '#fff',
     padding: 16,
+  },
+  katexContainer: {
+    minHeight: 80, // Crucial: WebView needs a height to show up
+    width: '100%',
+    marginVertical: 10,
+  },
+  katexStyle: {
+    flex: 1,
+    backgroundColor: 'transparent', // Matches your card background
   },
   modeRow: {
     flexDirection: 'row',
@@ -473,6 +555,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 24,
     paddingVertical: 24,
+    marginBottom: 80,
   },
   navButton: {
     width: 56,
@@ -533,7 +616,7 @@ const styles = StyleSheet.create({
   resultsHeader: {
     //alignItems: 'center',
     marginBottom: 24,
-   // marginTop: 16,
+    // marginTop: 16,
   },
   resultsTitle: {
     fontSize: 24,
@@ -586,17 +669,18 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 4,
   },
-  doneButton: {
-    backgroundColor: '#1e3a8a',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 24,
+  doneHeaderButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ef4444', // Red outline
+    backgroundColor: 'transparent', // No background makes it look smaller
   },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  doneHeaderText: {
+    color: '#ef4444',
+    fontWeight: '600',
+    fontSize: 12, // Small font
   },
   resultsButtonsContainer: {
     flexDirection: 'row',
@@ -702,9 +786,68 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
+  doneHeaderButton: {
+    backgroundColor: '#ef4444', // Red color for 'End' action
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  doneHeaderText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   statsBox: {
     fontSize: 16,
     fontWeight: 'bold',
     paddingHorizontal: 8,
   },
 });
+const katexInlineStyle = `
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+        background-color: transparent;
+        margin: 0;
+        padding: 5px;
+      }
+      /* This targets the words in your question */
+      .katex .mtext {
+        font-family: sans-serif !important;
+        font-size: 0.9em !important;
+        color: #333 !important;
+      }
+      /* This targets the actual math formulas */
+      .katex .mathnormal, .katex .mord {
+        font-size: 1.7em !important;
+        color: black; /* Makes formulas stand out in blue */
+      }
+    </style>
+  </head>
+`;
+
+const KATEX_OPTION_CSS = `
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start; /* Keeps it aligned with the A, B, C labels */
+        overflow: hidden;
+      }
+      .katex {
+        font-size: 2.8em !important; /* Large enough to read, small enough to fit */
+        color: #374151;
+      }
+      /* Fix for mixed text in options */
+      .katex .mtext {
+        font-family: sans-serif !important;
+      }
+    </style>
+  </head>
+`;

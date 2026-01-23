@@ -13,7 +13,7 @@ const app = express();
 // CORS configuration - allow all origins in development for easier testing
 const corsOptions = process.env.NODE_ENV === 'production'
   ? {
-    origin: process.env.FRONTEND_URL || 'http://localhost:19006',
+    origin: process.env.FRONTEND_URL || 'https://mak-ai-carb.onrender.com',
     credentials: true
   }
   : {

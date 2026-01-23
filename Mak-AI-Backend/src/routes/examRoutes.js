@@ -13,36 +13,36 @@ router.get('/questions/:subjectCode', async (req, res) => {
     try {
         const { subjectCode } = req.params;
         const { level } = req.query; // Get level from query parameters
-        
+
         // Build query to find exams matching subject code and optionally level
         let examsQuery = db.collection('exams')
             .where('subjectCode', '==', subjectCode);
-        
+
         // If level is provided, filter by level
         if (level) {
             examsQuery = examsQuery.where('level', '==', level);
         }
-        
+
         const examsSnapshot = await examsQuery.get();
-        
+
         if (examsSnapshot.empty) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: `No exams found for subject code ${subjectCode}${level ? ` with level ${level}` : ''}` 
+                error: `No exams found for subject code ${subjectCode}${level ? ` with level ${level}` : ''}`
             });
         }
-        
+
         // Get questions from the first matching exam
         const examDoc = examsSnapshot.docs[0];
         const examData = examDoc.data();
-        
+
         const questionsSnapshot = await examDoc.ref
             .collection('questions')
-            .orderBy('id') // Ensures Q1 comes before Q2
+            .orderBy('id')
             .get();
 
         const questions = questionsSnapshot.docs.map(doc => doc.data());
-        
+
         res.status(200).json({
             success: true,
             data: questions,
@@ -56,9 +56,9 @@ router.get('/questions/:subjectCode', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching questions:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -72,7 +72,7 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
     try {
         const { subjectId } = req.params;
         const { level } = req.query;
-        
+
         // Validate subjectId
         const subjectIdNum = parseInt(subjectId);
         if (isNaN(subjectIdNum) || subjectIdNum < 1 || subjectIdNum > 8) {
@@ -81,7 +81,7 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
                 error: 'Invalid subject ID. Must be between 1 and 8.'
             });
         }
-        
+
         // Validate level
         if (!level) {
             return res.status(400).json({
@@ -89,7 +89,7 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
                 error: 'Level parameter is required. Use "Ordinary Level" or "Advance Level".'
             });
         }
-        
+
         // Convert subject ID to subject code
         const subjectCode = getSubjectCode(subjectIdNum, level);
         if (!subjectCode) {
@@ -98,19 +98,19 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
                 error: `Invalid level: ${level}. Expected 'Ordinary Level' or 'Advance Level'.`
             });
         }
-        
+
         // Get subject name for better error messages
         const subjectName = getSubjectName(subjectIdNum);
-        
+
         // Build query to find exams matching subject code and level
         const examsQuery = db.collection('exams')
             .where('subjectCode', '==', subjectCode)
             .where('level', '==', level);
-        
+
         const examsSnapshot = await examsQuery.get();
-        
+
         if (examsSnapshot.empty) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
                 error: `No exams found for ${subjectName} (${subjectCode}) at ${level}`,
                 subjectInfo: {
@@ -121,18 +121,18 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
                 }
             });
         }
-        
+
         // Get questions from the first matching exam
         const examDoc = examsSnapshot.docs[0];
         const examData = examDoc.data();
-        
+
         const questionsSnapshot = await examDoc.ref
             .collection('questions')
             .orderBy('id')
             .get();
-        
+
         const questions = questionsSnapshot.docs.map(doc => doc.data());
-        
+
         res.status(200).json({
             success: true,
             data: questions,
@@ -148,9 +148,9 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching questions by subject ID:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -162,9 +162,9 @@ router.get('/questions-by-id/:subjectId', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         const { level, subjectCode } = req.query;
-        
+
         let examsQuery = db.collection('exams');
-        
+
         // Apply filters if provided
         if (subjectCode) {
             examsQuery = examsQuery.where('subjectCode', '==', subjectCode);
@@ -172,14 +172,14 @@ router.get('/', async (req, res) => {
         if (level) {
             examsQuery = examsQuery.where('level', '==', level);
         }
-        
+
         const examsSnapshot = await examsQuery.get();
-        
+
         const exams = examsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        
+
         res.status(200).json({
             success: true,
             data: exams,
@@ -187,9 +187,9 @@ router.get('/', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching exams:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -203,9 +203,9 @@ router.get('/years/:subjectId', async (req, res) => {
     try {
         const { subjectId } = req.params;
         const { level } = req.query;
-        
+
         console.log(`Fetching years for subjectId: ${subjectId}, level: ${level}`);
-        
+
         // Validate subjectId
         const subjectIdNum = parseInt(subjectId);
         if (isNaN(subjectIdNum) || subjectIdNum < 1 || subjectIdNum > 8) {
@@ -214,7 +214,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 error: 'Invalid subject ID. Must be between 1 and 8.'
             });
         }
-        
+
         // Validate level
         if (!level) {
             return res.status(400).json({
@@ -222,7 +222,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 error: 'Level parameter is required. Use "Ordinary Level" or "Advance Level".'
             });
         }
-        
+
         // Convert subject ID to subject code
         const subjectCode = getSubjectCode(subjectIdNum, level);
         if (!subjectCode) {
@@ -231,12 +231,12 @@ router.get('/years/:subjectId', async (req, res) => {
                 error: `Invalid level: ${level}. Expected 'Ordinary Level' or 'Advance Level'.`
             });
         }
-        
+
         console.log(`Converted subjectId ${subjectIdNum} to code ${subjectCode} for level ${level}`);
-        
+
         // Get subject name
         const subjectName = getSubjectName(subjectIdNum);
-        
+
         // Query exams for this subject and level
         // Note: Firestore requires an index for compound queries with orderBy
         // If index doesn't exist, we'll fetch without orderBy and sort in memory
@@ -247,7 +247,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 .where('subjectCode', '==', subjectCode)
                 .where('level', '==', level)
                 .orderBy('year', 'desc');
-            
+
             examsSnapshot = await examsQuery.get();
         } catch (error) {
             // If orderBy fails (no index), fetch without ordering and sort in memory
@@ -256,7 +256,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 const examsQuery = db.collection('exams')
                     .where('subjectCode', '==', subjectCode)
                     .where('level', '==', level);
-                
+
                 examsSnapshot = await examsQuery.get();
             } else {
                 console.error('Firestore query error:', {
@@ -267,7 +267,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 throw error;
             }
         }
-        
+
         if (examsSnapshot.empty) {
             return res.status(404).json({
                 success: false,
@@ -275,20 +275,20 @@ router.get('/years/:subjectId', async (req, res) => {
                 data: []
             });
         }
-        
+
         // Group exams by year
         const yearsMap = {};
         examsSnapshot.docs.forEach(doc => {
             const examData = doc.data();
             const year = examData.year;
-            
+
             if (!yearsMap[year]) {
                 yearsMap[year] = {
                     year: year,
                     papers: []
                 };
             }
-            
+
             yearsMap[year].papers.push({
                 id: doc.id,
                 paper: examData.paper,
@@ -298,7 +298,7 @@ router.get('/years/:subjectId', async (req, res) => {
                 year: examData.year
             });
         });
-        
+
         // Convert to array and sort by year (descending)
         // Sort papers within each year by paper number if needed
         Object.keys(yearsMap).forEach(year => {
@@ -309,9 +309,9 @@ router.get('/years/:subjectId', async (req, res) => {
                 return paperNumA - paperNumB;
             });
         });
-        
+
         const years = Object.values(yearsMap).sort((a, b) => b.year - a.year);
-        
+
         res.status(200).json({
             success: true,
             data: years,
