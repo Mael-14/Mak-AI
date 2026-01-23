@@ -66,7 +66,7 @@ const SUBJECTS_DATA = {
 
 const SubjectScreen = () => {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, level } = useLocalSearchParams();
   
   // Get subject data based on ID
   const subjectId = parseInt(id);
@@ -186,17 +186,21 @@ const SubjectScreen = () => {
                   if (questionMode.name === 'Junes') {
                     router.push({
                       pathname: '/JunesModeScreen',
-                      params: { subjectId: subjectId, subjectName: subject.title }
+                      params: { 
+                        subjectId: subjectId, 
+                        subjectName: subject.title, 
+                        level: level || 'Ordinary Level' 
+                      }
                     });
                   } else if (questionMode.name === 'Topics') {
                     router.push({
                       pathname: '/TopicsModeScreen',
-                      params: { subjectId: subjectId, subjectName: subject.title }
+                      params: { subjectId: subjectId, subjectName: subject.title, level: level || 'Ordinary Level' }
                     });
                   } else if (questionMode.name === 'Customs exam') {
                     router.push({
                       pathname: '/CustomsExamScreen',
-                      params: { subjectId: subjectId, subjectName: subject.title }
+                      params: { subjectId: subjectId, subjectName: subject.title, level: level || 'Ordinary Level' }
                     });
                   } else {
                     // Handle other modes if needed

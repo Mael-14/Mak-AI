@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, useColorScheme } from 'react-native'
 import React from 'react'
-import { COLORS } from '../constant/color'
+import { COLORS } from '../../constant/color'
 import { Icon, MoveLeft, Activity, Star, UserPlus, Contact } from 'lucide-react-native'
-import SettingsItem from '../components/SettingsItem'
-import ThemedView from '../components/ThemedView'
-import ThemedText from '../components/ThemedText'
+import SettingsItem from '../../components/SettingsItem'
+import ThemedView from '../../components/ThemedView'
+import ThemedText from '../../components/ThemedText'
 
 
 

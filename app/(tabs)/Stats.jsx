@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, useColorScheme } from 'react-native'
 import React from 'react'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-import ThemedView from '../components/ThemedView'
+import ThemedView from '../../components/ThemedView'
 import LottieView from 'lottie-react-native'
 import { BarChart } from 'react-native-gifted-charts'
 import { ScrollView } from 'react-native'
 import { Use } from 'react-native-svg'
-import { COLORS } from '../constant/color'
+import { COLORS } from '../../constant/color'
 
 const Stats = () => {
     const scheme = useColorScheme()
@@ -47,7 +47,7 @@ const Stats = () => {
                                     loop
                                     style={{ width: 150, height: 150 }}
                                     // Replace with your local lottie file path
-                                    source={require('../animations/fire-animation.json')}
+                                    source={require('../../animations/fire-animation.json')}
                                 />
 
                             </View>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     scrollContent: {
-        flex:1,
+        flex: 1,
     }
 
 })

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TestSetupAlert from '../components/TestAlert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -90,11 +91,12 @@ const customExamHistory = [
 const CustomsExamScreen = () => {
   const navigation = useNavigation();
   const router = useRouter();
-  const { subjectId, subjectName } = useLocalSearchParams();
+  const { subjectId, subjectName, level } = useLocalSearchParams();
   
   // Get subject data based on ID
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
+  const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
   
   const [showAlert, setShowAlert] = useState(false);
   const [showTestSetup, setShowTestSetup] = useState(false);
@@ -148,10 +150,9 @@ const CustomsExamScreen = () => {
                 onPress={() => {
                   if (questionMode.name === 'All') {
                     router.push({
-                          pathname: '/SelectedCourseScreen',
-                          params: { userId: 42 }
+                          pathname: '/subject/[id]',
+                          params: { id: subjectIdNum.toString(), level: selectedLevel }
                        })
-                    // navigation.navigate('Ss');
                   } else if (questionMode.name === 'Junes') {
                     router.push({
                           pathname: '/JunesModeScreen',
@@ -280,15 +281,16 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     position: 'absolute',
-    right: 0,
+    right: 20,
     top: 50,
-    left: 180,
-    width: 50,
-    height: 50,
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   illustrationImage: {
-    width: 250,
-    height: 250,
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
   headerTitle: {

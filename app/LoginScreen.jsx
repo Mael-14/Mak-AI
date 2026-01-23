@@ -13,6 +13,7 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail, signInWithCustomTok
 import { auth } from '../config/firebase';
 import { authAPI } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
@@ -20,6 +21,8 @@ import * as Linking from 'expo-linking';
 WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
+  const router = useRouter();
+  const { updateUserData } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -118,29 +121,33 @@ const LoginScreen = () => {
 
           // Step 4: Store token and user data for future use
           await AsyncStorage.setItem('authToken', idToken);
-          await AsyncStorage.setItem('userData', JSON.stringify({
+          const userData = {
             uid: userCredential.user.uid,
             email: userCredential.user.email,
             name: userCredential.user.displayName || response.data?.name
-          }));
+          };
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          updateUserData(userData); // Update AuthContext
 
           // Step 5: Success - show alert and navigate
           Alert.alert('Success', 'Login successful!');
           // Navigate to home screen - adjust route as needed
-          router.push('/index'); // or your home route
+          router.replace('/(tabs)'); // Navigate to tabs
         } catch (apiError) {
           // Silently handle backend errors - user is already authenticated in Firebase
           // Store token anyway for offline capability
           try {
             await AsyncStorage.setItem('authToken', idToken);
-            await AsyncStorage.setItem('userData', JSON.stringify({
+            const userData = {
               uid: userCredential.user.uid,
               email: userCredential.user.email,
               name: userCredential.user.displayName
-            }));
+            };
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+            updateUserData(userData); // Update AuthContext
 
             Alert.alert('Success', 'Login successful!');
-            router.push('/index');
+            router.replace('/(tabs)');
           } catch (storageError) {
             // Handle storage errors silently
             Alert.alert('Success', 'Login successful!');
@@ -234,14 +241,16 @@ const LoginScreen = () => {
 
         // Step 5: Store authentication data
         await AsyncStorage.setItem('authToken', firebaseIdToken);
-        await AsyncStorage.setItem('userData', JSON.stringify({
+        const userData = {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
           name: userCredential.user.displayName || userCredential.user.email?.split('@')[0]
-        }));
+        };
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        updateUserData(userData); // Update AuthContext
 
         Alert.alert('Success', 'Login successful!');
-        router.push('/index');
+        router.replace('/(tabs)');
       } else {
         throw new Error('Google sign-in was cancelled');
       }
@@ -317,7 +326,7 @@ const LoginScreen = () => {
     }
   };
 
-  const router = useRouter();
+  // const router = useRouter();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffffff' }}>
@@ -328,7 +337,7 @@ const LoginScreen = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
-          <Text>Enter your credentials to continue</Text>
+          <Text style={{ fontSize: wp('3.5%'), color: '#666' }}>Enter your credentials to continue</Text>
         </View>
 
         {/* Email Input */}
@@ -336,9 +345,9 @@ const LoginScreen = () => {
           styles.inputContainer,
           errors.email && touched.email && styles.inputError
         ]}>
-          <View style={{ paddingRight: 20 }}>
+          <View style={{ paddingRight: wp('5%') }}>
             {/* <Image source={Aicon} style={{ width: 12, height: 15 }} /> */}
-            <Ionicons name="mail-outline" size={22} color="#000000ff" />
+            <Ionicons name="mail-outline" size={wp('5.5%')} color="#000000ff" />
           </View>
           <TextInput
             style={styles.input}
@@ -354,7 +363,7 @@ const LoginScreen = () => {
         </View>
         {errors.email && touched.email && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={14} color="#EF4444" />
+            <Ionicons name="alert-circle" size={wp('3.5%')} color="#EF4444" />
             <Text style={styles.errorText}>{errors.email}</Text>
           </View>
         )}
@@ -364,9 +373,9 @@ const LoginScreen = () => {
           styles.inputContainer,
           errors.password && touched.password && styles.inputError
         ]}>
-          <View style={{ paddingRight: 20 }}>
+          <View style={{ paddingRight: wp('5%') }}>
             {/* <Image source={Licon} style={{ width: 12, height: 15 }} /> */}
-            <Ionicons name="lock-closed-outline" size={22} color="#000000ff" />
+            <Ionicons name="lock-closed-outline" size={wp('5.5%')} color="#000000ff" />
           </View>
           <TextInput
             style={styles.input}
@@ -380,25 +389,25 @@ const LoginScreen = () => {
           />
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
-            style={{ paddingLeft: 10 }}
+            style={{ paddingLeft: wp('2.5%') }}
           >
             <Ionicons
               name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-              size={20}
+              size={wp('5%')}
               color="#000000ff"
             />
           </TouchableOpacity>
         </View>
         {errors.password && touched.password && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={14} color="#EF4444" />
+            <Ionicons name="alert-circle" size={wp('3.5%')} color="#EF4444" />
             <Text style={styles.errorText}>{errors.password}</Text>
           </View>
         )}
 
         {/* Forgot Password */}
         <TouchableOpacity
-          style={{ flexDirection: 'row-reverse', paddingBottom: 10, paddingTop: 5 }}
+          style={{ flexDirection: 'row-reverse', paddingBottom: hp('1.2%'), paddingTop: hp('0.6%') }}
           onPress={handleForgotPassword}
         >
           <Text style={styles.forgotPasswordText}>Forgot password?</Text>
@@ -425,7 +434,7 @@ const LoginScreen = () => {
           style={styles.googleButton}
           onPress={handleGoogleLogin}
         >
-          <Image source={Gicon} style={{ width: 25, height: 25, marginRight: 10 }} />
+          <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
       </View>
@@ -466,30 +475,32 @@ const styles = StyleSheet.create({
     left: wp('8%'),
     right: wp('8%'),
     justifyContent: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: wp('5%'),
     zIndex: 2
   },
   header: {
-    paddingBottom: 30
+    paddingBottom: hp('3.5%')
   },
   title: {
-    fontSize: 32,
+    fontSize: wp('8%'),
     fontWeight: '700',
     color: '#000',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
     fontFamily: 'Georgia',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 300,
-    height: 40,
+    width: wp('75%'),
+    maxWidth: 400,
+    height: hp('5%'),
+    minHeight: 40,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
     borderWidth: 0.3,
     borderColor: '#bebbbbff',
-    marginBottom: 8,
-    paddingHorizontal: 14,
+    marginBottom: hp('1%'),
+    paddingHorizontal: wp('3.5%'),
   },
   inputError: {
     borderColor: '#EF4444',
@@ -499,30 +510,33 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#000000ff',
     letterSpacing: 1,
+    fontSize: wp('4%'),
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: -4,
+    marginBottom: hp('1%'),
+    marginTop: hp('-0.5%'),
   },
   errorText: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#EF4444',
-    marginLeft: 4,
+    marginLeft: wp('1%'),
   },
   forgotPasswordText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#4a4aff',
     fontWeight: '500',
   },
   loginButton: {
     backgroundColor: '#AAB6FF',
-    borderRadius: 12,
-    paddingVertical: 5,
-    paddingHorizontal: 24,
-    width: 300,
-    height: 50,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    paddingHorizontal: wp('6%'),
+    width: wp('75%'),
+    maxWidth: 400,
+    height: hp('6%'),
+    minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -531,7 +545,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: 'bold',
   },
   googleButton: {
@@ -539,29 +553,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    height: 56,
+    borderRadius: wp('3%'),
+    height: hp('7%'),
+    minHeight: 56,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    width: 300,
-    marginTop: 16
+    width: wp('75%'),
+    maxWidth: 400,
+    marginTop: hp('2%')
   },
   googleButtonText: {
     color: '#373130ff',
-    fontSize: 15,
+    fontSize: wp('3.75%'),
     fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 'auto',
+    paddingBottom: hp('2%'),
   },
   footerText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#666',
   },
   signUpText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#4a4aff',
     fontWeight: '600',
     textDecorationLine: 'underline',

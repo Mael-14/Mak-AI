@@ -1,13 +1,14 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Dimensions, PixelRatio, useColorScheme } from 'react-native'
-import React from 'react'
-import ThemedView from '../components/ThemedView'
+import React, { useState } from 'react'
+import ThemedView from '../../components/ThemedView'
 import { LinearGradient } from 'expo-linear-gradient'
-import ThemedText from '../components/ThemedText'
-import SubjectCard from '../components/SubjectCard'
+import ThemedText from '../../components/ThemedText'
+import SubjectCard from '../../components/SubjectCard'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS } from '../constant/color'
+import { COLORS } from '../../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
+import LevelSelectionAlert from '../../components/LevelSelectionAlert';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -16,49 +17,70 @@ const scale = (size) => (SCREEN_WIDTH / 375) * size
 
 const Home = () => {
     const router = useRouter()
+    const [showLevelAlert, setShowLevelAlert] = useState(false)
+    const [selectedSubject, setSelectedSubject] = useState(null)
+
     const goToCards = () => {
         router.push('/Flashcards')
+    }
+
+    const handleSubjectPress = (item) => {
+        setSelectedSubject(item)
+        setShowLevelAlert(true)
+    }
+
+    const handleLevelSelect = (level) => {
+        if (selectedSubject) {
+            router.push({
+                pathname: '/subject/[id]',
+                params: {
+                    id: selectedSubject.id.toString(),
+                    level: level
+                }
+            });
+        }
+        setSelectedSubject(null)
     }
     const SUBJECT = [
         {
             id: 1,
             title: 'Mathematics',
-            image: require('../assets/Maths.png'),
+            image: require('../../assets/Maths.png'),
         },
         {
             id: 2,
             title: 'Biology',
-            image: require('../assets/Biology.png'),
+            image: require('../../assets/Biology.png'),
         },
         {
             id: 3,
             title: 'Chemistry',
-            image: require('../assets/Chemistry.png'),
+            image: require('../../assets/Chemistry.png'),
         },
         {
             id: 4,
             title: 'Physics',
-            image: require('../assets/Physics.png'),
+            image: require('../../assets/Physics.png'),
         },
         {
             id: 5,
             title: 'Computer Science',
-            image: require('../assets/Computer science.png'),
+            image: require('../../assets/Computer science.png'),
         },
         {
             id: 6,
             title: 'Math Stats',
-            image: require('../assets/Math Statistic.png'),
+            image: require('../../assets/Math Statistic.png'),
         },
         {
             id: 7,
             title: 'Geography',
-            image: require('../assets/Geography.png'),
+            image: require('../../assets/Geography.png'),
         },
         {
             id: 8,
             title: 'Further Math',
-            image: require('../assets/FurtherMath.png'),
+            image: require('../../assets/FurtherMath.png'),
         },
     ]
 
@@ -86,7 +108,7 @@ const Home = () => {
                             </TouchableOpacity>
                         </View>
                         <Image
-                            source={require('../assets/Card.png')}
+                            source={require('../../assets/Card.png')}
                             style={styles.cardImage}
                             resizeMode='contain'
                         />
@@ -109,13 +131,7 @@ const Home = () => {
                         <TouchableOpacity
                             style={{ flex: 1 }}
                             activeOpacity={0.7}
-                            onPress={() => {
-                                // Navigate to subject screen with the subject ID
-                                router.push({
-                                    pathname: '/subject/[id]',
-                                    params: { id: item.id.toString() }
-                                });
-                            }}
+                            onPress={() => handleSubjectPress(item)}
                         >
                             <SubjectCard
                                 title={item.title}
@@ -125,6 +141,16 @@ const Home = () => {
                     )}
                 />
             </ThemedView>
+
+            <LevelSelectionAlert
+                visible={showLevelAlert}
+                onClose={() => {
+                    setShowLevelAlert(false)
+                    setSelectedSubject(null)
+                }}
+                onSelectLevel={handleLevelSelect}
+                subjectTitle={selectedSubject?.title}
+            />
         </SafeAreaView>
     )
 }
