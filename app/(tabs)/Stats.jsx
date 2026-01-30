@@ -1,262 +1,212 @@
-import { View, Text, StyleSheet, useColorScheme } from 'react-native'
-import React from 'react'
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-import ThemedView from '../../components/ThemedView'
-import LottieView from 'lottie-react-native'
-import { BarChart } from 'react-native-gifted-charts'
-import { ScrollView } from 'react-native'
-import { Use } from 'react-native-svg'
-import { COLORS } from '../../constant/color'
+import { View, Text, StyleSheet, useColorScheme, ScrollView, Platform } from 'react-native';
+import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedView from '../../components/ThemedView';
+import ThemedText from '../../components/ThemedText';
+import LottieView from 'lottie-react-native';
+import { BarChart } from 'react-native-gifted-charts';
+import { scale, verticalScale, moderateScale } from '../../utils/scaling';
+import { COLORS } from '../../constant/color';
 
 const Stats = () => {
-    const scheme = useColorScheme()
-    const theme = COLORS[scheme] ?? COLORS.light
+    const scheme = useColorScheme();
+    const theme = COLORS[scheme] ?? COLORS.light;
+
     const data = [
-        { value: 80, label: 'Mon', frontColor: '#F3E8FF' },
-        { value: 50, label: 'Tue', frontColor: '#F3E8FF' },
-        { value: 60, label: 'Wed', frontColor: '#F3E8FF' },
-        { value: 40, label: 'Thu', frontColor: '#F3E8FF' },
+        { value: 80, label: 'Mon', frontColor: '#C084FC' + '40' },
+        { value: 50, label: 'Tue', frontColor: '#C084FC' + '40' },
+        { value: 60, label: 'Wed', frontColor: '#C084FC' + '40' },
+        { value: 40, label: 'Thu', frontColor: '#C084FC' + '40' },
         {
             value: 100,
             label: 'Fri',
-            frontColor: '#C084FC', // Highlighted color
-            focused: true,         // To show tooltip on load
+            frontColor: '#C084FC',
+            focused: true,
         },
-        { value: 45, label: 'Sat', frontColor: '#F3E8FF' },
-        { value: 70, label: 'Sun', frontColor: '#F3E8FF' },
+        { value: 45, label: 'Sat', frontColor: '#C084FC' + '40' },
+        { value: 70, label: 'Sun', frontColor: '#C084FC' + '40' },
     ];
+
     return (
-        <ScrollView contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}>
-            <ThemedView style={styles.container}>
-                <View style={[styles.Streakcontainer, { backgroundColor: theme.card }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* 1. Streak Hero Section */}
+                <View style={[styles.streakCard, { backgroundColor: theme.card }]}>
                     <View style={styles.headerBadge}>
-                        <Text style={styles.headerBadgeText}>YOUR SERIE</Text>
+                        <Text style={styles.headerBadgeText}>CURRENT STREAK</Text>
                     </View>
-                    <View style={styles.mainContent}>
 
-                        <View style={styles.streakRow}>
-                            <View style={styles.textContainer}>
-                                <Text style={styles.streakNumber}>122</Text>
-                                <Text style={styles.streakLabel}>Days in a row !</Text>
-                            </View>
-
-                            <View style={styles.animationContainer}>
-                                <LottieView
-                                    autoPlay
-                                    loop
-                                    style={{ width: 150, height: 150 }}
-                                    // Replace with your local lottie file path
-                                    source={require('../../animations/fire-animation.json')}
-                                />
-
-                            </View>
+                    <View style={styles.streakRow}>
+                        <View style={styles.textContainer}>
+                            <Text style={styles.streakNumber}>122</Text>
+                            <Text style={styles.streakLabel}>Days in a row!</Text>
                         </View>
 
-                        <View style={styles.infoCard}>
-                            <View style={styles.boltIconContainer}>
-                                {/* Simple Bolt Placeholder */}
-                                <Text style={{ fontSize: 24 }}>💡</Text>
-                            </View>
-                            <Text style={styles.infoText}>
-                                Focus more on Trigonometry!
-                            </Text>
+                        <View style={styles.animationContainer}>
+                            <LottieView
+                                autoPlay
+                                loop
+                                style={{ width: scale(120), height: scale(120) }}
+                                source={require('../../animations/fire-animation.json')}
+                            />
                         </View>
+                    </View>
+
+                    <View style={[styles.infoCard,]}>
+                        <Text style={{ fontSize: moderateScale(20), marginRight: scale(10) }}>💡</Text>
+                        <Text style={[styles.infoText, { color: theme.text }]}>
+                            Study tip: Focus more on <Text style={{ fontWeight: 'bold' }}>Trigonometry</Text> to boost your score!
+                        </Text>
                     </View>
                 </View>
-                <View style={[styles.Chartcontainer, { backgroundColor: theme.card }]}>
-                    <BarChart
-                        data={data}
-                        barWidth={35}
-                        spacing={15}
-                        roundedTop
-                        roundedBottom
-                        hideRules
-                        hideYAxisText
-                        yAxisThickness={0}
-                        xAxisThickness={0}
-                        noOfSections={3}
-                        maxValue={120}
-                        // Custom Tooltip
-                        renderTooltip={(item) => (
-                            <View style={{ marginBottom: 5, alignItems: 'center' }}>
-                                <View style={{ backgroundColor: 'black', padding: 5, borderRadius: 8 }}>
-                                    <Text style={{ color: 'white', fontSize: 10 }}>4 hours</Text>
+
+                {/* 2. Activity Chart Section */}
+                <View style={[styles.chartCard, { backgroundColor: theme.card }]}>
+                    <ThemedText style={styles.sectionTitle}>Weekly Activity</ThemedText>
+                    <View style={styles.chartWrapper}>
+                        <BarChart
+                            data={data}
+                            barWidth={scale(30)}
+                            spacing={scale(15)}
+                            roundedTop
+                            roundedBottom
+                            hideRules
+                            hideYAxisText
+                            yAxisThickness={0}
+                            xAxisThickness={0}
+                            xAxisLabelTextStyle={{ color: theme.text, fontSize: moderateScale(10) }}
+                            noOfSections={3}
+                            maxValue={120}
+                            renderTooltip={(item) => (
+                                <View style={styles.tooltipContainer}>
+                                    <View style={styles.tooltipBox}>
+                                        <Text style={styles.tooltipText}>4 hrs</Text>
+                                    </View>
+                                    <View style={styles.tooltipArrow} />
                                 </View>
-                                {/* Small triangle arrow */}
-                                <View style={{
-                                    width: 0, height: 0,
-                                    borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 5,
-                                    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'black'
-                                }} />
-                            </View>
-                        )}
-                        leftShiftForTooltip={12} // Adjust tooltip position
+                            )}
+                            leftShiftForTooltip={scale(10)}
+                        />
+                    </View>
+                </View>
+
+                {/* 3. Performance Insights */}
+                <View style={styles.performanceRow}>
+                    <PerformanceBox
+                        icon="😔"
+                        label="Weakest"
+                        subject="Math"
+                        theme={theme}
+                    />
+                    <PerformanceBox
+                        icon="💪"
+                        label="Strongest"
+                        subject="Science"
+                        theme={theme}
                     />
                 </View>
-                <View style={[styles.Subjectperformance, { backgroundColor: theme.card }]}>
-                    <View style={[styles.subject]}>
-                        <View ><Text style={{ fontSize: 14 }}>😔</Text></View>
-                        <View style={styles.subjectinfo}>
-                            <Text style={styles.subjecttext}>Weak Subject:</Text>
-                            <Text style={styles.Subjectname}>Mathematics</Text>
-                        </View>
-                    </View>
-                    <View style={[styles.subject]}>
-                        <View ><Text style={{ fontSize: 14 }}>💪</Text></View>
-                        <View style={styles.subjectinfo}>
-                            <Text style={styles.subjecttext}>Strong Subject:</Text>
-                            <Text style={styles.Subjectname}>Science</Text>
-                        </View>
-                    </View>
-                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+};
 
-            </ThemedView>
-        </ScrollView>
-
-    )
-}
-
-export default Stats
+// Helper Component for the bottom boxes
+const PerformanceBox = ({ icon, label, subject, theme }) => (
+    <View style={[styles.subjectBox, { backgroundColor: theme.card, }]}>
+        <Text style={{ fontSize: moderateScale(20) }}>{icon}</Text>
+        <View style={styles.subjectInfo}>
+            <Text style={[styles.subjectLabel, { color: theme.tabIconDefault }]}>{label}</Text>
+            <Text numberOfLines={1} style={[styles.subjectName, { color: theme.text }]}>{subject}</Text>
+        </View>
+    </View>
+);
 
 const styles = StyleSheet.create({
-    scrollContent: {
-        flex: 1,
-        marginTop: 20,
-    },
-    container: {
-        flex: 1,
-    },
-    Streakcontainer: {
-        backgroundColor: '#FFEBEE',
-        padding: 20,
-        marginBottom: 20,
-        marginTop: 20,
-        marginHorizontal: 8,
-        borderRadius: 28,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 5,
+    container: { flex: 1 },
+    scrollContent: { paddingBottom: verticalScale(30) },
+
+    // Streak Card
+    streakCard: {
+        marginHorizontal: scale(20),
+        marginTop: verticalScale(10),
+        padding: scale(20),
+        borderRadius: moderateScale(24),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+            android: { elevation: 4 }
+        }),
     },
     headerBadge: {
-        backgroundColor: '#FDE68A', // Light yellow
+        backgroundColor: '#FEF3C7',
         alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 6,
-        marginTop: 10,
+        paddingHorizontal: scale(10),
+        paddingVertical: verticalScale(4),
+        borderRadius: moderateScale(8),
     },
-    headerBadgeText: {
-        color: '#B45309', // Darker gold/brown
-        fontWeight: '800',
-        fontSize: 12,
-    },
-    mainContent: {
-        marginTop: 40,
-    },
-    streakRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 40,
-    },
-    textContainer: {
-        flex: 1,
-        paddingLeft: 20,
-    },
-    streakNumber: {
-        fontSize: 55,
-        fontWeight: 'bold',
-        color: '#FF8A65', // Coral/Orange color
-    },
-    streakLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#FF8A65',
-        marginTop: -10,
-    },
-    animationContainer: {
-        width: 80,
-        height: 80,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    headerBadgeText: { color: '#B45309', fontWeight: '800', fontSize: moderateScale(10) },
+    streakRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: verticalScale(15) },
+    textContainer: { flex: 1 },
+    streakNumber: { fontSize: moderateScale(48), fontWeight: '900', color: '#F97316' },
+    streakLabel: { fontSize: moderateScale(16), fontWeight: '600', color: '#FB923C', marginTop: verticalScale(-5) },
+    animationContainer: { width: scale(100), height: scale(100), justifyContent: 'center', alignItems: 'center' },
+
     infoCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
+        borderColor: '#F3F4F6',
+        borderWidth: 2,
         borderRadius: 20,
         padding: 11,
         marginTop: 12,
-    },
-    boltIconContainer: {
-        marginRight: 10,
-    },
-    infoText: {
-        flex: 1,
-        fontSize: 13,
-        color: '#4B5563',
-        lineHeight: 26,
-    },
-    Chartcontainer: {
-        borderRadius: 28,
-        padding: 20,
-        marginHorizontal: 8,
-
-        marginBottom: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 5,
-
 
     },
-    Subjectperformance: {
-        marginHorizontal: 8,
-        marginBottom: 20,
-        borderRadius: 28,
-        padding: 20,
+    infoText: { flex: 1, fontSize: moderateScale(13), lineHeight: moderateScale(18) },
+
+    // Chart Card
+    chartCard: {
+        marginHorizontal: scale(20),
+        marginTop: verticalScale(20),
+        padding: scale(20),
+        borderRadius: moderateScale(24),
+        elevation: 2,
+    },
+    sectionTitle: { fontSize: moderateScale(18), fontWeight: '700', marginBottom: verticalScale(20) },
+    chartWrapper: { alignItems: 'center', marginLeft: scale(-20) }, // Centers the chart within the card
+
+    // Performance Boxes
+    performanceRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginHorizontal: scale(20),
+        marginTop: verticalScale(20),
+    },
+    subjectBox: {
+        flex: 0.48,
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 8,
-        justifyContent: 'space-between',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 5,
+        padding: scale(15),
+        borderColor: '#F3F4F6',
+        borderWidth: 2,
+        borderRadius: moderateScale(20),
+
 
     },
-    subject: {
-        flexDirection: 'row',
-        padding: 10,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        borderRadius: 20,
-        padding: 11,
-    },
-    subjectinfo: {
-        marginLeft: 12,
-    },
-    subjecttext: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    Subjectname: {
-        fontSize: 16,
+    subjectInfo: { marginLeft: scale(10), flex: 1 },
+    subjectLabel: { fontSize: moderateScale(11), fontWeight: '600', textTransform: 'uppercase' },
+    subjectName: { fontSize: moderateScale(15), fontWeight: '700' },
 
-        color: '#666',
-    },
-    scrollPadding: {
-        padding: 20,
-    },
-    scrollContent: {
-        flex: 1,
+    // Tooltip
+    tooltipContainer: { marginBottom: 5, alignItems: 'center' },
+    tooltipBox: { backgroundColor: '#1F2937', padding: scale(6), borderRadius: 8 },
+    tooltipText: { color: 'white', fontSize: moderateScale(10), fontWeight: 'bold' },
+    tooltipArrow: {
+        width: 0, height: 0,
+        borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 5,
+        borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#1F2937'
     }
+});
 
-})
+export default Stats;

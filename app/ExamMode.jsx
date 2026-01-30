@@ -18,6 +18,7 @@ import Modal from 'react-native-modal';
 import { examAPI } from '../services/api';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Katex from 'react-native-katex';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 
@@ -113,6 +114,7 @@ export default function Exam({ route }) {
       }
     };
 
+
     loadExamData();
   }, [subjectCode, topic, level]); // Update dependency array
 
@@ -135,7 +137,17 @@ export default function Exam({ route }) {
 
   const currentQuestion = quizData[currentQuestionIndex];
   const totalQuestions = quizData.length;
-
+  const sanitizeMath = (str) => {
+    if (!str) return '';
+    // This regex removes:
+    // 1. $...$ (Single dollar signs)
+    // 2. $$...$$ (Double dollar signs)
+    // 3. \(...\) (Escaped parentheses)
+    // 4. \[...\] (Escaped brackets)
+    return str
+      .replace(/\$\$?|\\\(|\\\)|\\\[|\\\]/g, '')
+      .trim();
+  };
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -354,7 +366,7 @@ export default function Exam({ route }) {
           </View>
 
           {/* Options */}
-          <View style={styles.optionsContainer}>
+          <View style={styles.optionsContainer} >
             {currentQuestion.options.map((option) => (
 
               <TouchableOpacity
@@ -368,7 +380,7 @@ export default function Exam({ route }) {
                 <Text style={styles.optionLabel}>{option.label}</Text>
                 <View style={styles.optionMathContainer}>
                   <Katex
-                    expression={option.value}
+                    expression={sanitizeMath(option.value)}
                     inlineStyle={KATEX_OPTION_CSS}
                     style={styles.optionKatex}
                   />
@@ -827,23 +839,36 @@ const styles = StyleSheet.create({
 });
 const katexInlineStyle = `
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <style>
       body {
         background-color: transparent;
         margin: 0;
         padding: 5px;
+        /* Force text wrapping */
+        word-wrap: break-word;
+        white-space: normal;
+        overflow-wrap: break-word;
+        display: block; 
       }
-      /* This targets the words in your question */
+      .katex-display {
+        margin: 0.5em 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      /* Ensure the main container doesn't force a single line */
+      .katex {
+        white-space: normal !important;
+        display: inline-block;
+      }
       .katex .mtext {
         font-family: sans-serif !important;
-        font-size: 0.9em !important;
+        font-size: 2.1em !important;
         color: #333 !important;
       }
-      /* This targets the actual math formulas */
       .katex .mathnormal, .katex .mord {
-        font-size: 1.7em !important;
-        color: black; /* Makes formulas stand out in blue */
+        font-size: 1.5em !important; /* Kept closer to 1 to prevent awkward line heights */
+        color: black;
       }
     </style>
   </head>
@@ -863,7 +888,7 @@ const KATEX_OPTION_CSS = `
         overflow: hidden;
       }
       .katex {
-        font-size: 2.8em !important; /* Large enough to read, small enough to fit */
+        font-size: 3.0em !important; /* Large enough to read, small enough to fit */
         color: #374151;
       }
       /* Fix for mixed text in options */

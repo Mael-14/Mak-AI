@@ -1,129 +1,184 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, useColorScheme } from 'react-native'
-import React from 'react'
-import { COLORS } from '../../constant/color'
-import { Icon, MoveLeft, Activity, Star, UserPlus, Contact } from 'lucide-react-native'
-import SettingsItem from '../../components/SettingsItem'
-import ThemedView from '../../components/ThemedView'
-import ThemedText from '../../components/ThemedText'
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../../config/firebase';
+import { scale, verticalScale, moderateScale } from '../../utils/scaling';
 
+const Profile = () => {
+    const user = auth.currentUser;
+    const userName = user?.displayName || 'Learner';
+    const firstLetter = userName.charAt(0).toUpperCase();
 
-
-const profile = () => {
-    const scheme = useColorScheme()
-    const theme = COLORS[scheme] ?? COLORS.light
-
-    const settingOptions = [
-        { id: '1', title: 'My Stats', icon: 'Activity' },
-        { id: '2', title: 'Favorites', icon: 'Star' },
-        { id: '3', title: 'Invite a friend', icon: 'UserPlus' },
-        { id: '4', title: 'Contact us', icon: 'Contact' },
-
-    ]
-    const iconMap = {
-        'Activity': Activity,
-        'Star': Star,
-        'UserPlus': UserPlus,
-        'Contact': Contact,
-    };
+    const ProfileItem = ({ icon, title, color, onPress, isLast }) => (
+        <TouchableOpacity
+            style={[styles.itemContainer, isLast && { borderBottomWidth: 0 }]}
+            onPress={onPress}
+        >
+            <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
+                <Ionicons name={icon} size={moderateScale(20)} color={color} />
+            </View>
+            <Text style={styles.itemTitle}>{title}</Text>
+            <Ionicons name="chevron-forward" size={moderateScale(18)} color="#9CA3AF" />
+        </TouchableOpacity>
+    );
 
     return (
-        <ThemedView style={[styles.container, { backgroundcolor: 'green' }]}>
-            <View style={styles.header}>
-                <TouchableOpacity >
-                    <MoveLeft size={24} color={theme.icon} />
-                </TouchableOpacity>
+        <SafeAreaView style={styles.container}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {/* 1. Identity Section */}
+                <View style={styles.profileHeader}>
+                    <View style={styles.avatarWrapper}>
+                        <View style={[styles.avatar, styles.fallbackAvatar]}>
+                            <Text style={styles.fallbackLetter}>{firstLetter}</Text>
+                        </View>
+                        <TouchableOpacity style={styles.editButton}>
+                            <Ionicons name="camera" size={moderateScale(14)} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.userName}>{user?.displayName || 'Learner'}</Text>
+                    <Text style={styles.userEmail}>{user?.email}</Text>
+                </View>
 
-                <ThemedText style={styles.headerTitle}>Profile</ThemedText>
-            </View>
-            <ThemedView style={[styles.profileCard, { color: theme.card }]}>
+                {/* 2. Stats Row */}
+                <View style={styles.statsContainer}>
+                    <View style={styles.statBox}>
+                        <Ionicons name="flash" size={20} color="#FFD700" />
+                        <Text style={styles.statNumber}>5</Text>
+                        <Text style={styles.statLabel}>Energy</Text>
+                    </View>
+                    <View style={[styles.statBox, styles.statBorder]}>
+                        <Ionicons name="flame" size={20} color="#FF4500" />
+                        <Text style={styles.statNumber}>12</Text>
+                        <Text style={styles.statLabel}>Streaks</Text>
+                    </View>
+                </View>
 
-                <Image
-                    source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQF02Jj8T2t7PdkytAw42HDuuSz7yXguKn8Lg&s' }} // Replace with actual image source
-                    style={styles.profileImage}
-                />
-                <ThemedText style={styles.nameText}>Kam Nathanael</ThemedText>
-                <Text style={styles.emailText}>Kamnathanael@gmail.com</Text>
-            </ThemedView>
-            <ThemedText style={styles.sectionHeader}>Setting</ThemedText>
-            {settingOptions.map((item) => (
-                <SettingsItem
-                    key={item.id}
-                    title={item.title}
-                    IconComponent={iconMap[item.icon]}
-                />
-            ))}
+                {/* 3. Settings List */}
+                <View style={styles.menuWrapper}>
+                    <ProfileItem icon="person-outline" title="Account Settings" color="#6366F1" />
+                    <ProfileItem icon="notifications-outline" title="Notifications" color="#F59E0B" />
+                    <ProfileItem
+                        icon="heart-outline"
+                        title="My Favorites"
+                        color="#EC4899" // A nice vibrant pink/rose
 
-        </ThemedView>
-
-
-    )
-}
-
-export default profile
+                    />
+                    <ProfileItem
+                        icon="log-out-outline"
+                        title="Logout"
+                        color="#EF4444"
+                        isLast={true}
+                        onPress={() => auth.signOut()}
+                    />
+                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+};
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { flex: 1, backgroundColor: '#F9FAFB' },
+    profileHeader: {
+        alignItems: 'center',
+        paddingVertical: verticalScale(30),
     },
-    // 1. Refined Header
-    header: {
+    avatarWrapper: {
+        position: 'relative',
+        marginBottom: verticalScale(15),
+    },
+    avatar: {
+        width: scale(100),
+        height: scale(100),
+        borderRadius: scale(50),
+        backgroundColor: '#E5E7EB',
+    },
+    editButton: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#6366F1',
+        padding: scale(8),
+        borderRadius: scale(20),
+        borderWidth: 3,
+        borderColor: '#F9FAFB',
+    },
+    userName: {
+        fontSize: moderateScale(22),
+        fontWeight: '800',
+        color: '#1F2937',
+    },
+    userEmail: {
+        fontSize: moderateScale(14),
+        color: '#6B7280',
+        marginTop: 4,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#FFF',
+        marginHorizontal: scale(24),
+        borderRadius: moderateScale(20),
+        paddingVertical: verticalScale(20),
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+    },
+    statBox: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statBorder: {
+        borderLeftWidth: 1,
+        borderLeftColor: '#F3F4F6',
+    },
+    statNumber: {
+        fontSize: moderateScale(18),
+        fontWeight: '700',
+        color: '#1F2937',
+        marginTop: 5,
+    },
+    statLabel: {
+        fontSize: moderateScale(12),
+        color: '#9CA3AF',
+    },
+    menuWrapper: {
+        backgroundColor: '#FFF',
+        marginTop: verticalScale(25),
+        marginHorizontal: scale(24),
+        borderRadius: moderateScale(20),
+        paddingHorizontal: scale(16),
+    },
+    itemContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingTop: 60,
-        paddingBottom: 20,
+        paddingVertical: verticalScale(16),
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
-    headerTitle: {
-        fontSize: 23,
-        fontWeight: '700',
-        marginLeft: 15, // Aligns title better with the back button
-        letterSpacing: -0.5,
+    iconContainer: {
+        padding: scale(10),
+        borderRadius: moderateScale(12),
+        marginRight: scale(15),
     },
-    // 2. Elevated Profile Card
-    profileCard: {
-        marginHorizontal: 20,
-        paddingVertical: 30,
-        paddingHorizontal: 20,
-        borderRadius: 28, // Matches your Stats screen radius
+    itemTitle: {
+        flex: 1,
+        fontSize: moderateScale(16),
+        fontWeight: '600',
+        color: '#374151',
+    },
+    fallbackAvatar: {
+        backgroundColor: '#6366F1', // Your theme purple
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 25,
-        // Softer, more professional shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 20,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(150, 150, 150, 0.1)', // Subtle border for definition
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
     },
-    profileImage: {
-        width: 110,
-        height: 110,
-        borderRadius: 55,
-        marginBottom: 15,
-        borderWidth: 3,
-        borderColor: '#C084FC', // Using your "Mastered" purple color for brand consistency
-    },
-    nameText: {
-        fontSize: 22,
-        fontWeight: '700',
-        letterSpacing: -0.5,
-    },
-    emailText: {
-        color: '#8E8E93', // Standard iOS Tertiary color
-        fontSize: 15,
-        marginTop: 4,
-        fontWeight: '500',
-    },
-    // 3. Structured Section Header
-    sectionHeader: {
-        fontSize: 14,
+    fallbackLetter: {
+        fontSize: moderateScale(40),
         fontWeight: '800',
-        color: '#C084FC', // Brand accent color
-        marginLeft: 24,
-        marginTop: 10,
-        marginBottom: 15,
-        textTransform: 'uppercase', // Professional labeling style
-        letterSpacing: 1.5,
+        color: '#FFF',
     },
 });
+
+export default Profile;
