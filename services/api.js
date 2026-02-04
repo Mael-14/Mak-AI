@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSubjectCode } from '../utils/subjectMapping';
 
 // Backend API base URL - Update this with your backend URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://10.209.114.254:5000/api'
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-carb.onrender.com/api'
 
 // Create axios instance
 const api = axios.create({
