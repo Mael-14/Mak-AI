@@ -204,6 +204,24 @@ export const examAPI = {
       }
       throw error;
     }
+  },
+
+  /**
+   * Submits quiz results to the backend to be saved in Firestore
+   * @param {Object} resultData - { subject, correct, total, durationInMinutes }
+   */
+  submitResults: async (resultData) => {
+    try {
+      // This sends a POST request to http://YOUR_IP:5000/api/exams/submit
+      const response = await api.post('/exams/submit', resultData);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting quiz results:', error);
+      if (error.response) {
+        console.error('Server Error Data:', error.response.data);
+      }
+      throw error;
+    }
   }
 };
 
