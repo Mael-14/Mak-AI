@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
+const { authenticateToken } = require('../middleware/auth');
 const { db } = require('../config/firebase');
 const { getSubjectCode, getSubjectName } = require('../utils/subjectMapping');
 
@@ -610,7 +611,7 @@ router.post('/submit', async (req, res) => {
 });
 
 // GET: Summary of all user performance
-router.get('/stats-summary', verifyToken, async (req, res) => { // Don't forget verifyToken!
+router.get('/stats-summary', authenticateToken, async (req, res) => { // Don't forget verifyToken!
     try {
         const userId = req.user.uid;
         const snapshot = await db.collection('user_stats')
