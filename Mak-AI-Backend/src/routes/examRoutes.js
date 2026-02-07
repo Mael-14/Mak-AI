@@ -712,7 +712,12 @@ router.get('/stats-summary', authenticateToken, async (req, res) => { // Don't f
         });
     } catch (error) {
         console.error('Stats Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        // TEMPORARY: Send the full error message to the frontend to debug
+        res.status(500).json({
+            success: false,
+            message: error.message, // This will say "The query requires an index" if that's the issue
+            code: error.code
+        });
     }
 });
 
