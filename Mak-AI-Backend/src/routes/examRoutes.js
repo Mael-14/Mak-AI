@@ -653,29 +653,48 @@ router.get('/stats-summary', authenticateToken, async (req, res) => { // Don't f
                 }
             }
 
-            // 3. Subject Performance
-            const code = data.subject || 'Unknown';
+            // 3. Subject Performance (Group by Code, not Name)
+            const code = data.subject || 'Unknown'; // Use 0570 as the unique key
+            const displayName = data.subjectName || code; // Use GCE June as the label
+
             if (!subjectTotals[code]) {
                 subjectTotals[code] = {
                     totalPct: 0,
                     count: 0,
-                    name: data.subjectName || code
+                    name: displayName
                 };
             }
 
-            // Safety check for the score object
-            const percentage = data.score?.percentage || 0;
+            const percentage = data.score?.percentage ?? 0;
             subjectTotals[code].totalPct += percentage;
             subjectTotals[code].count += 1;
         });
 
-        // 4. Determine Strong/Weak
-        const subjectsArray = Object.values(subjectTotals).map(s => ({
-            name: s.name,
-            avg: s.totalPct / s.count
+        // --- SECTION 4: Determine Strong/Weak ---
+        const subjectsArray = Object.keys(subjectTotals).map(code => ({
+            name: subjectTotals[code].name,
+            avg: subjectTotals[code].totalPct / subjectTotals[code].count
         }));
 
-        subjectsArray.sort((a, b) => b.avg - a.avg);
+        let strong = 'N/A';
+        let weak = 'N/A';
+
+        if (subjectsArray.length === 1) {
+            // Only one subject exists
+            strong = subjectsArray[0].name;
+            weak = "Keep practicing!";
+        } else if (subjectsArray.length > 1) {
+            // Sort by average score (highest to lowest)
+            subjectsArray.sort((a, b) => b.avg - a.avg);
+
+            strong = subjectsArray[0].name;
+            weak = subjectsArray[subjectsArray.length - 1].name;
+
+            // Optional: If top and bottom scores are the same, don't show a weak one
+            if (subjectsArray[0].avg === subjectsArray[subjectsArray.length - 1].avg) {
+                weak = "All balanced";
+            }
+        }
 
         // 5. STREAK CALCULATION: Walking backwards through the calendar
         let currentStreak = 0;
