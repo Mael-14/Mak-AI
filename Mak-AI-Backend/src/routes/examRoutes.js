@@ -609,4 +609,75 @@ router.post('/submit', async (req, res) => {
     }
 });
 
+// GET: Summary of all user performance
+router.get('/stats-summary', async (req, res) => {
+    try {
+        const userId = req.user.uid; // Assumes your auth middleware is working
+        const snapshot = await db.collection('user_stats')
+            .where('userId', '==', userId)
+            .orderBy('completedAt', 'desc')
+            .get();
+
+        if (snapshot.empty) {
+            return res.json({
+                success: true,
+                data: { totalHours: 0, strongSubject: 'N/A', weakSubject: 'N/A', totalQuizzes: 0, dailyBreakdown: {} }
+            });
+        }
+
+        let totalMinutes = 0;
+        const subjectTotals = {};
+        const dailyBreakdown = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+
+            // 1. Calculate Time
+            const duration = data.durationInMinutes || 0;
+            totalMinutes += duration;
+
+            // 2. Daily Breakdown (for the chart)
+            if (data.completedAt) {
+                const dateKey = data.completedAt.toDate().toISOString().split('T')[0];
+                dailyBreakdown[dateKey] = (dailyBreakdown[dateKey] || 0) + duration;
+            }
+
+            // 3. Subject Performance
+            const code = data.subject; // The '0570' code
+            if (!subjectTotals[code]) {
+                subjectTotals[code] = {
+                    totalPct: 0,
+                    count: 0,
+                    name: data.subjectName || 'Unknown'
+                };
+            }
+            subjectTotals[code].totalPct += data.score.percentage;
+            subjectTotals[code].count += 1;
+        });
+
+        // 4. Determine Strong/Weak
+        const subjectsArray = Object.values(subjectTotals).map(s => ({
+            name: s.name,
+            avg: s.totalPct / s.count
+        }));
+
+        // Sort by Average (High to Low)
+        subjectsArray.sort((a, b) => b.avg - a.avg);
+
+        res.json({
+            success: true,
+            data: {
+                totalHours: (totalMinutes / 60).toFixed(1),
+                strongSubject: subjectsArray[0].name,
+                weakSubject: subjectsArray[subjectsArray.length - 1].name,
+                totalQuizzes: snapshot.size,
+                dailyBreakdown: dailyBreakdown
+            }
+        });
+    } catch (error) {
+        console.error('Stats Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
