@@ -610,9 +610,9 @@ router.post('/submit', async (req, res) => {
 });
 
 // GET: Summary of all user performance
-router.get('/stats-summary', async (req, res) => {
+router.get('/stats-summary', verifyToken, async (req, res) => { // Don't forget verifyToken!
     try {
-        const userId = req.user.uid; // Assumes your auth middleware is working
+        const userId = req.user.uid;
         const snapshot = await db.collection('user_stats')
             .where('userId', '==', userId)
             .orderBy('completedAt', 'desc')
@@ -621,7 +621,7 @@ router.get('/stats-summary', async (req, res) => {
         if (snapshot.empty) {
             return res.json({
                 success: true,
-                data: { totalHours: 0, strongSubject: 'N/A', weakSubject: 'N/A', totalQuizzes: 0, dailyBreakdown: {} }
+                data: { totalHours: 0, strongSubject: 'N/A', weakSubject: 'N/A', totalQuizzes: 0, dailyBreakdown: {}, streak: 0 }
             });
         }
 
@@ -636,22 +636,35 @@ router.get('/stats-summary', async (req, res) => {
             const duration = data.durationInMinutes || 0;
             totalMinutes += duration;
 
-            // 2. Daily Breakdown (for the chart)
+            // 2. SAFE Date Parsing (Replaces the duplicate/unsafe block)
+            let dateKey;
             if (data.completedAt) {
-                const dateKey = data.completedAt.toDate().toISOString().split('T')[0];
-                dailyBreakdown[dateKey] = (dailyBreakdown[dateKey] || 0) + duration;
+                if (typeof data.completedAt.toDate === 'function') {
+                    dateKey = data.completedAt.toDate().toISOString().split('T')[0];
+                } else if (typeof data.completedAt === 'string') {
+                    dateKey = data.completedAt.split('T')[0];
+                } else if (typeof data.completedAt === 'number') {
+                    dateKey = new Date(data.completedAt).toISOString().split('T')[0];
+                }
+
+                if (dateKey) {
+                    dailyBreakdown[dateKey] = (dailyBreakdown[dateKey] || 0) + duration;
+                }
             }
 
             // 3. Subject Performance
-            const code = data.subject; // The '0570' code
+            const code = data.subject || 'Unknown';
             if (!subjectTotals[code]) {
                 subjectTotals[code] = {
                     totalPct: 0,
                     count: 0,
-                    name: data.subjectName || 'Unknown'
+                    name: data.subjectName || code
                 };
             }
-            subjectTotals[code].totalPct += data.score.percentage;
+
+            // Safety check for the score object
+            const percentage = data.score?.percentage || 0;
+            subjectTotals[code].totalPct += percentage;
             subjectTotals[code].count += 1;
         });
 
@@ -661,9 +674,30 @@ router.get('/stats-summary', async (req, res) => {
             avg: s.totalPct / s.count
         }));
 
-        // Sort by Average (High to Low)
         subjectsArray.sort((a, b) => b.avg - a.avg);
 
+        // 5. STREAK CALCULATION: Walking backwards through the calendar
+        let currentStreak = 0;
+        let dateToCheck = new Date(); // Starts today
+
+        for (let i = 0; i < 365; i++) {
+            const dateStr = dateToCheck.toISOString().split('T')[0];
+
+            if (dailyBreakdown[dateStr]) {
+                currentStreak++;
+                dateToCheck.setDate(dateToCheck.getDate() - 1); // Move to previous day
+            } else {
+                // If no study today yet, allow the streak to continue from yesterday
+                if (i === 0) {
+                    dateToCheck.setDate(dateToCheck.getDate() - 1);
+                    const yesterdayStr = dateToCheck.toISOString().split('T')[0];
+                    if (dailyBreakdown[yesterdayStr]) {
+                        continue;
+                    }
+                }
+                break; // Streak broken
+            }
+        }
         res.json({
             success: true,
             data: {
@@ -671,6 +705,7 @@ router.get('/stats-summary', async (req, res) => {
                 strongSubject: subjectsArray[0].name,
                 weakSubject: subjectsArray[subjectsArray.length - 1].name,
                 totalQuizzes: snapshot.size,
+                streak: currentStreak,
                 dailyBreakdown: dailyBreakdown
             }
         });
