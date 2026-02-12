@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import TestSetupAlert from '../components/TestAlert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -99,7 +98,6 @@ const CustomsExamScreen = () => {
   const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
   
   const [showAlert, setShowAlert] = useState(false);
-  const [showTestSetup, setShowTestSetup] = useState(false);
 
   // QuestionMode tabs as in Ss.jsx
   const QuestionMode = [
@@ -122,22 +120,20 @@ const CustomsExamScreen = () => {
           </View>
           <Text style={styles.headerTitle}>{subject.title}{"\n"}course</Text>
           {/* Custom Exam Button */}
-          <TouchableOpacity style={styles.customExamButton} onPress={() => setShowTestSetup(true)}>
+          <TouchableOpacity 
+            style={styles.customExamButton} 
+            onPress={() => router.push({
+              pathname: '/CustomExamSetup',
+              params: { 
+                subjectId: subjectIdNum, 
+                subjectName: subject.title,
+                level: selectedLevel 
+              }
+            })}
+          >
             <Ionicons name="sparkles-outline" size={18} color="#a35dafff" />
-
             <Text style={styles.customExamButtonText}>Start Custom Exam</Text>
           </TouchableOpacity>
-
-          <TestSetupAlert
-        visible={showTestSetup}
-        onClose={() => setShowTestSetup(false)}
-        onStart={(config) => {
-          setShowTestSetup(false);
-
-          // Send config to test screen
-          navigation.navigate('TestScreen', config);
-        }}
-      />
         </View>
 
         {/* Question Mode Tabs */}
