@@ -18,6 +18,9 @@ import Modal from 'react-native-modal';
 import { examAPI } from '../services/api';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Katex from 'react-native-katex';
+import { scale, verticalScale, moderateScale } from '../utils/scaling';
+import MathJaxProvider from '../components/MathJaxProvider';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,7 +47,7 @@ export default function Exam({ route }) {
   const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [timer, setTimer] = useState(60 * 10); // 10 minutes for example
+  const [timer, setTimer] = useState(60 * 90); // 90 minutes for example
   const [selectedOptions, setSelectedOptions] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
@@ -147,6 +150,35 @@ export default function Exam({ route }) {
     return str
       .replace(/\$\$?|\\\(|\\\)|\\\[|\\\]/g, '')
       .trim();
+  };
+  const renderMixedContent = (text) => {
+    if (!text) return null;
+
+    // This regex splits the text by $...$ delimiters
+    const parts = text.split(/(\$.*?\$)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        // It's Math! Render with KaTeX
+        const mathExpression = part.slice(1, -1); // Remove the $ signs
+        return (
+          <View key={index} style={styles.inlineMath}>
+            <Katex
+              expression={mathExpression}
+              inlineStyle={KATEX_INLINE_CSS}
+              style={styles.miniKatex}
+            />
+          </View>
+        );
+      }
+
+      // It's normal text! Render with native Text component
+      return (
+        <Text key={index} style={styles.nativeText}>
+          {part}
+        </Text>
+      );
+    });
   };
 
   const handlePrevious = () => {
@@ -303,7 +335,7 @@ export default function Exam({ route }) {
                 setShowResults(false);
                 setCurrentQuestionIndex(0);
                 setSelectedOptions({});
-                setTimer(60 * 10);
+                setTimer(60 * 90);
               }}
             >
               <Ionicons name="refresh" size={22} color="#fff" />
@@ -316,123 +348,117 @@ export default function Exam({ route }) {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
+    <View style={[styles.mainContainer, { backgroundColor: '#3F51B5' }]}>
+      {/* 1. Integrated Header (Subject, Year, Paper) */}
+      <View style={styles.headerWrapper}>
+        <TouchableOpacity onPress={handlePrevious} style={styles.backCircle}>
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{examInfo.mathType}</Text>
-        <Text style={styles.headerDate}>June {examInfo.year}</Text>
-      </View>
-
-
-
-      {/* Mode and Timer */}
-      <View style={styles.modeContainer}>
-        <View style={styles.modeRow}>
-          <Text style={styles.modeText}>
-            Mode : <Text style={styles.modeValue}>Exam</Text>
-          </Text>
-          <View style={styles.timerContainer}>
-            <Ionicons name="time-outline" size={16} color="#1e3a8a" />
-            <Text style={styles.timerText}>{formatTime(timer)}</Text>
-          </View>
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.headerSubject}>{examInfo.mathType}</Text>
+          <Text style={styles.headerMeta}>June {examInfo.year} • Paper 1</Text>
+        </View>
+        <View style={styles.timerPill}>
+          <Ionicons name="time-outline" size={14} color="#FFF" />
+          <Text style={styles.timerText}>{formatTime(timer)}</Text>
         </View>
       </View>
 
-      {/* Question Card */}
-      <Animated.View
-        style={[styles.cardContainer, { transform: [{ translateX: position.x }] }]}
-      >
-        <View style={styles.card}>
-          {/* Question Header */}
-          <View style={styles.questionHeader}>
-            <View style={styles.questionHeaderleft}>
-              <View style={styles.askMalak}>
-                <Text style={styles.icon}>🎓</Text>
-                <Text style={styles.askMalakText}>Ask Mak</Text>
-              </View>
-              <Text style={styles.questionNumber}>Question {currentQuestionIndex + 1} of {totalQuestions}</Text>
-            </View>
-            {/* Question */}
-            <View style={styles.katexContainer}>
-              <Katex
-                expression={`\\text{${currentQuestion.question}}`}
-                style={styles.katexStyle} // Use a specific style for math
-                inlineStyle={katexInlineStyle} // Optional: styling the internal HTML
-              />
-            </View>
+      {/* 2. Modern Progress Bar (Flashcard Style) */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBarBg}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              { width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }
+            ]}
+          />
+        </View>
+        <Text style={styles.progressCountText}>
+          {currentQuestionIndex + 1} of {totalQuestions}
+        </Text>
+      </View>
+
+      {/* 3. Central Content Card */}
+      <Animated.View style={[styles.centralCard, { transform: [{ translateX: position.x }] }]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.makBadge}>
+            <Text style={styles.makBadgeText}>🎓Mak AI</Text>
           </View>
+        </View>
 
-          {/* Options */}
-          <View style={styles.optionsContainer} >
-            {currentQuestion.options.map((option) => (
+        <View style={styles.questionSection}>
+          {/* {renderMixedContent(currentQuestion.question)}*/}
+          <MathJaxProvider
+            html={currentQuestion.question} // e.g., "Solve $x^2 + y = 5$"
+          />
+          {/* <MathText
+            value={currentQuestion.question}
+            direction="ltr"
+            style={styles.mathText}
+          // This ensures it handles any math error without crashing the screen
+          />
+          renderError={(error) => <Text style={{ color: 'red' }}>{error.message}</Text>}
+*/}
 
+
+
+        </View>
+
+        <View style={styles.optionsSection}>
+          {currentQuestion.options.map((option) => {
+            const isSelected = selectedOptions[currentQuestionIndex] === option.label;
+            return (
               <TouchableOpacity
                 key={option.label}
-                style={[
-                  styles.optionButton,
-                  selectedOptions[currentQuestionIndex] === option.label && { borderColor: '#1e3a8a', borderWidth: 1 }
-                ]}
                 onPress={() => handleSelectOption(option.label)}
+                style={[styles.optionRow, isSelected && styles.optionRowActive]}
               >
-                <Text style={styles.optionLabel}>{option.label}</Text>
-                <View style={styles.optionMathContainer}>
+                <View style={[styles.optionIndicator, isSelected && styles.optionIndicatorActive]}>
+                  <Text style={[styles.optionLetter, isSelected && { color: '#FFF' }]}>
+                    {option.label}
+                  </Text>
+                </View>
+                <View style={styles.optionMathWrap} pointerEvents="none">
                   <Katex
                     expression={sanitizeMath(option.value)}
                     inlineStyle={KATEX_OPTION_CSS}
                     style={styles.optionKatex}
                   />
                 </View>
+                {isSelected && <Ionicons name="checkmark-circle" size={20} color="#3F51B5" />}
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
         </View>
       </Animated.View>
 
-      {/* Navigation Buttons */}
-      <View style={styles.navigationContainer}>
+      {/* 4. Professional Navigation Footer */}
+      <View style={styles.footerNav}>
         <TouchableOpacity
-          style={[
-            styles.navButton,
-            currentQuestionIndex === 0 && styles.navButtonDisabled,
-          ]}
           onPress={handlePrevious}
+          style={[styles.navBtn, currentQuestionIndex === 0 && styles.btnDisabled]}
           disabled={currentQuestionIndex === 0}
         >
-          <Ionicons name="chevron-back" size={24} color="black" style={styles.navButtonText} />
+          <Text style={styles.navBtnText}>Previous</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.doneBtnPill} onPress={handleFinishEarly}>
+          <Text style={styles.doneBtnText}>Done</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.doneHeaderButton}
-          onPress={handleFinishEarly}
+          onPress={currentQuestionIndex === totalQuestions - 1 ? handleSubmit : handleNext}
+          style={styles.navBtn}
         >
-          <Text style={styles.doneHeaderText}>Done</Text>
+          <Text style={styles.navBtnText}>
+            {currentQuestionIndex === totalQuestions - 1 ? 'Finish' : 'Next'}
+          </Text>
         </TouchableOpacity>
-        {currentQuestionIndex === quizData.length - 1 ? (
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => setShowCongrats(true)}
-          >
-            <Ionicons name="checkmark-done" size={28} color="white" style={styles.navButtonText} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              currentQuestionIndex === quizData.length - 1 && styles.navButtonDisabled,
-            ]}
-            onPress={handleNext}
-            disabled={currentQuestionIndex === quizData.length - 1}
-          >
-            <Ionicons name="chevron-forward" size={24} color="black" style={styles.navButtonText} />
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -466,14 +492,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
-  optionMathContainer: {
+  optionMathWrap: {
     flex: 1,
-    // Fixed height for the WebView box
+    height: 45,           // Force a height so the WebView is visible
     justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    marginLeft: 40,
   },
+
   optionKatex: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    height: 45,           // Match the container height
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
   },
   modeContainer: {
     backgroundColor: '#fff',
@@ -836,40 +867,122 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 8,
   },
+  //new styules
+  mainContainer: { flex: 1 },
+
+  // Header Styles
+  headerWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: verticalScale(50),
+    paddingHorizontal: scale(20),
+    justifyContent: 'space-between',
+  },
+  headerTitleGroup: { flex: 1, marginLeft: scale(15) },
+  headerSubject: { color: '#FFF', fontSize: moderateScale(18), fontWeight: '800' },
+  headerMeta: { color: 'rgba(255,255,255,0.7)', fontSize: moderateScale(12) },
+  timerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12
+  },
+  timerText: { color: '#FFF', fontSize: 12, fontWeight: 'bold', marginLeft: 4 },
+
+  // Progress Bar
+  progressContainer: { paddingHorizontal: scale(25), marginTop: 25 },
+  progressBarBg: { height: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 5 },
+  progressFill: { height: 10, backgroundColor: '#4ade80', borderRadius: 5 },
+  progressCountText: { color: '#FFF', fontSize: 12, marginTop: 8, textAlign: 'right', fontWeight: '600' },
+
+  // Card Styles
+  centralCard: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    marginHorizontal: scale(20),
+    marginTop: verticalScale(20),
+    marginBottom: verticalScale(110),
+    borderRadius: 30,
+    padding: scale(20),
+    // Premium Shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  questionSection: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center', // Centers the whole paragraph
+    alignItems: 'center',
+    padding: 10,
+  },
+  nativeText: {
+    fontFamily: 'sans-serif',
+    fontSize: 18,
+    color: '#1F2937',
+    lineHeight: 26,
+  },
+  inlineMath: {
+    height: 80, // Small height for inline math
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  miniKatex: {
+    width: 60, // You may need to calculate this or keep it flexible
+    height: 30,
+    backgroundColor: 'transparent',
+  },
+
+  // Options
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  optionRowActive: { borderColor: '#3F51B5', backgroundColor: '#F0F2FF', borderWidth: 1.5 },
+  optionIndicator: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  optionIndicatorActive: { backgroundColor: '#3F51B5' },
+  optionLetter: { fontSize: 14, fontWeight: 'bold', color: '#6B7280' },
+
+  // Footer
+  footerNav: {
+    position: 'absolute',
+    bottom: verticalScale(25),
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(15),
+    paddingBottom: verticalScale(35),
+  },
+  navBtn: { paddingHorizontal: 20, paddingVertical: 10 },
+  navBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
+  doneBtnPill: { backgroundColor: '#FFF', paddingHorizontal: 25, paddingVertical: 10, borderRadius: 20 },
+  doneBtnText: { color: '#3F51B5', fontWeight: '800' },
+  btnDisabled: { opacity: 0.5 }
 });
-const katexInlineStyle = `
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+const KATEX_INLINE_CSS = `
+  <head>
     <style>
       body {
-        background-color: transparent;
         margin: 0;
-        padding: 5px;
-        /* Force text wrapping */
-        word-wrap: break-word;
-        white-space: normal;
-        overflow-wrap: break-word;
-        display: block; 
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent;
       }
-      .katex-display {
-        margin: 0.5em 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-      }
-      /* Ensure the main container doesn't force a single line */
-      .katex {
-        white-space: normal !important;
-        display: inline-block;
-      }
-      .katex .mtext {
-        font-family: sans-serif !important;
-        font-size: 2.1em !important;
-        color: #333 !important;
-      }
-      .katex .mathnormal, .katex .mord {
-        font-size: 1.5em !important; /* Kept closer to 1 to prevent awkward line heights */
-        color: black;
-      }
+      .katex { font-size: 3.5em !important; }
+      
     </style>
   </head>
 `;
@@ -884,7 +997,9 @@ const KATEX_OPTION_CSS = `
         padding: 0;
         display: flex;
         align-items: center;
-        justify-content: flex-start; /* Keeps it aligned with the A, B, C labels */
+        height: 100vh; /* Takes full height of the container */
+        background-color: transparent;
+        /*justify-content: flex-start;   Keeps it aligned with the A, B, C labels */
         overflow: hidden;
       }
       .katex {

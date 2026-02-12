@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/mak1.jpg",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.nathanael237.MakAI"
     },
     "web": {
       "favicon": "./assets/favicon.png"
