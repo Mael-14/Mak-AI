@@ -20,7 +20,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Katex from 'react-native-katex';
 import { scale, verticalScale, moderateScale } from '../utils/scaling';
 import MathJaxProvider from '../components/MathJaxProvider';
-
+import { auth } from '../config/firebase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,6 +34,7 @@ function formatTime(seconds) {
 }
 
 export default function Exam({ route }) {
+  const startTime = useRef(Date.now());
   const router = useRouter();
   const params = useLocalSearchParams();
   const formatQuestion = (str) => {
@@ -44,7 +45,7 @@ export default function Exam({ route }) {
   };
   const { subjectCode, level, topic, examTitle, paper, examData, examId } = params;
   const [quizData, setQuizData] = useState([])
-  const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
+  const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '', subjectCode: '' });
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timer, setTimer] = useState(60 * 90); // 90 minutes for example
@@ -186,6 +187,56 @@ export default function Exam({ route }) {
 
   const currentQuestion = quizData[currentQuestionIndex];
   const totalQuestions = quizData.length;
+  const syncResultsToBackend = async () => {
+    const endTime = Date.now();
+    const durationInMinutes = Math.round((endTime - startTime.current) / 60000);
+
+    let correctCount = 0;
+    quizData.forEach((q, idx) => {
+      if (selectedOptions[idx] === q.correct) correctCount += 1;
+    });
+
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const token = await user.getIdToken();
+      const finalSubjectCode = subjectCode || "9999";
+      // We use a controller to set a longer timeout for Render's cold start
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // Wait 60s for Render
+
+      const response = await fetch('https://mak-ai-carb.onrender.com/api/exams/submit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          subject: finalSubjectCode,
+          correct: correctCount,
+          total: quizData.length,
+          durationInMinutes: durationInMinutes || 1,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      console.log("✅ Stats synced successfully!");
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error("❌ Sync timed out: Render is taking too long to wake up.");
+      } else {
+        console.error("❌ Failed to sync stats:", error.message);
+      }
+    }
+  };
   const sanitizeMath = (str) => {
     if (!str) return '';
     // This regex removes:
@@ -241,6 +292,11 @@ export default function Exam({ route }) {
       explanationHeight.setValue(0);
       position.setValue({ x: 0, y: 0 });
     }
+    if (currentQuestionIndex === totalQuestions - 1) {
+      syncResultsToBackend(); // Save stats!
+      setShowCongrats(true);
+      setShowResults(true);
+    }
   };
 
   const handleSelectOption = (label) => {
@@ -261,6 +317,7 @@ export default function Exam({ route }) {
     // We don't need to manually mark them as 'not done' 
     // because your getScore() and Results logic already checks 
     // if an index exists in selectedOptions.
+    syncResultsToBackend(); // Save stats!
     setShowCongrats(false);
     setShowResults(true);
   };
@@ -494,7 +551,7 @@ export default function Exam({ route }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={currentQuestionIndex === totalQuestions - 1 ? handleSubmit : handleNext}
+          onPress={handleNext}
           style={styles.navBtn}
         >
           <Text style={styles.navBtnText}>

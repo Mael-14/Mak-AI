@@ -164,25 +164,25 @@ router.get('/exam/:examId', async (req, res) => {
     try {
         const { examId } = req.params;
         const { topic } = req.query; // Optional topic filter
-        
+
         console.log(`Fetching questions for examId: ${examId}${topic ? `, topic: ${topic}` : ''}`);
-        
+
         // Get the exam document
         const examDoc = await db.collection('exams').doc(examId).get();
-        
+
         if (!examDoc.exists) {
             return res.status(404).json({
                 success: false,
                 error: `Exam not found: ${examId}`
             });
         }
-        
+
         const examData = examDoc.data();
-        
+
         // Build query for questions
         let questionsQuery = examDoc.ref.collection('questions');
         let questionsSnapshot;
-        
+
         // If topic is provided, filter by topic
         if (topic) {
             // When filtering by topic, we can't use orderBy without a composite index
@@ -205,9 +205,9 @@ router.get('/exam/:examId', async (req, res) => {
             questionsQuery = questionsQuery.orderBy('id');
             questionsSnapshot = await questionsQuery.get();
         }
-        
+
         let questions = questionsSnapshot.docs.map(doc => doc.data());
-        
+
         // Sort by question ID if we didn't use orderBy
         if (topic) {
             questions = questions.sort((a, b) => {
@@ -216,7 +216,7 @@ router.get('/exam/:examId', async (req, res) => {
                 return numA - numB;
             });
         }
-        
+
         res.status(200).json({
             success: true,
             data: questions,
@@ -433,9 +433,9 @@ router.get('/topics/:subjectId', async (req, res) => {
     try {
         const { subjectId } = req.params;
         const { level, paper } = req.query;
-        
+
         console.log(`Fetching topics for subjectId: ${subjectId}, level: ${level}, paper: ${paper || 'all'}`);
-        
+
         // Validate subjectId
         const subjectIdNum = parseInt(subjectId);
         if (isNaN(subjectIdNum) || subjectIdNum < 1 || subjectIdNum > 8) {
@@ -444,7 +444,7 @@ router.get('/topics/:subjectId', async (req, res) => {
                 error: 'Invalid subject ID. Must be between 1 and 8.'
             });
         }
-        
+
         // Validate level
         if (!level) {
             return res.status(400).json({
@@ -452,7 +452,7 @@ router.get('/topics/:subjectId', async (req, res) => {
                 error: 'Level parameter is required. Use "Ordinary Level" or "Advance Level".'
             });
         }
-        
+
         // Convert subject ID to subject code
         const subjectCode = getSubjectCode(subjectIdNum, level);
         if (!subjectCode) {
@@ -461,22 +461,22 @@ router.get('/topics/:subjectId', async (req, res) => {
                 error: `Invalid level: ${level}. Expected 'Ordinary Level' or 'Advance Level'.`
             });
         }
-        
+
         // Get subject name
         const subjectName = getSubjectName(subjectIdNum);
-        
+
         // Build query to find exams matching subject code and level
         let examsQuery = db.collection('exams')
             .where('subjectCode', '==', subjectCode)
             .where('level', '==', level);
-        
+
         // If paper is specified, filter by paper
         if (paper) {
             examsQuery = examsQuery.where('paper', '==', paper);
         }
-        
+
         const examsSnapshot = await examsQuery.get();
-        
+
         if (examsSnapshot.empty) {
             return res.status(404).json({
                 success: false,
@@ -484,20 +484,20 @@ router.get('/topics/:subjectId', async (req, res) => {
                 data: []
             });
         }
-        
+
         // Collect all questions from all matching exams and group by topic
         const topicsMap = {};
         let totalQuestions = 0;
-        
+
         for (const examDoc of examsSnapshot.docs) {
             const questionsSnapshot = await examDoc.ref
                 .collection('questions')
                 .get();
-            
+
             questionsSnapshot.docs.forEach(doc => {
                 const questionData = doc.data();
                 const topicName = questionData.topic || 'Uncategorized';
-                
+
                 if (!topicsMap[topicName]) {
                     topicsMap[topicName] = {
                         name: topicName,
@@ -505,21 +505,21 @@ router.get('/topics/:subjectId', async (req, res) => {
                         papers: new Set() // Track which papers have this topic
                     };
                 }
-                
+
                 topicsMap[topicName].questionCount++;
                 const examData = examDoc.data();
                 topicsMap[topicName].papers.add(examData.paper);
                 totalQuestions++;
             });
         }
-        
+
         // Convert to array and sort by name
         const topics = Object.values(topicsMap).map(topic => ({
             name: topic.name,
             questionCount: topic.questionCount,
             papers: Array.from(topic.papers).sort()
         })).sort((a, b) => a.name.localeCompare(b.name));
-        
+
         res.status(200).json({
             success: true,
             data: topics,
@@ -547,6 +547,64 @@ router.get('/topics/:subjectId', async (req, res) => {
                 code: error.code,
                 message: error.message
             } : undefined
+        });
+    }
+});
+
+/**
+ * Submit quiz results
+ * POST /api/exams/submit
+ */
+router.post('/submit', async (req, res) => {
+    try {
+        const { subject, correct, total, durationInMinutes } = req.body;
+
+        // 1. Get the user ID from the Authorization header
+        // Your auth middleware likely attaches 'user' to the request. 
+        // If not, we extract it from the token manually here:
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'No token provided' });
+        }
+
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const userId = decodedToken.uid;
+
+        // 2. Prepare the data
+        const percentage = total > 0 ? (correct / total) * 100 : 0;
+        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+
+        const quizResult = {
+            userId,
+            subject,
+            score: {
+                correct,
+                total,
+                percentage: Math.round(percentage)
+            },
+            durationInMinutes,
+            completedAt: timestamp
+        };
+
+        // 3. Save to Firestore in a 'user_stats' collection
+        await db.collection('user_stats').add(quizResult);
+
+        // 4. (Optional) Update user's aggregate stats or streaks here later for Day 6
+
+        console.log(`✅ Stats saved for User: ${userId} - ${subject}: ${correct}/${total}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Quiz results synced successfully',
+            data: { percentage: Math.round(percentage) }
+        });
+
+    } catch (error) {
+        console.error('Error submitting quiz results:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });

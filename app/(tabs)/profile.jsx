@@ -1,15 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../../config/firebase';
 import { scale, verticalScale, moderateScale } from '../../utils/scaling';
-
+import { examAPI } from '../../services/api';
 const Profile = () => {
     const user = auth.currentUser;
     const userName = user?.displayName || 'Learner';
     const firstLetter = userName.charAt(0).toUpperCase();
+    const [stats, setStats] = useState(null);
 
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await examAPI.getStatsSummary();
+                if (response.success) {
+                    setStats(response.data);
+                }
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            }
+        };
+        fetchStats();
+    }, []);
     const ProfileItem = ({ icon, title, color, onPress, isLast }) => (
         <TouchableOpacity
             style={[styles.itemContainer, isLast && { borderBottomWidth: 0 }]}
@@ -49,7 +63,7 @@ const Profile = () => {
                     </View>
                     <View style={[styles.statBox, styles.statBorder]}>
                         <Ionicons name="flame" size={20} color="#FF4500" />
-                        <Text style={styles.statNumber}>12</Text>
+                        <Text style={styles.statNumber}>{stats?.streak || 0}</Text>
                         <Text style={styles.statLabel}>Streaks</Text>
                     </View>
                 </View>

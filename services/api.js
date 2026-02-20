@@ -381,6 +381,40 @@ export const examAPI = {
       }
       throw error;
     }
+  },
+  /**
+   * Submits quiz results to the backend to be saved in Firestore
+   * @param {Object} resultData - { subject, correct, total, durationInMinutes }
+   */
+  submitResults: async (resultData) => {
+    try {
+      // This sends a POST request to http://YOUR_IP:5000/api/exams/submit
+      const response = await api.post('/exams/submit', resultData);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting quiz results:', error);
+      if (error.response) {
+        console.error('Server Error Data:', error.response.data);
+      }
+      throw error;
+    }
+  },
+
+  getStatsSummary: async () => {
+    try {
+      const response = await api.get('/exams/stats-summary');
+      return response.data;
+    } catch (error) {
+      // This will tell you if it's a Timeout, a 404, or a 500
+      if (error.response) {
+        console.error("Server responded with:", error.response.status); // 404? 500?
+      } else if (error.request) {
+        console.error("No response received. Server might be down or timed out.");
+      } else {
+        console.error("Setup error:", error.message);
+      }
+      throw error;
+    }
   }
 };
 
