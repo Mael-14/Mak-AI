@@ -19,7 +19,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import { signInWithCustomToken } from 'firebase/auth';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+// import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { auth } from '../config/firebase';
 import { authAPI } from '../services/api';
 import { saveLoginData } from '../utils/loginStorage';
@@ -48,51 +48,25 @@ const GoogleOAuthModal = ({
     }
   }, [visible]);
 
-  // Configure Google Sign-In
+  // Configure Google Sign-In - Fallback for Expo managed workflow
   const configureGoogleSignIn = async () => {
-    try {
-      await GoogleSignin.configure({
-        // You'll need to add your Google OAuth client ID here
-        // webClientId: 'your-web-client-id.googleusercontent.com',
-        offlineAccess: true,
-        hostedDomain: '',
-        forceCodeForRefreshToken: true,
-      });
-    } catch (error) {
-      console.error('Error configuring Google Sign-In:', error);
-    }
+    // Google Sign-in configuration is handled via WebView in Expo managed workflow
+    console.log('Using WebView fallback for Google Sign-in in Expo managed workflow');
   };
 
-  // Fetch Google accounts from device
+  // Fetch Google accounts from device - Fallback for Expo managed workflow
   const fetchGoogleAccounts = async () => {
     try {
       setFetchingAccounts(true);
       
-      // Check if Google Play Services are available
-      await GoogleSignin.hasPlayServices();
-      
-      // Check if user is signed in and get current user
-      const isSignedIn = await GoogleSignin.isSignedIn();
-      
-      if (isSignedIn) {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        if (currentUser) {
-          setGoogleAccounts([currentUser.user]);
-          setShowAccountsList(true);
-        }
-      } else {
-        // If no signed-in account, show account picker or sign-in flow
-        setShowAccountsList(true);
-      }
-    } catch (error) {
-      console.error('Error fetching Google accounts:', error);
-      if (error.code === statusCodes.SIGN_IN_REQUIRED) {
-        // User is not signed in, proceed with normal flow
-        setShowAccountsList(true);
-      } else {
-        // For other errors, fall back to WebView method
+      // In Expo managed workflow, we use WebView for Google authentication
+      // Skip account fetching and go directly to WebView
+      setTimeout(() => {
         initializeGoogleAuth();
-      }
+      }, 500);
+    } catch (error) {
+      console.error('Error initializing Google auth:', error);
+      initializeGoogleAuth();
     } finally {
       setFetchingAccounts(false);
     }
@@ -189,66 +163,10 @@ const GoogleOAuthModal = ({
     }
   };
 
-  // Handle account selection
+  // Handle account selection - Fallback for Expo managed workflow
   const handleAccountSelect = async (account = null) => {
-    try {
-      setIsLoading(true);
-      
-      let userInfo;
-      if (account) {
-        // If account is provided, try to sign in silently
-        userInfo = await GoogleSignin.signInSilently();
-      } else {
-        // If no account provided, show Google account picker
-        userInfo = await GoogleSignin.signIn();
-      }
-      
-      if (userInfo) {
-        // Get the ID token to authenticate with backend
-        const tokens = await GoogleSignin.getTokens();
-        
-        // Send the token to your backend for verification
-        const response = await authAPI.googleAuth(tokens.idToken);
-        
-        if (response.success) {
-          // Sign in to Firebase with custom token from backend
-          const userCredential = await signInWithCustomToken(auth, response.firebaseToken);
-          
-          // Get Firebase ID token
-          const firebaseIdToken = await userCredential.user.getIdToken();
-          
-          // Store authentication data
-          const userData = {
-            uid: userCredential.user.uid,
-            email: userCredential.user.email,
-            name: userCredential.user.displayName || userInfo.user.name,
-            emailVerified: userCredential.user.emailVerified,
-            photo: userInfo.user.photo
-          };
-          
-          await saveLoginData(firebaseIdToken, userData);
-          
-          // Success callback
-          onSuccess(userData);
-          handleClose();
-        }
-      }
-    } catch (error) {
-      console.error('Google account selection error:', error);
-      let errorMessage = 'Failed to sign in with Google. Please try again.';
-      
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        errorMessage = 'Google sign-in was cancelled.';
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        errorMessage = 'Google sign-in is already in progress.';
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        errorMessage = 'Google Play Services is not available or outdated.';
-      }
-      
-      onError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+    // In Expo managed workflow, redirect to WebView authentication
+    handleUseWebView();
   };
 
   // Handle fallback to WebView
