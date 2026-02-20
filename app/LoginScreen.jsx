@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, StatusBar, Image, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { StyleSheet, Text, View, StatusBar, Image, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Layer1 from '../assets/layerBlur1.png'
@@ -14,15 +14,14 @@ import { auth } from '../config/firebase';
 import { authAPI } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-
-// Complete web browser authentication
-WebBrowser.maybeCompleteAuthSession();
+import { useToast } from '../context/ToastContext';
+import { saveLoginData } from '../utils/loginStorage';
+import GoogleOAuthModal from '../components/GoogleOAuthModal';
 
 const LoginScreen = () => {
   const router = useRouter();
   const { updateUserData } = useAuth();
+  const { showSuccess, showError, showInfo } = useToast();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -34,6 +33,7 @@ const LoginScreen = () => {
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Validation functions
   const validateEmail = (email) => {
@@ -120,38 +120,36 @@ const LoginScreen = () => {
           const response = await authAPI.login(idToken);
 
           // Step 4: Store token and user data for future use
-          await AsyncStorage.setItem('authToken', idToken);
           const userData = {
             uid: userCredential.user.uid,
             email: userCredential.user.email,
             name: userCredential.user.displayName || response.data?.name
           };
-          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          await saveLoginData(idToken, userData);
           updateUserData(userData); // Update AuthContext
 
-          // Step 5: Success - show alert and navigate
-          Alert.alert('Success', 'Login successful!');
+          // Step 5: Success - show toast and navigate
+          showSuccess('Login successful! Welcome back.');
           // Navigate to home screen - adjust route as needed
           router.replace('/(tabs)'); // Navigate to tabs
         } catch (apiError) {
           // Silently handle backend errors - user is already authenticated in Firebase
           // Store token anyway for offline capability
           try {
-            await AsyncStorage.setItem('authToken', idToken);
             const userData = {
               uid: userCredential.user.uid,
               email: userCredential.user.email,
               name: userCredential.user.displayName
             };
-            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+            await saveLoginData(idToken, userData);
             updateUserData(userData); // Update AuthContext
 
-            Alert.alert('Success', 'Login successful!');
+            showSuccess('Login successful! Welcome back.');
             router.replace('/(tabs)');
           } catch (storageError) {
             // Handle storage errors silently
-            Alert.alert('Success', 'Login successful!');
-            router.push('/index');
+            showSuccess('Login successful! Welcome back.');
+            router.replace('/(tabs)');
           }
         }
       } catch (error) {
@@ -175,123 +173,41 @@ const LoginScreen = () => {
           errorMessage = error.message;
         }
 
-        // Use setTimeout to prevent error propagation that triggers call stack
-        setTimeout(() => {
-          Alert.alert('Error', errorMessage);
-        }, 0);
+        // Show error toast
+        showError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     }
   };
 
-  // Handle Google login via backend OAuth
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
+  // Handle Google login via custom modal
+  const handleGoogleLogin = () => {
+    setShowGoogleModal(true);
+  };
 
-    try {
-      // Step 1: Get Google OAuth URL from backend
-      let response;
-      try {
-        response = await authAPI.getGoogleAuthUrl();
-      } catch (apiError) {
-        // Handle network errors specifically
-        if (apiError.code === 'ECONNREFUSED' || apiError.message?.includes('Network Error')) {
-          throw new Error('Cannot connect to server. Please ensure the backend is running on port 5000.');
-        }
-        if (apiError.response?.status === 500) {
-          const errorMsg = apiError.response?.data?.message || 'Backend error. Check server logs.';
-          throw new Error(errorMsg);
-        }
-        throw apiError;
-      }
+  // Handle Google login success
+  const handleGoogleLoginSuccess = (userData) => {
+    updateUserData(userData);
+    showSuccess('Login successful! Welcome back.');
+    router.replace('/(tabs)');
+  };
 
-      const authUrl = response?.data?.authUrl || response?.authUrl;
-
-      if (!authUrl) {
-        throw new Error('Failed to get Google OAuth URL from backend');
-      }
-
-      // Step 2: Open Google OAuth URL in browser
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        Linking.createURL('/auth/google/callback')
-      );
-
-      if (result.type === 'success') {
-        // Parse the callback URL
-        const url = new URL(result.url);
-        const token = url.searchParams.get('token');
-        const uid = url.searchParams.get('uid');
-        const error = url.searchParams.get('error');
-
-        if (error) {
-          throw new Error('Google authentication failed');
-        }
-
-        if (!token) {
-          throw new Error('No token received from backend');
-        }
-
-        // Step 3: Sign in to Firebase with custom token from backend
-        const userCredential = await signInWithCustomToken(auth, token);
-
-        // Step 4: Get Firebase ID token
-        const firebaseIdToken = await userCredential.user.getIdToken();
-
-        // Step 5: Store authentication data
-        await AsyncStorage.setItem('authToken', firebaseIdToken);
-        const userData = {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          name: userCredential.user.displayName || userCredential.user.email?.split('@')[0]
-        };
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        updateUserData(userData); // Update AuthContext
-
-        Alert.alert('Success', 'Login successful!');
-        router.replace('/(tabs)');
-      } else {
-        throw new Error('Google sign-in was cancelled');
-      }
-    } catch (error) {
-      let errorMessage = 'Google sign-in failed. Please try again.';
-
-      // Network/connection errors
-      if (error?.message?.includes('Cannot connect to server')) {
-        errorMessage = error.message;
-      } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('Network Error')) {
-        errorMessage = 'Cannot connect to backend server. Please ensure the backend is running.';
-      } else if (error?.response?.status === 500) {
-        errorMessage = error?.response?.data?.message || 'Backend server error. Please check server configuration.';
-      } else if (error?.message?.includes('cancelled')) {
-        errorMessage = 'Google sign-in was cancelled.';
-      } else if (error?.code === 'auth/invalid-custom-token') {
-        errorMessage = 'Invalid authentication token. Please try again.';
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      console.error('Google login error:', error);
-
-      setTimeout(() => {
-        Alert.alert('Error', errorMessage);
-      }, 0);
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle Google login error
+  const handleGoogleLoginError = (errorMessage) => {
+    showError(errorMessage);
   };
 
   // Handle forgot password
   const handleForgotPassword = async () => {
     if (!formData.email) {
-      Alert.alert('Email Required', 'Please enter your email address first');
+      showError('Please enter your email address first');
       return;
     }
 
     const emailError = validateEmail(formData.email);
     if (emailError) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      showError('Please enter a valid email address');
       return;
     }
 
@@ -299,15 +215,11 @@ const LoginScreen = () => {
       setIsLoading(true);
       // Option 1: Use Firebase Auth SDK directly (recommended)
       await sendPasswordResetEmail(auth, formData.email);
-      Alert.alert(
-        'Email Sent',
-        'Password reset email has been sent. Please check your inbox.',
-        [{ text: 'OK' }]
-      );
+      showSuccess('Password reset email sent! Please check your inbox.');
 
       // Option 2: Use backend API (uncomment if preferred)
       // await authAPI.forgotPassword(formData.email);
-      // Alert.alert('Success', 'Password reset email sent!');
+      // showSuccess('Password reset email sent!');
     } catch (error) {
       console.error('Forgot password error:', error);
       let errorMessage = 'Failed to send password reset email.';
@@ -320,7 +232,7 @@ const LoginScreen = () => {
         errorMessage = 'Network error. Please check your internet connection.';
       }
 
-      Alert.alert('Error', errorMessage);
+      showError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -433,6 +345,7 @@ const LoginScreen = () => {
         <TouchableOpacity
           style={styles.googleButton}
           onPress={handleGoogleLogin}
+          disabled={isLoading}
         >
           <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
@@ -453,6 +366,16 @@ const LoginScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Google OAuth Modal */}
+      <GoogleOAuthModal
+        visible={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onSuccess={handleGoogleLoginSuccess}
+        onError={handleGoogleLoginError}
+        title="Sign in with Google"
+        mode="login"
+      />
     </SafeAreaView>
   )
 }

@@ -42,7 +42,7 @@ export default function Exam({ route }) {
     // This is a quick fix for "Sentence style" questions.
     return `\\text{${str}}`.replace(/\$/g, '} $ {\\text');
   };
-  const { subjectCode, level, topic, examTitle, paper } = params;
+  const { subjectCode, level, topic, examTitle, paper, examData, examId } = params;
   const [quizData, setQuizData] = useState([])
   const [examInfo, setExamInfo] = useState({ mathType: 'Loading...', year: '', paper: '' });
   const [loading, setLoading] = useState(true);
@@ -60,6 +60,52 @@ export default function Exam({ route }) {
       try {
         setLoading(true);
 
+        // Check if examData is passed from CustomExamSetup (AI-generated questions)
+        if (examData && examId) {
+          console.log('Loading AI-generated exam questions...');
+          
+          try {
+            const parsedQuestions = JSON.parse(examData);
+            
+            // Format AI-generated questions to match the expected structure
+            const formattedQuestions = parsedQuestions.map((q, index) => ({
+              id: `Q${index + 1}`,
+              question: q.question,
+              options: q.options ? q.options.map(opt => {
+                // Extract label and value from format like "A. Option text"
+                const match = opt.match(/^([A-D])\.\s*(.*)$/);
+                return {
+                  label: match ? match[1] : String.fromCharCode(65 + index % 4),
+                  value: match ? match[2] : opt,
+                };
+              }) : [],
+              correct: q.correctAnswer,
+              explanation: q.explanation || '',
+              topic: q.topic || 'General',
+              marks: q.marks || 1,
+            }));
+
+            setQuizData(formattedQuestions);
+            
+            // Set exam info from the generated exam metadata
+            setExamInfo({
+              mathType: examTitle || 'Custom Exam',
+              year: new Date().getFullYear().toString(),
+              paper: examId || 'AI Generated',
+            });
+            
+            // Set timer based on exam duration if available
+            if (params.duration) {
+              setTimer(parseInt(params.duration) * 60);
+            }
+            
+            setLoading(false);
+            return;
+          } catch (parseError) {
+            console.error('Failed to parse exam data:', parseError);
+          }
+        }
+
         // 3. Validation: Ensure we have the minimum data to fetch
         if (!subjectCode) {
           console.error("No subjectCode provided");
@@ -67,7 +113,7 @@ export default function Exam({ route }) {
           return;
         }
 
-        // Fetch questions based on subject and level
+        // Fetch questions based on subject and level (existing API behavior)
         const response = await examAPI.getQuestions(subjectCode, level || null);
 
         if (response.success) {
@@ -119,7 +165,7 @@ export default function Exam({ route }) {
 
 
     loadExamData();
-  }, [subjectCode, topic, level]); // Update dependency array
+  }, [subjectCode, topic, level, examData, examId]);
 
   useEffect(() => {
     if (timer <= 0) return;

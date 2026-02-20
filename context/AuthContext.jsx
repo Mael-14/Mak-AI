@@ -3,6 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { 
+  saveLoginData, 
+  clearLoginData, 
+  getLoginData, 
+  updateStoredUserData 
+} from '../utils/loginStorage';
+import { restoreUserSession, getTemporaryAuthState } from '../utils/sessionManager';
 
 const AuthContext = createContext({});
 
@@ -25,32 +32,45 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Check AsyncStorage for stored user data
-        const storedUserData = await AsyncStorage.getItem('userData');
-        const storedToken = await AsyncStorage.getItem('authToken');
+        // Check AsyncStorage for stored login data using the new utility
+        const { token, userData } = await getLoginData();
+        console.log('Stored login data:', { hasToken: !!token, userData });
 
-        if (storedUserData && storedToken) {
-          try {
-            const parsedUserData = JSON.parse(storedUserData);
-            setUserData(parsedUserData);
-          } catch (error) {
-            console.error('Error parsing stored user data:', error);
-            // Clear invalid data
-            await AsyncStorage.removeItem('userData');
-            await AsyncStorage.removeItem('authToken');
+        // Get temporary auth state for immediate UI response
+        const tempAuthState = await getTemporaryAuthState();
+        if (tempAuthState.isAuthenticated && tempAuthState.userData) {
+          setUserData(tempAuthState.userData);
+          console.log('Set temporary auth state for immediate UI');
+        }
+
+        // Try to restore user session
+        if (userData && token) {
+          console.log('Attempting to restore user session...');
+          const sessionResult = await restoreUserSession();
+          
+          if (sessionResult.success) {
+            console.log('Session restored successfully');
+            setUserData(sessionResult.userData);
+            // Firebase onAuthStateChanged should handle the rest
+          } else {
+            console.log('Session restoration failed, clearing stored data');
+            setUserData(null);
           }
+        } else if (userData && !token) {
+          console.log('Found userData but no token - clearing stale data');
+          await clearLoginData();
+          setUserData(null);
         }
 
         // Listen to Firebase auth state changes
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          console.log('Firebase auth state changed:', !!firebaseUser);
+          
           if (firebaseUser) {
             // User is signed in
             try {
               // Get fresh token
               const idToken = await firebaseUser.getIdToken();
-              
-              // Update stored token
-              await AsyncStorage.setItem('authToken', idToken);
               
               // Update user data
               const updatedUserData = {
@@ -60,21 +80,30 @@ export const AuthProvider = ({ children }) => {
                 emailVerified: firebaseUser.emailVerified
               };
               
-              await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+              // Save to persistent storage
+              await saveLoginData(idToken, updatedUserData);
               
               setUser(firebaseUser);
               setUserData(updatedUserData);
+              console.log('User authenticated and data saved');
             } catch (error) {
               console.error('Error updating auth state:', error);
               // If token refresh fails, sign out
               await handleLogout();
             }
           } else {
-            // User is signed out
+            // User is signed out - check if we have stored data to attempt restoration
+            const { token: storedToken, userData: storedUserData } = await getLoginData();
+            
+            if (storedToken && storedUserData) {
+              console.log('Firebase user signed out but we have stored data - user may have been logged out server-side');
+              // Clear the stored data since Firebase session is no longer valid
+              await clearLoginData();
+            }
+            
             setUser(null);
             setUserData(null);
-            await AsyncStorage.removeItem('authToken');
-            await AsyncStorage.removeItem('userData');
+            console.log('User signed out and data cleared');
           }
           
           setLoading(false);
@@ -83,7 +112,19 @@ export const AuthProvider = ({ children }) => {
           }
         });
 
-        return () => unsubscribe();
+        // Set a timeout to initialize if Firebase takes too long
+        const timeoutId = setTimeout(() => {
+          if (loading && !isInitialized) {
+            console.log('Auth initialization timeout - proceeding with stored data');
+            setLoading(false);
+            setIsInitialized(true);
+          }
+        }, 3000); // 3 second timeout
+
+        return () => {
+          unsubscribe();
+          clearTimeout(timeoutId);
+        };
       } catch (error) {
         console.error('Error initializing auth:', error);
         setLoading(false);
@@ -100,9 +141,8 @@ export const AuthProvider = ({ children }) => {
       // Sign out from Firebase
       await signOut(auth);
       
-      // Clear stored data
-      await AsyncStorage.removeItem('authToken');
-      await AsyncStorage.removeItem('userData');
+      // Clear all stored login data using the utility
+      await clearLoginData();
       
       // Clear state
       setUser(null);
@@ -114,8 +154,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Error during logout:', error);
       // Even if logout fails, clear local data
       try {
-        await AsyncStorage.removeItem('authToken');
-        await AsyncStorage.removeItem('userData');
+        await clearLoginData();
         setUser(null);
         setUserData(null);
         router.replace('/LoginScreen');
@@ -128,7 +167,7 @@ export const AuthProvider = ({ children }) => {
   // Update user data (after login/signup)
   const updateUserData = async (newUserData) => {
     try {
-      await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+      await updateStoredUserData(newUserData);
       setUserData(newUserData);
     } catch (error) {
       console.error('Error updating user data:', error);
@@ -140,7 +179,7 @@ export const AuthProvider = ({ children }) => {
     try {
       if (user) {
         const idToken = await user.getIdToken(true); // Force refresh
-        await AsyncStorage.setItem('authToken', idToken);
+        await saveLoginData(idToken, userData);
         return idToken;
       }
       return null;
@@ -156,7 +195,7 @@ export const AuthProvider = ({ children }) => {
     userData,
     loading,
     isInitialized,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || (!!userData && !isInitialized), // Consider stored data as authenticated while initializing
     logout: handleLogout,
     updateUserData,
     refreshToken
