@@ -15,15 +15,21 @@ const signup = async (req, res, next) => {
     const { idToken, name, email } = req.body;
 
     // Validate required fields
-    if (!idToken) {
+    if (!idToken || typeof idToken !== 'string') {
       return res.status(400).json(
-        responseFormatter.error('ID token is required', 400)
+        responseFormatter.error('Valid ID token is required', 400)
       );
     }
 
-    if (!name || !email) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json(
-        responseFormatter.error('Name and email are required', 400)
+        responseFormatter.error('Valid name is required', 400)
+      );
+    }
+
+    if (!email || typeof email !== 'string' || email.trim().length === 0) {
+      return res.status(400).json(
+        responseFormatter.error('Valid email is required', 400)
       );
     }
 
