@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, StatusBar, Image, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native'
+import { StyleSheet, Text, View, StatusBar, Image, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Layer1 from '../assets/layerBlur1.png'
@@ -16,14 +16,13 @@ import { createUserWithEmailAndPassword, updateProfile, signInWithCustomToken } 
 import { auth, db } from '../config/firebase';
 import { authAPI } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useToast } from '../context/ToastContext';
+import { saveLoginData } from '../utils/loginStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-
-// Complete web browser authentication
-WebBrowser.maybeCompleteAuthSession();
+import GoogleOAuthModal from '../components/GoogleOAuthModal';
 
 const SignUpScreen = () => {
+  const { showSuccess, showError, showWarning } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,6 +34,7 @@ const SignUpScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Validation functions
   const validateName = (name) => {
@@ -121,7 +121,7 @@ const SignUpScreen = () => {
 
     // Check if terms are agreed
     if (!agreedToTerms) {
-      Alert.alert('Terms Required', 'Please agree to the terms and policies to continue');
+      showWarning('Please agree to the terms and policies to continue');
       return;
     }
 
@@ -155,24 +155,18 @@ const SignUpScreen = () => {
           });
 
           // Step 5: Store token and user data for future use
-          await AsyncStorage.setItem('authToken', idToken);
-          await AsyncStorage.setItem('userData', JSON.stringify({
+          const userData = {
             uid: userCredential.user.uid,
             email: userCredential.user.email,
             name: formData.name
-          }));
+          };
+          await saveLoginData(idToken, userData);
 
-          // Step 6: Success - show alert and navigate
-          Alert.alert(
-            'Success',
-            'Account created successfully!',
-            [
-              {
-                text: 'OK',
-                onPress: () => router.push('/LoginScreen')
-              }
-            ]
-          );
+          // Step 6: Success - show toast and navigate
+          showSuccess('Account created successfully! Please sign in to continue.');
+          setTimeout(() => {
+            router.push('/LoginScreen');
+          }, 1000);
         } catch (apiError) {
           // Fallback: If backend fails, create Firestore document directly from frontend
           try {
@@ -188,42 +182,32 @@ const SignUpScreen = () => {
             });
 
             // Store token and user data
-            await AsyncStorage.setItem('authToken', idToken);
-            await AsyncStorage.setItem('userData', JSON.stringify({
+            const userData = {
               uid: userCredential.user.uid,
               email: userCredential.user.email,
               name: formData.name
-            }));
+            };
+            await saveLoginData(idToken, userData);
 
             // Success with fallback
-        Alert.alert(
-          'Success',
-          'Account created successfully!',
-          [
-            {
-              text: 'OK',
-                  onPress: () => router.push('/LoginScreen')
-                }
-              ]
-            );
+            showSuccess('Account created successfully! Please sign in to continue.');
+            setTimeout(() => {
+              router.push('/LoginScreen');
+            }, 1000);
           } catch (firestoreError) {
             // If both backend and Firestore direct creation fail, still store auth token
-            await AsyncStorage.setItem('authToken', idToken);
-            await AsyncStorage.setItem('userData', JSON.stringify({
+            const userData = {
               uid: userCredential.user.uid,
               email: userCredential.user.email,
               name: formData.name
-            }));
+            };
+            await saveLoginData(idToken, userData);
 
             const errorMessage = apiError?.response?.data?.message || apiError?.message || 'Account created but could not save profile. Please try logging in.';
+            showWarning(errorMessage);
             setTimeout(() => {
-              Alert.alert('Partial Success', errorMessage, [
-                {
-                  text: 'OK',
-                  onPress: () => router.push('/LoginScreen')
-            }
-              ]);
-            }, 0);
+              router.push('/LoginScreen');
+            }, 2000);
           }
         }
       } catch (error) {
@@ -243,117 +227,30 @@ const SignUpScreen = () => {
           errorMessage = error.message;
         }
         
-        // Use setTimeout to prevent error propagation that triggers call stack
-        setTimeout(() => {
-          Alert.alert('Error', errorMessage);
-        }, 0);
+        // Show error toast
+        showError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     }
   };
 
-  // Handle Google signup via backend OAuth
-  const handleGoogleSignUp = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Step 1: Get Google OAuth URL from backend
-      let response;
-      try {
-        response = await authAPI.getGoogleAuthUrl();
-      } catch (apiError) {
-        // Handle network errors specifically
-        if (apiError.code === 'ECONNREFUSED' || apiError.message?.includes('Network Error')) {
-          throw new Error('Cannot connect to server. Please ensure the backend is running on port 5000.');
-        }
-        if (apiError.response?.status === 500) {
-          const errorMsg = apiError.response?.data?.message || 'Backend error. Check server logs.';
-          throw new Error(errorMsg);
-        }
-        throw apiError;
-      }
-      
-      const authUrl = response?.data?.authUrl || response?.authUrl;
-      
-      if (!authUrl) {
-        throw new Error('Failed to get Google OAuth URL from backend');
-      }
+  // Handle Google signup via custom modal
+  const handleGoogleSignUp = () => {
+    setShowGoogleModal(true);
+  };
 
-      // Step 2: Open Google OAuth URL in browser
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        Linking.createURL('/auth/google/callback')
-      );
+  // Handle Google signup success
+  const handleGoogleSignUpSuccess = (userData) => {
+    showSuccess('Account created successfully! Welcome to Mak AI.');
+    setTimeout(() => {
+      router.replace('/(tabs)');
+    }, 1000);
+  };
 
-      if (result.type === 'success') {
-        // Parse the callback URL
-        const url = new URL(result.url);
-        const token = url.searchParams.get('token');
-        const uid = url.searchParams.get('uid');
-        const error = url.searchParams.get('error');
-
-        if (error) {
-          throw new Error('Google authentication failed');
-        }
-
-        if (!token) {
-          throw new Error('No token received from backend');
-    }
-
-        // Step 3: Sign in to Firebase with custom token from backend
-        const userCredential = await signInWithCustomToken(auth, token);
-        
-        // Step 4: Get Firebase ID token
-        const firebaseIdToken = await userCredential.user.getIdToken();
-        
-        // Step 5: Store authentication data
-        await AsyncStorage.setItem('authToken', firebaseIdToken);
-        await AsyncStorage.setItem('userData', JSON.stringify({
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          name: userCredential.user.displayName || userCredential.user.email?.split('@')[0]
-        }));
-
-        Alert.alert(
-          'Success',
-          'Account created successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.push('/index')
-            }
-          ]
-        );
-      } else {
-        throw new Error('Google sign-up was cancelled');
-      }
-    } catch (error) {
-      let errorMessage = 'Google sign-up failed. Please try again.';
-      
-      // Network/connection errors
-      if (error?.message?.includes('Cannot connect to server')) {
-        errorMessage = error.message;
-      } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('Network Error')) {
-        errorMessage = 'Cannot connect to backend server. Please ensure the backend is running.';
-      } else if (error?.response?.status === 500) {
-        errorMessage = error?.response?.data?.message || 'Backend server error. Please check server configuration.';
-      } else if (error?.message?.includes('cancelled')) {
-        errorMessage = 'Google sign-up was cancelled.';
-      } else if (error?.code === 'auth/invalid-custom-token') {
-        errorMessage = 'Invalid authentication token. Please try again.';
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      console.error('Google signup error:', error);
-      
-      setTimeout(() => {
-        Alert.alert('Error', errorMessage);
-      }, 0);
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle Google signup error
+  const handleGoogleSignUpError = (errorMessage) => {
+    showError(errorMessage);
   };
 
   // Toggle terms agreement
@@ -516,6 +413,7 @@ const SignUpScreen = () => {
           <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleSignUp}
+            disabled={isLoading}
           >
             <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
             <Text style={styles.googleButtonText}>Continue with Google</Text>
@@ -537,6 +435,16 @@ const SignUpScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Google OAuth Modal */}
+      <GoogleOAuthModal
+        visible={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onSuccess={handleGoogleSignUpSuccess}
+        onError={handleGoogleSignUpError}
+        title="Sign up with Google"
+        mode="signup"
+      />
     </SafeAreaView>
   )
 }

@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 // Firebase configuration
 // Replace these values with your Firebase project credentials
 // You can get these from Firebase Console > Project Settings > General > Your apps
@@ -17,8 +17,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth (Expo handles persistence automatically)
-const auth = getAuth(app);
+// 3. Initialize Auth with Persistence
+// This ensures the user stays logged in even after closing the app
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
 
 // Initialize Firestore
 const db = getFirestore(app);

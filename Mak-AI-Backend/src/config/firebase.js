@@ -56,11 +56,14 @@ try {
 }
 
 // Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
+if (admin.apps.length === 0) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: process.env.FIREBASE_DATABASE_URL || `https://${serviceAccount.project_id}.firebaseio.com`
     });
+    console.log('✓ Firebase Admin SDK initialized successfully');
+} else {
+    console.log('✓ Firebase Admin SDK already initialized');
 }
 
 const db = admin.firestore();

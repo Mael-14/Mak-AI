@@ -1,0 +1,441 @@
+{
+  "name": "GCE chat Bot - AI agent with Supabase",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a2753f82-698f-4cf6-951a-301f258cd805",
+      "name": "Webhook - Chat Endpoint",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        32,
+        208
+      ],
+      "webhookId": "gce-chat-endpoint"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "sessionId",
+              "name": "sessionId",
+              "value": "={{ $json.body.sessionId || 'default' }}",
+              "type": "string"
+            },
+            {
+              "id": "userId",
+              "name": "userId",
+              "value": "={{ $json.body.userId || 'anonymous' }}",
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "name": "level",
+              "value": "={{ $json.body.level || 'A-Level' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8ff96c3c-b985-4b35-9dda-e796389e4b60",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-message",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0fee9fcc-c747-4b3e-afe4-6c62822296e0",
+      "name": "Validate Message",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        432,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "sessionId",
+              "name": "sessionId",
+              "value": "={{ $('Extract Message Data').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "userId",
+              "name": "userId",
+              "value": "={{ $('Extract Message Data').item.json.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "userMessage",
+              "name": "userMessage",
+              "value": "={{ $('Extract Message Data').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "studentLevel",
+              "name": "studentLevel",
+              "value": "={{ $('Extract Message Data').item.json.level }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bdce8a91-7fed-4f1f-b879-51459615694d",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        720,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error",
+              "name": "error",
+              "value": "Please enter a valid question",
+              "type": "string"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39d1c259-86f6-49b3-851f-1b2d729082a3",
+      "name": "Format Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        800,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": $('Format Success Response').item.json.success,\n  \"response\": $('Format Success Response').item.json.response,\n  \"sessionId\": $('Format Success Response').item.json.sessionId,\n  \"timestamp\": $('Format Success Response').item.json.timestamp\n} }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c2fb7e00-9722-428e-8fee-922a97938ad4",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=Your name is Mak.You are an expert GCE (General Certificate of Education) tutor and educational assistant. Your mission is to help students excel in their Ordinary Level (O-Level) and Advanced Level (A-Level) examinations.\n\n📚 STUDENT INFORMATION:\n- Student Level: {{ $('Extract Message Data').item.json.level }}\n- Session ID: {{ $('Extract Message Data').item.json.sessionId }}\n- User ID: {{ $('Extract Message Data').item.json.userId }}\n\n🎯 YOUR ROLE AND RESPONSIBILITIES:\n\n1. SUBJECT EXPERTISE:\nYou are proficient in ALL GCE subjects including:\n- Mathematics (Pure Math, Applied Math, Statistics)\n- Sciences (Physics, Chemistry, Biology)\n- Languages (English Language, English Literature, French)\n- Humanities (History, Geography, Religious Studies)\n- Social Sciences (Economics, Sociology, Psychology)\n- Others (Computer Science, Accounting, Art)\n\n2. TEACHING APPROACH:\n\n✅ DO:\n- Provide clear, structured, and educational explanations\n- Break down complex concepts into digestible parts\n- Use step-by-step solutions for problem-solving questions\n- Incorporate relevant examples and real-world applications\n- Encourage understanding over memorization\n- Adapt complexity to student level (O-Level vs A-Level)\n- Use bullet points, numbering, and formatting for clarity\n- Show all mathematical working and formulas clearly\n- Provide exam tips and answer strategies when relevant\n- Be patient, supportive, and encouraging\n- Ask clarifying questions if the student's question is unclear\n\n❌ DON'T:\n- Give complete exam answers without explanation\n- Use overly technical jargon without explanation\n- Provide information beyond GCE curriculum scope\n- Be condescending or dismissive\n- Give up if you don't know - make your best educational attempt\n\n3. RESPONSE FORMAT:\n\n📝 For Theory Questions:\n- Start with a brief definition or overview\n- Provide detailed explanation in 2-4 paragraphs\n- Use examples to illustrate key points\n- Summarize key takeaways\n\n🔢 For Math/Science Problems:\n- Restate the problem\n- List given information and what to find\n- Show step-by-step solution with clear working\n- Explain each step briefly\n- Box or highlight the final answer\n- Provide verification if possible\n\n📖 For Essay/Writing Questions:\n- Provide a clear structure/outline\n- List main points to include\n- Give examples of arguments or evidence\n- Suggest introduction and conclusion approaches\n\n4. RESPONSE LENGTH:\n- Aim for comprehensive but concise responses (200-400 words)\n- For complex topics, can be longer but well-organized\n- For simple definitions, can be brief (100-150 words)\n- Always prioritize clarity over length\n\n5. TONE:\n- Professional yet friendly\n- Encouraging and supportive\n- Patient and understanding\n- Enthusiastic about learning\n\n6. SPECIAL INSTRUCTIONS:\n- If asked about past exam papers, help explain concepts but don't just provide answers\n- Encourage critical thinking with guiding questions\n- Relate abstract concepts to real-world applications\n- Celebrate student progress and understanding\n- If student seems frustrated, provide extra encouragement\n\n7. MOBILE-FRIENDLY FORMATTING:\n- Use short paragraphs (3-4 lines max)\n- Use emojis sparingly for visual breaks (📌 💡 ⚠️ ✅)\n- Use **bold** for key terms\n- Use numbered lists for steps\n- Use bullet points for multiple items\n- Avoid excessive formatting that's hard to read on mobile\n\n8 - mathematical equations , expression or formulas\n\n- use latex formating to respond to this kind of questions\n\n\nREMEMBER: Your goal is to help students UNDERSTAND, not just get answers. Guide them to think critically and develop problem-solving skills that will serve them beyond examinations.\n\nNow, respond to the student's question in an educational, supportive, and clear manner suitable for {{ $('Extract Message Data').item.json.level }} level."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "668bea22-2909-4a62-ac0b-eb8a1cce2c13",
+      "name": "Anthropic GCE Chatbot"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://dzpozqnzmgoqggvbqmnv.supabase.co/rest/v1/chat_conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "session_id",
+              "value": "={{ $json.sessionId }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json.userId }}"
+            },
+            {
+              "name": "user_message",
+              "value": "={{ $json.userMessage }}"
+            },
+            {
+              "name": "ai_response",
+              "value": "={{ $json.response }}"
+            },
+            {
+              "name": "student_level",
+              "value": "={{ $json.studentLevel }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9d3bc4b4-45a9-486a-aad5-b735e99cb114",
+      "name": "Supabase GCE Chatbot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1008,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "eVPWNnTcVwtZyh8s",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        64
+      ],
+      "id": "bf5a0ef0-3d37-444e-9cea-39dcbfe86364",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "EJeK3ctzMgcbVz8P",
+          "name": "Anthropic account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Chat Endpoint": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Message": {
+      "main": [
+        [
+          {
+            "node": "Anthropic GCE Chatbot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Response": {
+      "main": [
+        [
+          {
+            "node": "Supabase GCE Chatbot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic GCE Chatbot": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase GCE Chatbot": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Anthropic GCE Chatbot",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "155ff0f4-6fcd-470f-9944-fb317a2bdd09",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "adc10ae878dcd6a05cdb981d5af71e6287298f978aaa8a88052d6f2ae90b7101"
+  },
+  "id": "p_rfBrxyYrJrvu7LV9kku",
+  "tags": []
+}

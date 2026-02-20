@@ -5,119 +5,58 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   FlatList,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
   Animated,
   Easing,
   RefreshControl,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { verticalScale, moderateScale, scale } from '../utils/scaling';
 import { getAllCustomExams, deleteCustomExam, getCustomExamById } from '../utils/examStorage';
 import ExamHistoryCard from '../components/ExamHistoryCard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Add this dependency
 
-// Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
-  1: {
-    id: 1,
-    title: 'Mathematics',
-    image: require('../assets/Maths.png'),
-    headerColor: '#ffb380',
-  },
-  2: {
-    id: 2,
-    title: 'Biology',
-    image: require('../assets/Biology.png'),
-    headerColor: '#90EE90',
-  },
-  3: {
-    id: 3,
-    title: 'Chemistry',
-    image: require('../assets/Chemistry.png'),
-    headerColor: '#FFD700',
-  },
-  4: {
-    id: 4,
-    title: 'Physics',
-    image: require('../assets/Physics.png'),
-    headerColor: '#87CEEB',
-  },
-  5: {
-    id: 5,
-    title: 'Computer Science',
-    image: require('../assets/Computer science.png'),
-    headerColor: '#DDA0DD',
-  },
-  6: {
-    id: 6,
-    title: 'Math Stats',
-    image: require('../assets/Math Statistic.png'),
-    headerColor: '#F0E68C',
-  },
-  7: {
-    id: 7,
-    title: 'Geography',
-    image: require('../assets/Geography.png'),
-    headerColor: '#98D8C8',
-  },
-  8: {
-    id: 8,
-    title: 'Further Math',
-    image: require('../assets/FurtherMath.png'),
-    headerColor: '#FFA07A',
-  },
+  1: { title: 'Mathematics', colors: ['#ffb380', '#FF8C42'] },
+  2: { title: 'Biology', colors: ['#90EE90', '#32CD32'] },
+  3: { title: 'Chemistry', colors: ['#FFD700', '#FFA500'] },
+  4: { title: 'Physics', colors: ['#87CEEB', '#00BFFF'] },
+  5: { title: 'Computer Science', colors: ['#DDA0DD', '#BA55D3'] },
+  6: { title: 'Math Stats', colors: ['#F0E68C', '#DAA520'] },
+  7: { title: 'Geography', colors: ['#98D8C8', '#20B2AA'] },
+  8: { title: 'Further Math', colors: ['#FFA07A', '#FF7F50'] },
 };
 
-// Gradient colors for each subject
-const GRADIENT_COLORS = {
-  1: ['#ffc7a2', '#ff8335'],
-  2: ['#acfdac', '#1fb41f'],
-  3: ['#9ea0ce', '#40416f'],
-  4: ['#9adcf6', '#3184a0'],
-  5: ['#f0abf0', '#a137bc'],
-  6: ['#F0E68C', '#DAA520'],
-  7: ['#adf0f0', '#1e827d'],
-  8: ['#dcdcdc', '#424242'],
-};
-
+// OPTIMIZATION: Store exam data in AsyncStorage instead of URL params
 const TEMP_EXAM_KEY = '@temp_exam_data';
 
-const CustomsExamScreen = () => {
+const ExamHistory = () => {
   const router = useRouter();
-  const { subjectId, subjectName, level } = useLocalSearchParams();
+  const localParams = useLocalSearchParams();
+  const focusExamId = localParams?.focusExamId;
 
-  const subjectIdNum = subjectId ? parseInt(subjectId) : 1;
-  const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
-  const selectedLevel = level || 'Ordinary Level';
-  const gradientColors = GRADIENT_COLORS[subjectIdNum] || GRADIENT_COLORS[1];
-
-  // State
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
 
-  // Animation refs
   const [headerOpacityAnim] = useState(new Animated.Value(0));
   const [headerTranslateYAnim] = useState(new Animated.Value(-30));
   const [contentOpacityAnim] = useState(new Animated.Value(0));
   const [contentTranslateYAnim] = useState(new Animated.Value(50));
 
-  // Load exams when screen is focused
   useFocusEffect(
     useCallback(() => {
       loadExams();
-    }, [subjectIdNum])
+    }, [])
   );
 
   useEffect(() => {
-    // Animate on mount
     Animated.parallel([
       Animated.timing(headerOpacityAnim, {
         toValue: 1,
@@ -150,9 +89,7 @@ const CustomsExamScreen = () => {
     try {
       setLoading(true);
       const allExams = await getAllCustomExams();
-      // Filter exams by subject
-      const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
-      setExams(subjectExams);
+      setExams(allExams);
     } catch (error) {
       console.error('Error loading exams:', error);
       Alert.alert('Error', 'Failed to load exam history');
@@ -194,6 +131,7 @@ const CustomsExamScreen = () => {
     );
   };
 
+  // OPTIMIZATION: Store exam data temporarily instead of passing via URL
   const handleOpenExam = async (examId) => {
     try {
       const exam = await getCustomExamById(examId);
@@ -202,11 +140,13 @@ const CustomsExamScreen = () => {
         return;
       }
 
+      // Validate exam data
       if (!exam.questions || !Array.isArray(exam.questions) || exam.questions.length === 0) {
         Alert.alert('Error', 'No questions found in this exam');
         return;
       }
 
+      // Ensure required fields
       const safeExam = {
         subject: exam.subject || 'Unknown Subject',
         subjectId: exam.subjectId || 1,
@@ -221,8 +161,11 @@ const CustomsExamScreen = () => {
         createdAt: exam.createdAt || new Date().toISOString(),
       };
 
+      // OPTIMIZATION: Store in AsyncStorage instead of URL params
+      // This prevents URL size limits and improves navigation performance
       await AsyncStorage.setItem(TEMP_EXAM_KEY, JSON.stringify(safeExam));
 
+      // Navigate based on question type
       if (safeExam.questionType === 'MCQs (Paper 1)') {
         router.push({
           pathname: '/ExamMode',
@@ -236,14 +179,17 @@ const CustomsExamScreen = () => {
             numQuestions: safeExam.numQuestions.toString(),
             topics: safeExam.topics.join(','),
             examId: safeExam.id,
+            // Signal to load from AsyncStorage
             useStoredData: 'true',
           },
         });
       } else {
+        // OPTIMIZED: Pass minimal params, let PaperExamSheet load from AsyncStorage
         router.push({
           pathname: '/PaperExamSheet',
           params: {
             examId: safeExam.id,
+            // Signal to load from AsyncStorage instead of URL params
             useStoredData: 'true',
           },
         });
@@ -264,15 +210,7 @@ const CustomsExamScreen = () => {
 
   const filteredExams = getFilteredExams();
 
-  // QuestionMode tabs
-  const QuestionMode = [
-    { id: 1, name: 'All', icon: (<Ionicons name="grid-outline" size={15} color="black" />), color: '#fff' },
-    { id: 2, name: 'Junes', icon: '📚', color: '#fff' },
-    { id: 3, name: 'Topics', icon: '📐', color: '#fff' },
-    { id: 4, name: 'Customs exam', icon: (<Ionicons name="sparkles-outline" size={18} color="#a35dafff" />), color: '#fff' },
-  ];
-
-  if (loading && exams.length === 0) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerView}>
@@ -285,7 +223,7 @@ const CustomsExamScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Animated Header */}
+      {/* Header */}
       <Animated.View
         style={[
           styles.headerContainer,
@@ -296,75 +234,28 @@ const CustomsExamScreen = () => {
         ]}
       >
         <LinearGradient
-          colors={gradientColors}
+          colors={['#667eea', '#764ba2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
-          <View style={styles.headerSection}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backIcon}>‹</Text>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={26} color="#FFF" />
             </TouchableOpacity>
-
-            <View style={styles.illustrationContainer}>
-              <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>Custom Exams</Text>
+              <Text style={styles.headerSubtitle}>{exams.length} exams</Text>
             </View>
-
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>{subject.title}</Text>
-              <Text style={styles.headerSubtitle}>{exams.length} custom exams</Text>
-            </View>
-
             <TouchableOpacity
-              style={styles.customExamButton}
-              onPress={() => router.push({
-                pathname: '/CustomExamSetup',
-                params: {
-                  subjectId: subjectIdNum,
-                  subjectName: subject.title,
-                  level: selectedLevel,
-                },
-              })}
+              onPress={() => router.push('/CustomExamSetup')}
+              style={styles.addButton}
             >
-              <Ionicons name="sparkles-outline" size={18} color="#a35dafff" />
-              <Text style={styles.customExamButtonText}>New Exam</Text>
+              <Ionicons name="add" size={26} color="#FFF" />
             </TouchableOpacity>
           </View>
         </LinearGradient>
       </Animated.View>
-
-      {/* Question Mode Tabs */}
-      <View style={styles.QuestionModeContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {QuestionMode.map((questionMode) => (
-            <TouchableOpacity
-              key={questionMode.id}
-              style={styles.questionModeTab}
-              onPress={() => {
-                if (questionMode.name === 'All') {
-                  router.push({
-                    pathname: '/subject/[id]',
-                    params: { id: subjectIdNum.toString(), level: selectedLevel },
-                  });
-                } else if (questionMode.name === 'Junes') {
-                  router.push({
-                    pathname: '/JunesModeScreen',
-                    params: { subjectId: subjectIdNum, subjectName: subject.title },
-                  });
-                } else if (questionMode.name === 'Topics') {
-                  router.push({
-                    pathname: '/TopicsModeScreen',
-                    params: { subjectId: subjectIdNum, subjectName: subject.title },
-                  });
-                }
-              }}
-            >
-              <Text style={styles.questionModeIcon}>{questionMode.icon}</Text>
-              <Text style={styles.questionModeName}>{questionMode.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
       {/* Content */}
       <Animated.View
@@ -385,14 +276,7 @@ const CustomsExamScreen = () => {
             </Text>
             <TouchableOpacity
               style={styles.createButton}
-              onPress={() => router.push({
-                pathname: '/CustomExamSetup',
-                params: {
-                  subjectId: subjectIdNum,
-                  subjectName: subject.title,
-                  level: selectedLevel,
-                },
-              })}
+              onPress={() => router.push('/CustomExamSetup')}
             >
               <Text style={styles.createButtonText}>Create First Exam</Text>
             </TouchableOpacity>
@@ -466,7 +350,7 @@ const CustomsExamScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F7F7F9',
   },
   centerView: {
     flex: 1,
@@ -480,117 +364,53 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerContainer: {
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'visible',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
   },
   headerGradient: {
-    paddingBottom: verticalScale(40),
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: verticalScale(20),
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  headerSection: {
-    paddingHorizontal: scale(20),
-    paddingTop: verticalScale(10),
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-  },
-  headerTextContainer: {
-    marginBottom: verticalScale(20),
-    marginTop: verticalScale(12),
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: verticalScale(12),
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#2d2d2d',
-    fontWeight: '300',
-  },
-  illustrationContainer: {
-    position: 'absolute',
-    right: scale(20),
-    top: verticalScale(30),
-    width: 190,
-    height: 190,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  illustrationImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    marginRight: 12,
   },
   headerTitle: {
-    fontSize: moderateScale(28),
-    fontWeight: 'bold',
-    color: '#2d2d2d',
-    marginBottom: verticalScale(4),
+    color: '#FFF',
+    fontSize: moderateScale(18),
+    fontWeight: '700',
   },
   headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: moderateScale(12),
-    color: 'rgba(45, 45, 45, 0.7)',
-    fontWeight: '500',
+    marginTop: 2,
   },
-  customExamButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2d2d2d',
-    paddingHorizontal: scale(16),
-    paddingVertical: verticalScale(10),
+  addButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  customExamButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: scale(8),
-    fontSize: moderateScale(12),
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     flex: 1,
-  },
-  QuestionModeContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: verticalScale(16),
-    paddingHorizontal: scale(12),
-    marginTop: verticalScale(-20),
-    marginHorizontal: scale(20),
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    marginBottom: verticalScale(16),
-  },
-  questionModeTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: scale(16),
-    paddingVertical: verticalScale(5),
-    borderRadius: 12,
-    marginRight: scale(10),
-    gap: scale(8),
-  },
-  questionModeIcon: {
-    fontSize: moderateScale(18),
-  },
-  questionModeName: {
-    fontSize: moderateScale(11),
-    fontWeight: '600',
-    color: '#2d2d2d',
+    paddingHorizontal: 0,
   },
   filterContainer: {
     paddingVertical: verticalScale(12),
@@ -600,12 +420,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   filterScroll: {
-    paddingVertical: verticalScale(4),
-    gap: scale(8),
+    paddingVertical: 4,
+    gap: 8,
   },
   filterTab: {
-    paddingHorizontal: scale(14),
-    paddingVertical: verticalScale(8),
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: '#F5F5F5',
     borderRadius: 20,
     borderWidth: 1,
@@ -639,19 +459,19 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
     fontWeight: '700',
     color: '#333',
-    marginTop: verticalScale(12),
+    marginTop: 12,
     textAlign: 'center',
   },
   emptyText: {
     fontSize: moderateScale(13),
     color: '#999',
-    marginTop: verticalScale(8),
+    marginTop: 8,
     textAlign: 'center',
   },
   createButton: {
-    marginTop: verticalScale(24),
-    paddingHorizontal: scale(24),
-    paddingVertical: verticalScale(12),
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     backgroundColor: '#3F51B5',
     borderRadius: 8,
   },
@@ -661,4 +481,5 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(13),
   },
 });
-export default CustomsExamScreen;
+
+export default ExamHistory;
