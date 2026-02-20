@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
+  RefreshControl,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { verticalScale, moderateScale, scale } from '../utils/scaling';
+import { getAllCustomExams, deleteCustomExam, getCustomExamById } from '../utils/examStorage';
+import ExamHistoryCard from '../components/ExamHistoryCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Subject data mapping - matches the subjects from home screen
@@ -57,49 +74,197 @@ const SUBJECTS_DATA = {
   },
 };
 
-// Dummy data for passed custom exams/sessions
-const customExamHistory = [
-  {
-    id: 1,
-    title: 'Custom Exam - 2025-12-01',
-    subtitle: 'Difficulty: Hard | Mixed questionModes | MCQs | 60 min',
-    students: [
-      'https://i.pravatar.cc/150?img=1',
-      'https://i.pravatar.cc/150?img=2',
-      'https://i.pravatar.cc/150?img=3',
-    ],
-    additionalCount: 3,
-    backgroundColor: '#b7b7c3ff',
-    icon: '📝',
-  },
-  {
-    id: 2,
-    title: 'Custom Exam - 2025-11-15',
-    subtitle: 'Difficulty: Medium | Math | Structural | 45 min',
-    students: [
-      'https://i.pravatar.cc/150?img=4',
-      'https://i.pravatar.cc/150?img=5',
-      'https://i.pravatar.cc/150?img=6',
-    ],
-    additionalCount: 12,
-    backgroundColor: '#b7b7c3ff',
-    icon: '📝',
-  },
-];
+// Gradient colors for each subject
+const GRADIENT_COLORS = {
+  1: ['#ffc7a2', '#ff8335'],
+  2: ['#acfdac', '#1fb41f'],
+  3: ['#9ea0ce', '#40416f'],
+  4: ['#9adcf6', '#3184a0'],
+  5: ['#f0abf0', '#a137bc'],
+  6: ['#F0E68C', '#DAA520'],
+  7: ['#adf0f0', '#1e827d'],
+  8: ['#dcdcdc', '#424242'],
+};
+
+const TEMP_EXAM_KEY = '@temp_exam_data';
 
 const CustomsExamScreen = () => {
-  const navigation = useNavigation();
   const router = useRouter();
   const { subjectId, subjectName, level } = useLocalSearchParams();
-  
-  // Get subject data based on ID
-  const subjectIdNum = subjectId ? parseInt(subjectId) : 1; // Default to Mathematics if no ID
-  const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
-  const selectedLevel = level || 'Ordinary Level'; // Default to Ordinary Level
-  
-  const [showAlert, setShowAlert] = useState(false);
 
-  // QuestionMode tabs as in Ss.jsx
+  const subjectIdNum = subjectId ? parseInt(subjectId) : 1;
+  const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
+  const selectedLevel = level || 'Ordinary Level';
+  const gradientColors = GRADIENT_COLORS[subjectIdNum] || GRADIENT_COLORS[1];
+
+  // State
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('all');
+
+  // Animation refs
+  const [headerOpacityAnim] = useState(new Animated.Value(0));
+  const [headerTranslateYAnim] = useState(new Animated.Value(-30));
+  const [contentOpacityAnim] = useState(new Animated.Value(0));
+  const [contentTranslateYAnim] = useState(new Animated.Value(50));
+
+  // Load exams when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadExams();
+    }, [subjectIdNum])
+  );
+
+  useEffect(() => {
+    // Animate on mount
+    Animated.parallel([
+      Animated.timing(headerOpacityAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerTranslateYAnim, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.stagger(100, [
+        Animated.timing(contentOpacityAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateYAnim, {
+          toValue: 0,
+          friction: 7,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, []);
+
+  const loadExams = async () => {
+    try {
+      setLoading(true);
+      const allExams = await getAllCustomExams();
+      // Filter exams by subject
+      const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
+      setExams(subjectExams);
+    } catch (error) {
+      console.error('Error loading exams:', error);
+      Alert.alert('Error', 'Failed to load exam history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await loadExams();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleDeleteExam = async (examId) => {
+    Alert.alert(
+      'Delete Exam',
+      'Are you sure you want to delete this exam from history?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              await deleteCustomExam(examId);
+              setExams(exams.filter(e => e.id !== examId));
+              Alert.alert('Success', 'Exam deleted from history');
+            } catch (error) {
+              console.error('Error deleting exam:', error);
+              Alert.alert('Error', 'Failed to delete exam');
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
+  const handleOpenExam = async (examId) => {
+    try {
+      const exam = await getCustomExamById(examId);
+      if (!exam) {
+        Alert.alert('Error', 'Exam not found');
+        return;
+      }
+
+      if (!exam.questions || !Array.isArray(exam.questions) || exam.questions.length === 0) {
+        Alert.alert('Error', 'No questions found in this exam');
+        return;
+      }
+
+      const safeExam = {
+        subject: exam.subject || 'Unknown Subject',
+        subjectId: exam.subjectId || 1,
+        level: exam.level || 'Ordinary Level',
+        difficulty: exam.difficulty || 'Medium',
+        duration: exam.duration || 45,
+        questionType: exam.questionType || 'Mixed',
+        numQuestions: exam.numQuestions || exam.questions.length,
+        topics: Array.isArray(exam.topics) ? exam.topics : [],
+        questions: exam.questions,
+        id: exam.id,
+        createdAt: exam.createdAt || new Date().toISOString(),
+      };
+
+      await AsyncStorage.setItem(TEMP_EXAM_KEY, JSON.stringify(safeExam));
+
+      if (safeExam.questionType === 'MCQs (Paper 1)') {
+        router.push({
+          pathname: '/ExamMode',
+          params: {
+            subjectCode: safeExam.subject.toLowerCase().replace(' ', ''),
+            level: safeExam.level,
+            examType: 'custom',
+            difficulty: safeExam.difficulty,
+            questionType: safeExam.questionType,
+            duration: safeExam.duration.toString(),
+            numQuestions: safeExam.numQuestions.toString(),
+            topics: safeExam.topics.join(','),
+            examId: safeExam.id,
+            useStoredData: 'true',
+          },
+        });
+      } else {
+        router.push({
+          pathname: '/PaperExamSheet',
+          params: {
+            examId: safeExam.id,
+            useStoredData: 'true',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error opening exam:', error);
+      Alert.alert('Error', 'Failed to open exam: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  const getFilteredExams = () => {
+    let filtered = exams;
+    if (filter !== 'all') {
+      filtered = filtered.filter(exam => exam.status === filter);
+    }
+    return filtered;
+  };
+
+  const filteredExams = getFilteredExams();
+
+  // QuestionMode tabs
   const QuestionMode = [
     { id: 1, name: 'All', icon: (<Ionicons name="grid-outline" size={15} color="black" />), color: '#fff' },
     { id: 2, name: 'Junes', icon: '📚', color: '#fff' },
@@ -107,139 +272,193 @@ const CustomsExamScreen = () => {
     { id: 4, name: 'Customs exam', icon: (<Ionicons name="sparkles-outline" size={18} color="#a35dafff" />), color: '#fff' },
   ];
 
+  if (loading && exams.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerView}>
+          <ActivityIndicator size="large" color="#3F51B5" />
+          <Text style={styles.loadingText}>Loading exam history...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header Section */}
-        <View style={[styles.headerSection, { backgroundColor: subject.headerColor }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
-          <View style={styles.illustrationContainer}>
-            <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
-          </View>
-          <Text style={styles.headerTitle}>{subject.title}{"\n"}course</Text>
-          {/* Custom Exam Button */}
-          <TouchableOpacity 
-            style={styles.customExamButton} 
-            onPress={() => router.push({
-              pathname: '/CustomExamSetup',
-              params: { 
-                subjectId: subjectIdNum, 
-                subjectName: subject.title,
-                level: selectedLevel 
-              }
-            })}
-          >
-            <Ionicons name="sparkles-outline" size={18} color="#a35dafff" />
-            <Text style={styles.customExamButtonText}>Start Custom Exam</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Animated Header */}
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            opacity: headerOpacityAnim,
+            transform: [{ translateY: headerTranslateYAnim }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerSection}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Text style={styles.backIcon}>‹</Text>
+            </TouchableOpacity>
 
-        {/* Question Mode Tabs */}
-        <View style={styles.QuestionModeContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {QuestionMode.map((questionMode) => (
-              <TouchableOpacity
-                key={questionMode.id}
-                style={styles.questionModeTab}
-                onPress={() => {
-                  if (questionMode.name === 'All') {
-                    router.push({
-                          pathname: '/subject/[id]',
-                          params: { id: subjectIdNum.toString(), level: selectedLevel }
-                       })
-                  } else if (questionMode.name === 'Junes') {
-                    router.push({
-                          pathname: '/JunesModeScreen',
-                          params: { subjectId: subjectIdNum, subjectName: subject.title }
-                       })
-                  } else if (questionMode.name === 'Topics') {
-                    router.push({
-                          pathname: '/TopicsModeScreen',
-                          params: { subjectId: subjectIdNum, subjectName: subject.title }
-                       })
-                  } else if (questionMode.name === 'Customs exam') {
-                    // Already on CustomsExamScreen, do nothing or scroll to top
-                  } else {
-                    // Handle other modes if needed
-                  }
-                }}
-              >
-                <Text style={styles.questionModeIcon}>{questionMode.icon}</Text>
-                <Text style={styles.questionModeName}>{questionMode.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            <View style={styles.illustrationContainer}>
+              <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
+            </View>
 
-        {/* Card Section for Custom Exam History */}
-        <View style={styles.coursesContainer}>
-          {customExamHistory.map((exam) => (
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>{subject.title}</Text>
+              <Text style={styles.headerSubtitle}>{exams.length} custom exams</Text>
+            </View>
+
             <TouchableOpacity
-              key={exam.id}
-              style={[styles.courseCard, { backgroundColor: exam.backgroundColor }]}
+              style={styles.customExamButton}
+              onPress={() => router.push({
+                pathname: '/CustomExamSetup',
+                params: {
+                  subjectId: subjectIdNum,
+                  subjectName: subject.title,
+                  level: selectedLevel,
+                },
+              })}
             >
-              <View style={styles.courseHeader}>
-                <View style={{flexDirection:'column'}}>
-                    <Text style={styles.courseTitle}>{exam.title}</Text>
-                    <Text style={styles.courseSubtitle}>{exam.subtitle}</Text>
-                </View>
-                
-                <TouchableOpacity style={styles.retryButton}>
-                  <Ionicons name="refresh" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
-              
-              
+              <Ionicons name="sparkles-outline" size={18} color="#a35dafff" />
+              <Text style={styles.customExamButtonText}>New Exam</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Question Mode Tabs */}
+      <View style={styles.QuestionModeContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {QuestionMode.map((questionMode) => (
+            <TouchableOpacity
+              key={questionMode.id}
+              style={styles.questionModeTab}
+              onPress={() => {
+                if (questionMode.name === 'All') {
+                  router.push({
+                    pathname: '/subject/[id]',
+                    params: { id: subjectIdNum.toString(), level: selectedLevel },
+                  });
+                } else if (questionMode.name === 'Junes') {
+                  router.push({
+                    pathname: '/JunesModeScreen',
+                    params: { subjectId: subjectIdNum, subjectName: subject.title },
+                  });
+                } else if (questionMode.name === 'Topics') {
+                  router.push({
+                    pathname: '/TopicsModeScreen',
+                    params: { subjectId: subjectIdNum, subjectName: subject.title },
+                  });
+                }
+              }}
+            >
+              <Text style={styles.questionModeIcon}>{questionMode.icon}</Text>
+              <Text style={styles.questionModeName}>{questionMode.name}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
+      </View>
 
-        {/* Custom Alert Modal */}
-        {/* <Modal
-          visible={modalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Custom Exam Settings</Text>
-              {/* Difficulty Selection */}
-              {/* <Text style={styles.modalLabel}>Select Difficulty:</Text>
-              <View style={styles.modalRow}>
-                <TouchableOpacity style={styles.modalOption}><Text>Easy</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>Medium</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>Hard</Text></TouchableOpacity>
-              </View>
-              {/* questionMode Selection */}
-              {/* <Text style={styles.modalLabel}>Choose questionMode:</Text>
-              <View style={styles.modalRow}>
-                <TouchableOpacity style={styles.modalOption}><Text>Math</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>Physics</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>Mixed Up</Text></TouchableOpacity>
-              </View>
-              {/* Test Duration */}
-              {/* <Text style={styles.modalLabel}>Set Test Duration (minutes):</Text>
-              <View style={styles.modalRow}>
-                <TouchableOpacity style={styles.modalOption}><Text>30</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>45</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>60</Text></TouchableOpacity>
-              </View> 
-              {/* Question Type */}
-              {/* <Text style={styles.modalLabel}>Question Type:</Text>
-              <View style={styles.modalRow}> 
-                <TouchableOpacity style={styles.modalOption}><Text>MCQs (Paper 1)</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption}><Text>Structural (Paper 2)</Text></TouchableOpacity>
-              </View> */}
-              {/* <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Content */}
+      <Animated.View
+        style={[
+          styles.contentContainer,
+          {
+            opacity: contentOpacityAnim,
+            transform: [{ translateY: contentTranslateYAnim }],
+          },
+        ]}
+      >
+        {exams.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-outline" size={64} color="#CCC" />
+            <Text style={styles.emptyTitle}>No Custom Exams Yet</Text>
+            <Text style={styles.emptyText}>
+              Create your first custom exam to start building your study history
+            </Text>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => router.push({
+                pathname: '/CustomExamSetup',
+                params: {
+                  subjectId: subjectIdNum,
+                  subjectName: subject.title,
+                  level: selectedLevel,
+                },
+              })}
+            >
+              <Text style={styles.createButtonText}>Create First Exam</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>   */}
-      </ScrollView>
+        ) : (
+          <>
+            {/* Filter Tabs */}
+            <View style={styles.filterContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScroll}
+              >
+                {[
+                  { label: 'All', value: 'all' },
+                  { label: 'Saved', value: 'saved' },
+                  { label: 'Completed', value: 'completed' },
+                  { label: 'In Progress', value: 'in-progress' },
+                ].map(filterOption => (
+                  <TouchableOpacity
+                    key={filterOption.value}
+                    onPress={() => setFilter(filterOption.value)}
+                    style={[
+                      styles.filterTab,
+                      filter === filterOption.value && styles.filterTabActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterTabText,
+                        filter === filterOption.value && styles.filterTabTextActive,
+                      ]}
+                    >
+                      {filterOption.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Exams List */}
+            <FlatList
+              data={filteredExams}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <ExamHistoryCard
+                  exam={item}
+                  onPress={() => handleOpenExam(item.id)}
+                  onDelete={() => handleDeleteExam(item.id)}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="search-outline" size={48} color="#CCC" />
+                  <Text style={styles.emptyTitle}>No Exams Found</Text>
+                  <Text style={styles.emptyText}>Try adjusting your filters</Text>
+                </View>
+              }
+            />
+          </>
+        )}
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -249,17 +468,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  scrollView: {
+  centerView: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerSection: {
-    backgroundColor: '#ffb380',
+  loadingText: {
+    marginTop: 12,
+    color: '#666',
+    fontSize: moderateScale(14),
+    fontWeight: '600',
+  },
+  headerContainer: {
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    padding: 20,
-    paddingTop: 10,
-    position: 'relative',
-    minHeight: 280,
+    overflow: 'visible',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  headerGradient: {
+    paddingBottom: verticalScale(40),
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerSection: {
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(10),
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+  },
+  headerTextContainer: {
+    marginBottom: verticalScale(20),
+    marginTop: verticalScale(12),
   },
   backButton: {
     width: 40,
@@ -268,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: verticalScale(12),
   },
   backIcon: {
     fontSize: 28,
@@ -277,10 +519,10 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     position: 'absolute',
-    right: 20,
-    top: 50,
-    width: 150,
-    height: 150,
+    right: scale(20),
+    top: verticalScale(30),
+    width: 190,
+    height: 190,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -290,161 +532,133 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   headerTitle: {
-    fontSize: 30,
+    fontSize: moderateScale(28),
     fontWeight: 'bold',
     color: '#2d2d2d',
-    marginBottom: 20,
-    lineHeight: 42,
+    marginBottom: verticalScale(4),
+  },
+  headerSubtitle: {
+    fontSize: moderateScale(12),
+    color: 'rgba(45, 45, 45, 0.7)',
+    fontWeight: '500',
   },
   customExamButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#2d2d2d',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(10),
     borderRadius: 20,
-    marginTop: 10,
     alignSelf: 'flex-start',
   },
   customExamButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 8,
-    fontSize: 12,
+    marginLeft: scale(8),
+    fontSize: moderateScale(12),
   },
-  coursesContainer: {
-    padding: 20,
-    gap: 8,
-  },
-  courseCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    //minHeight: 180,
-  },
-  courseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    //marginBottom: 12,
-  },
-  courseIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  courseIcon: {
-    fontSize: 20,
-  },
-  retryButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  retryIcon: {
-    fontSize: 16,
-  },
-  courseSubtitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#888',
-    marginBottom: 4,
-    letterSpacing: 1,
-  },
-  courseTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2d2d2d',
-    marginBottom: 5,
-    lineHeight: 24,
-  },
- 
-
-  modalOverlay: {
+  contentContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  modalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  modalOption: {
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  modalCloseButton: {
-    backgroundColor: '#2d2d2d',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   QuestionModeContainer: {
     backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginTop: -20,
-    marginHorizontal: 20,
+    paddingVertical: verticalScale(16),
+    paddingHorizontal: scale(12),
+    marginTop: verticalScale(-20),
+    marginHorizontal: scale(20),
     borderRadius: 16,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    marginBottom: verticalScale(16),
   },
   questionModeTab: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    paddingVertical: 5,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(5),
     borderRadius: 12,
-    marginRight: 10,
-    gap: 8,
+    marginRight: scale(10),
+    gap: scale(8),
   },
   questionModeIcon: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
   },
   questionModeName: {
-    fontSize: 11,
+    fontSize: moderateScale(11),
     fontWeight: '600',
     color: '#2d2d2d',
   },
+  filterContainer: {
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: scale(16),
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  filterScroll: {
+    paddingVertical: verticalScale(4),
+    gap: scale(8),
+  },
+  filterTab: {
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  filterTabActive: {
+    backgroundColor: '#3F51B5',
+    borderColor: '#3F51B5',
+  },
+  filterTabText: {
+    fontSize: moderateScale(12),
+    fontWeight: '600',
+    color: '#555',
+  },
+  filterTabTextActive: {
+    color: '#FFF',
+  },
+  listContent: {
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
+    paddingBottom: verticalScale(20),
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(60),
+  },
+  emptyTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: '700',
+    color: '#333',
+    marginTop: verticalScale(12),
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: moderateScale(13),
+    color: '#999',
+    marginTop: verticalScale(8),
+    textAlign: 'center',
+  },
+  createButton: {
+    marginTop: verticalScale(24),
+    paddingHorizontal: scale(24),
+    paddingVertical: verticalScale(12),
+    backgroundColor: '#3F51B5',
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: moderateScale(13),
+  },
 });
-
 export default CustomsExamScreen;

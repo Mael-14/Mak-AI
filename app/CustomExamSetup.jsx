@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,21 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Dimensions,
+  Animated,
+  Easing,
+  Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { verticalScale, moderateScale, scale } from '../utils/scaling';
+import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
+import { saveCustomExam } from '../utils/examStorage';
+
+const { width } = Dimensions.get('window');
 
 // Subject data mapping
 const SUBJECTS_DATA = {
@@ -20,48 +30,56 @@ const SUBJECTS_DATA = {
     title: 'Mathematics',
     image: require('../assets/Maths.png'),
     headerColor: '#ffb380',
+    colors: ['#ffb380', '#FF8C42'],
   },
   2: {
     id: 2,
     title: 'Biology',
     image: require('../assets/Biology.png'),
     headerColor: '#90EE90',
+    colors: ['#90EE90', '#32CD32'],
   },
   3: {
     id: 3,
     title: 'Chemistry',
     image: require('../assets/Chemistry.png'),
     headerColor: '#FFD700',
+    colors: ['#FFD700', '#FFA500'],
   },
   4: {
     id: 4,
     title: 'Physics',
     image: require('../assets/Physics.png'),
     headerColor: '#87CEEB',
+    colors: ['#87CEEB', '#00BFFF'],
   },
   5: {
     id: 5,
     title: 'Computer Science',
     image: require('../assets/Computer science.png'),
     headerColor: '#DDA0DD',
+    colors: ['#DDA0DD', '#BA55D3'],
   },
   6: {
     id: 6,
     title: 'Math Stats',
     image: require('../assets/Math Statistic.png'),
     headerColor: '#F0E68C',
+    colors: ['#F0E68C', '#DAA520'],
   },
   7: {
     id: 7,
     title: 'Geography',
     image: require('../assets/Geography.png'),
     headerColor: '#98D8C8',
+    colors: ['#98D8C8', '#20B2AA'],
   },
   8: {
     id: 8,
     title: 'Further Math',
     image: require('../assets/FurtherMath.png'),
     headerColor: '#FFA07A',
+    colors: ['#FFA07A', '#FF7F50'],
   },
 };
 
@@ -72,27 +90,81 @@ const CustomExamSetup = () => {
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1;
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
 
-  // State for exam configuration
+  // State
   const [difficulty, setDifficulty] = useState('Medium');
   const [questionType, setQuestionType] = useState('Mixed');
   const [duration, setDuration] = useState('45');
   const [numQuestions, setNumQuestions] = useState('20');
   const [includeTopics, setIncludeTopics] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const difficulties = ['Easy', 'Medium', 'Hard'];
-  const questionTypes = ['MCQs (Paper 1)', 'Structural (Paper 2)', 'Mixed'];
-  const durations = ['15', '30', '45', '60', '90'];
-  const questionCounts = ['10', '15', '20', '25', '30'];
+  // Animation Refs
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(-30)).current;
+  const contentTranslateY = useRef(new Animated.Value(50)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
 
-  // Sample topics for the subject
-  const topics = [
-    'Algebra',
-    'Geometry',
-    'Calculus',
-    'Trigonometry',
-    'Statistics',
-    'Probability',
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerOpacity, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerTranslateY, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.stagger(100, [
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateY, {
+          toValue: 0,
+          friction: 7,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, []);
+
+  const difficulties = [
+    { label: 'Easy', color: '#4CAF50', icon: 'speedometer-slow' },
+    { label: 'Medium', color: '#FF9800', icon: 'speedometer-medium' },
+    { label: 'Hard', color: '#F44336', icon: 'speedometer' },
   ];
+  
+  const questionTypes = [
+    { label: 'MCQs (Paper 1)', value: 'MCQs (Paper 1)', icon: 'format-list-bulleted' },
+    { label: 'Structural (Paper 2)', value: 'Structural (Paper 2)', icon: 'text-box-outline' },
+    { label: 'Mixed', value: 'Mixed', icon: 'shuffle-variant' },
+  ];
+  
+  const durations = ['15', '30', '45', '60', '90'];
+  const questionCounts = ['5', '10', '15', '20', '25', '30'];
+
+  // Subject-specific topics
+  const getTopicsBySubject = () => {
+    const topicMap = {
+      1: ['Algebra', 'Geometry', 'Calculus', 'Trigonometry', 'Statistics', 'Probability', 'Vectors', 'Matrices', 'Functions', 'Logarithms', 'Sequences'], // Mathematics
+      2: ['Cell Biology', 'Genetics', 'Evolution', 'Ecology', 'Physiology', 'Biochemistry', 'Anatomy', 'Microbiology', 'Botany', 'Zoology'], // Biology
+      3: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Thermodynamics', 'Equilibrium', 'Redox', 'Kinetics', 'Electrochemistry', 'Periodicity'], // Chemistry
+      4: ['Mechanics', 'Thermodynamics', 'Waves', 'Electricity', 'Magnetism', 'Optics', 'Modern Physics', 'Nuclear Physics', 'Relativity'], // Physics
+      5: ['Programming', 'Data Structures', 'Algorithms', 'Databases', 'Networks', 'Web Development', 'Security', 'Cloud Computing', 'AI/ML'], // Computer Science
+      6: ['Statistics', 'Probability', 'Distributions', 'Hypothesis Testing', 'Regression', 'Correlation', 'Sampling', 'Inference'], // Math Stats
+      7: ['Physical Geography', 'Human Geography', 'Climatology', 'Geomorphology', 'Biogeography', 'Urban Geography', 'Development', 'Resources'], // Geography
+      8: ['Complex Numbers', 'Matrices', 'Differential Equations', 'Numerical Methods', 'Optimization', 'Linear Programming', 'Calculus', 'Sequences'], // Further Math
+    };
+    
+    return topicMap[subjectIdNum] || [];
+  };
+
+  const topics = getTopicsBySubject();
 
   const handleTopicToggle = (topic) => {
     setIncludeTopics((prev) =>
@@ -100,437 +172,705 @@ const CustomExamSetup = () => {
     );
   };
 
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
     if (includeTopics.length === 0) {
-      Alert.alert('Select Topics', 'Please select at least one topic for the custom exam.');
+      Alert.alert('Missing Info', 'Please select at least one topic to generate your exam.');
       return;
     }
 
-    // Navigate to exam with configuration
-    router.push({
-      pathname: '/ExamMode',
-      params: {
-        subjectCode: subject.title.toLowerCase().replace(' ', ''),
+    setIsGenerating(true);
+
+    // Prepare the JSON payload for the AI Agent Webhook
+    const examSummary = {
+      subject: subject.title,
+      subjectId: subject.id,
+      level: level || 'Ordinary Level',
+      difficulty,
+      type: questionType,
+      duration: parseInt(duration),
+      limit: parseInt(numQuestions),
+      topics: includeTopics,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('Generating Exam with Config:', JSON.stringify(examSummary, null, 2));
+
+    try {
+      // Call the n8n AI Agent Webhook to generate exam questions
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 60 second timeout
+
+      const response = await fetch(
+        'https://boyz.app.n8n.cloud/webhook-test/exam/generate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(examSummary),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      console.log('Response Status:', response.status);
+      console.log('Response Headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Webhook Error Response:', errorText);
+        throw new Error(`Webhook failed with status ${response.status}: ${errorText}`);
+      }
+
+      // Get response as text first to debug
+      const responseText = await response.text();
+      console.log('Raw Response:', responseText);
+
+      // Check if response is empty
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Webhook returned empty response');
+      }
+
+      // Parse JSON with error handling
+      let generatedExam;
+      try {
+        generatedExam = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError.message);
+        console.error('Response Text:', responseText);
+        throw new Error(`Invalid JSON response from webhook: ${parseError.message}`);
+      }
+
+      console.log('Exam Generated Successfully:', generatedExam);
+
+      // Validate response structure
+      if (!generatedExam.questions || !Array.isArray(generatedExam.questions)) {
+        throw new Error('Invalid exam structure: missing questions array');
+      }
+
+      if (generatedExam.questions.length === 0) {
+        throw new Error('No questions generated. Please try again.');
+      }
+
+      setIsGenerating(false);
+
+      // Save exam to history
+      const examDataToSave = {
+        subject: subject.title,
+        subjectId: subject.id,
         level: level || 'Ordinary Level',
-        examType: 'custom',
         difficulty,
-        questionType,
         duration: parseInt(duration),
+        questionType,
         numQuestions: parseInt(numQuestions),
-        topics: includeTopics.join(','),
-      },
-    });
+        totalMarks: generatedExam.questions.reduce((sum, q) => sum + (q.marks || 1), 0),
+        topics: includeTopics,
+        questions: generatedExam.questions,
+        status: 'saved',
+      };
+
+      try {
+        const savedExam = await saveCustomExam(examDataToSave);
+        console.log('Exam saved with ID:', savedExam.id);
+
+        // Navigate to ExamHistory to show the new exam
+        router.push({
+          pathname: '/ExamHistory',
+          params: {
+            focusExamId: savedExam.id,
+            returnTo: 'CustomExamSetup',
+          },
+        });
+      } catch (storageError) {
+        console.error('Error saving exam to history:', storageError);
+        Alert.alert('Warning', 'Exam generated but failed to save to history. You can still view it now.', [
+          { text: 'OK' }
+        ]);
+        
+        // Still navigate to the exam even if save failed
+        if (questionType === 'MCQs (Paper 1)') {
+          router.push({
+            pathname: '/ExamMode',
+            params: {
+              subjectCode: subject.title.toLowerCase().replace(' ', ''),
+              level: level || 'Ordinary Level',
+              examType: 'custom',
+              difficulty,
+              questionType,
+              duration: parseInt(duration),
+              numQuestions: parseInt(numQuestions),
+              topics: includeTopics.join(','),
+              examData: JSON.stringify(generatedExam.questions),
+              examId: generatedExam.examId,
+            },
+          });
+        } else {
+          router.push({
+            pathname: '/PaperExamSheet',
+            params: {
+              questions: JSON.stringify(generatedExam.questions),
+              subject: subject.title,
+              subjectId: subject.id.toString(),
+              level: level || 'Ordinary Level',
+              difficulty,
+              duration: duration.toString(),
+              questionType,
+              examId: generatedExam.examId,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+      }
+    } catch (error) {
+      setIsGenerating(false);
+      console.error('Error generating exam:', error);
+      
+      // Provide detailed error message to user
+      let errorMessage = 'Failed to generate exam. ';
+      
+      if (error.name === 'AbortError') {
+        errorMessage += 'Request timed out. The AI agent took too long to respond. Please try again.';
+      } else if (error.message.includes('JSON Parse error')) {
+        errorMessage += 'The server returned an invalid response. Please check that your n8n webhook is properly configured.';
+      } else if (error.message.includes('Webhook failed')) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+
+      Alert.alert(
+        'Generation Error',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
+  const SectionHeader = ({ title, icon }) => (
+    <View style={styles.sectionHeaderRow}>
+      <Ionicons name={icon} size={18} color="#555" style={{ marginRight: 8 }} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: subject.headerColor }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={28} color="#2d2d2d" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Custom {subject.title} Exam</Text>
+    <View style={styles.container}>
+      {/* Animated Header */}
+      <Animated.View style={[styles.headerContainer, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
+         <LinearGradient
+            colors={subject.colors || ['#ccc', '#aaa']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+          <SafeAreaView edges={['top']} style={styles.safeAreaHeader}>
+            <View style={styles.headerContent}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="chevron-back" size={26} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>{subject.title} Custom Exam</Text>
+              <View style={{ width: 40 }} /> 
+
+               {/* Large Floating Icon/Badge
+            <View style={styles.floatingIcon}>
+               <Image source={subject.image} style={styles.floatingImage} resizeMode="contain" />
+            </View> */}
+            </View>
+             
+            
+          </SafeAreaView>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        style={{ 
+          opacity: contentOpacity, 
+          transform: [{ translateY: contentTranslateY }] 
+        }}
+      >
+        {/* Difficulty Selection */}
+        <View style={styles.card}>
+          <SectionHeader title="Select Difficulty" icon="stats-chart" />
+          <View style={styles.rowGrid}>
+            {difficulties.map((diff) => {
+              const isActive = difficulty === diff.label;
+              return (
+                <TouchableOpacity
+                  key={diff.label}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.difficultyBtn,
+                    isActive && { backgroundColor: diff.color + '20', borderColor: diff.color }
+                  ]}
+                  onPress={() => setDifficulty(diff.label)}
+                >
+                  <MaterialCommunityIcons 
+                    name={diff.icon} 
+                    size={24} 
+                    color={isActive ? diff.color : '#888'} 
+                    style={{ marginBottom: 4 }}
+                  />
+                  <Text style={[styles.optionLabel, isActive && { color: diff.color, fontWeight: '700' }]}>
+                    {diff.label}
+                  </Text>
+                  {isActive && <View style={[styles.activeDot, { backgroundColor: diff.color }]} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        {/* Content Container */}
-        <View style={styles.contentContainer}>
-          {/* Difficulty Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty Level</Text>
-            <View style={styles.optionsGrid}>
-              {difficulties.map((diff) => (
+        {/* Question Type */}
+        <View style={styles.card}>
+          <SectionHeader title="Question Type" icon="document-text" />
+          <View style={styles.listColumn}>
+            {questionTypes.map((type) => {
+              const isActive = questionType === type.value;
+              return (
                 <TouchableOpacity
-                  key={diff}
+                  key={type.value}
+                  activeOpacity={0.7}
                   style={[
-                    styles.optionButton,
-                    difficulty === diff && styles.optionButtonActive,
+                    styles.typeRow,
+                    isActive && styles.typeRowActive
                   ]}
-                  onPress={() => setDifficulty(diff)}
+                  onPress={() => setQuestionType(type.value)}
                 >
-                  <Text
-                    style={[
-                      styles.optionButtonText,
-                      difficulty === diff && styles.optionButtonTextActive,
-                    ]}
-                  >
-                    {diff}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Question Type Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Question Type</Text>
-            <View style={styles.optionsColumn}>
-              {questionTypes.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.optionRow,
-                    questionType === type && styles.optionRowActive,
-                  ]}
-                  onPress={() => setQuestionType(type)}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      questionType === type && styles.checkboxActive,
-                    ]}
-                  >
-                    {questionType === type && (
-                      <Ionicons name="checkmark" size={16} color="#fff" />
-                    )}
+                  <View style={[styles.iconCircle, isActive && { backgroundColor: '#3F51B5' }]}>
+                     <MaterialCommunityIcons name={type.icon} size={20} color={isActive ? '#FFF' : '#666'} />
                   </View>
-                  <Text style={styles.optionRowText}>{type}</Text>
+                  <Text style={[styles.typeText, isActive && styles.typeTextActive]}>{type.label}</Text>
+                  
+                  {isActive && (
+                    <Ionicons name="checkmark-circle" size={22} color="#3F51B5" />
+                  )}
                 </TouchableOpacity>
-              ))}
-            </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Configurations Row */}
+        <View style={styles.dualRow}>
+          {/* Duration */}
+          <View style={[styles.card, { flex: 1, marginRight: 8 }]}>
+             <SectionHeader title="Duration" icon="time" />
+             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+               {durations.map((dur) => (
+                 <TouchableOpacity
+                   key={dur}
+                   style={[styles.chip, duration === dur && styles.chipActive]}
+                   onPress={() => setDuration(dur)}
+                 >
+                   <Text style={[styles.chipText, duration === dur && styles.chipTextActive]}>{dur}m</Text>
+                 </TouchableOpacity>
+               ))}
+             </ScrollView>
           </View>
 
-          {/* Duration Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Duration (minutes)</Text>
-            <View style={styles.optionsGrid}>
-              {durations.map((dur) => (
-                <TouchableOpacity
-                  key={dur}
-                  style={[
-                    styles.optionButton,
-                    duration === dur && styles.optionButtonActive,
-                  ]}
-                  onPress={() => setDuration(dur)}
-                >
-                  <Text
-                    style={[
-                      styles.optionButtonText,
-                      duration === dur && styles.optionButtonTextActive,
-                    ]}
-                  >
-                    {dur}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Count */}
+          <View style={[styles.card, { flex: 1, marginLeft: 8 }]}>
+             <SectionHeader title="Questions" icon="list" />
+             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+               {questionCounts.map((count) => (
+                 <TouchableOpacity
+                   key={count}
+                   style={[styles.chip, numQuestions === count && styles.chipActive]}
+                   onPress={() => setNumQuestions(count)}
+                 >
+                   <Text style={[styles.chipText, numQuestions === count && styles.chipTextActive]}>{count}</Text>
+                 </TouchableOpacity>
+               ))}
+             </ScrollView>
           </View>
+        </View>
 
-          {/* Number of Questions Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Number of Questions</Text>
-            <View style={styles.optionsGrid}>
-              {questionCounts.map((count) => (
-                <TouchableOpacity
-                  key={count}
-                  style={[
-                    styles.optionButton,
-                    numQuestions === count && styles.optionButtonActive,
-                  ]}
-                  onPress={() => setNumQuestions(count)}
-                >
-                  <Text
-                    style={[
-                      styles.optionButtonText,
-                      numQuestions === count && styles.optionButtonTextActive,
-                    ]}
-                  >
-                    {count}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* Topics */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="pricetags" size={18} color="#555" style={{ marginRight: 8 }} />
+            <Text style={styles.sectionTitle}>Topics</Text>
+            <Text style={styles.subtitle}>({includeTopics.length} selected)</Text>
           </View>
-
-          {/* Topics Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Topics</Text>
-            <View style={styles.topicsContainer}>
-              {topics.map((topic) => (
+          
+          <View style={styles.topicsGrid}>
+            {topics.map((topic) => {
+               const isSelected = includeTopics.includes(topic);
+               return (
                 <TouchableOpacity
                   key={topic}
-                  style={[
-                    styles.topicChip,
-                    includeTopics.includes(topic) && styles.topicChipActive,
-                  ]}
+                  activeOpacity={0.7}
+                  style={[styles.topicPill, isSelected && styles.topicPillActive]}
                   onPress={() => handleTopicToggle(topic)}
                 >
-                  <Text
-                    style={[
-                      styles.topicChipText,
-                      includeTopics.includes(topic) && styles.topicChipTextActive,
-                    ]}
-                  >
-                    {topic}
-                  </Text>
+                  <Text style={[styles.topicText, isSelected && styles.topicTextActive]}>{topic}</Text>
+                  {isSelected && <Ionicons name="close-circle" size={14} color="#FFF" style={{ marginLeft: 4 }} />}
                 </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Summary Section */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryTitle}>Exam Summary</Text>
-            <View style={styles.summaryContent}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subject:</Text>
-                <Text style={styles.summaryValue}>{subject.title}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Difficulty:</Text>
-                <Text style={styles.summaryValue}>{difficulty}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Type:</Text>
-                <Text style={styles.summaryValue}>{questionType}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Duration:</Text>
-                <Text style={styles.summaryValue}>{duration} min</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Questions:</Text>
-                <Text style={styles.summaryValue}>{numQuestions}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Topics:</Text>
-                <Text style={styles.summaryValue}>{includeTopics.length}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.startButton} onPress={handleStartExam}>
-              <Ionicons name="play" size={20} color="#fff" />
-              <Text style={styles.startButtonText}>Start Exam</Text>
-            </TouchableOpacity>
+               );
+            })}
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+        {/* Summary Card */}
+        <View style={styles.summaryCard}>
+          <LinearGradient
+             colors={['#2d2d2d', '#444']}
+             style={styles.summaryGradient}
+             start={{ x: 0, y: 0 }}
+             end={{ x: 1, y: 0 }}
+          >
+            <View style={styles.summaryDetails}>
+              <Text style={styles.summaryTitle}>Exam Overview</Text>
+              <Text style={styles.summarySub}>
+                {difficulty} • {duration} min • {numQuestions} Qs • {includeTopics.length} Topics
+              </Text>
+            </View>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={handleStartExam}
+              style={[styles.startBtn, includeTopics.length === 0 && { opacity: 0.6 }]}
+            >
+               <Text style={styles.startBtnText}>Start Now</Text>
+               <Ionicons name="arrow-forward" size={18} color="#2d2d2d" />
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </Animated.ScrollView>
+
+      <Modal
+        visible={isGenerating}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.lottieContainer}>
+              <LottieView
+                source={require('../animations/ai_animation_flow_1.json')}
+                autoPlay
+                loop
+                resizeMode="contain"
+                style={styles.lottieAnim}
+              />
+            </View>
+            <Text style={styles.loadingText}>Setting up exams and generating questions...</Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    width: '80%',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  lottieAnim: {
+    width: width * 0.6,
+    height: width * 0.6,
+  },
+  lottieContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: 300,
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: moderateScale(16),
+    fontWeight: '600',
+    color: '#3F51B5',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F7F7F9',
   },
-  scrollView: {
-    flex: 1,
+  headerContainer: {
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'visible',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    zIndex: 10,
   },
-  header: {
+  headerGradient: {
+    paddingBottom: verticalScale(40),
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  safeAreaHeader: {
+    //
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(16),
-    paddingVertical: verticalScale(16),
-    gap: moderateScale(12),
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(10),
   },
   backButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: moderateScale(20),
+    color: '#FFF',
+    fontSize: moderateScale(18),
     fontWeight: '700',
-    color: '#2d2d2d',
+    textAlign: 'center',
     flex: 1,
   },
-  contentContainer: {
-    paddingHorizontal: moderateScale(16),
-    paddingVertical: verticalScale(20),
-    gap: verticalScale(24),
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: moderateScale(12),
-    padding: moderateScale(16),
-    elevation: 2,
+  floatingIcon: {
+    position: 'absolute',
+    bottom: -30,
+    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  floatingImage: {
+    width: 50,
+    height: 50,
+  },
+  
+  // Content
+  scrollContent: {
+    paddingTop: verticalScale(50),
+    paddingHorizontal: scale(20),
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: scale(16),
+    marginBottom: verticalScale(16),
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(12),
   },
   sectionTitle: {
     fontSize: moderateScale(14),
     fontWeight: '700',
-    color: '#2d2d2d',
-    marginBottom: verticalScale(12),
+    color: '#333',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: moderateScale(8),
-  },
-  optionButton: {
-    flex: 1,
-    minWidth: '45%',
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(8),
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionButtonActive: {
-    backgroundColor: '#3F51B5',
-    borderColor: '#3F51B5',
-  },
-  optionButtonText: {
+  subtitle: {
     fontSize: moderateScale(12),
-    fontWeight: '600',
-    color: '#2d2d2d',
-    textAlign: 'center',
+    color: '#888',
+    fontWeight: '500',
+    marginLeft: 6,
   },
-  optionButtonTextActive: {
-    color: '#fff',
-  },
-  optionsColumn: {
-    gap: verticalScale(10),
-  },
-  optionRow: {
+  
+  // Complexity Grid
+  rowGrid: {
     flexDirection: 'row',
+    gap: scale(10),
+  },
+  difficultyBtn: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: verticalScale(12),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(8),
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f5f5f5',
-  },
-  optionRowActive: {
-    backgroundColor: '#f0f0ff',
-    borderColor: '#3F51B5',
-  },
-  checkbox: {
-    width: scale(20),
-    height: scale(20),
-    borderRadius: scale(10),
-    borderWidth: 2,
-    borderColor: '#ccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: moderateScale(12),
-  },
-  checkboxActive: {
-    backgroundColor: '#3F51B5',
-    borderColor: '#3F51B5',
-  },
-  optionRowText: {
-    fontSize: moderateScale(13),
-    fontWeight: '600',
-    color: '#2d2d2d',
-    flex: 1,
-  },
-  topicsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: moderateScale(8),
-  },
-  topicChip: {
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: moderateScale(14),
-    borderRadius: moderateScale(20),
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#3F51B5',
-    backgroundColor: '#f5f5f5',
+    borderColor: '#EFEFEF',
+    backgroundColor: '#F9F9F9',
   },
-  topicChipActive: {
-    backgroundColor: '#3F51B5',
-  },
-  topicChipText: {
+  optionLabel: {
     fontSize: moderateScale(12),
     fontWeight: '600',
-    color: '#3F51B5',
+    color: '#555',
+    marginTop: 4,
   },
-  topicChipTextActive: {
-    color: '#fff',
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 6,
   },
-  summarySection: {
-    backgroundColor: '#fff',
-    borderRadius: moderateScale(12),
-    padding: moderateScale(16),
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-  },
-  summaryTitle: {
-    fontSize: moderateScale(14),
-    fontWeight: '700',
-    color: '#2d2d2d',
-    marginBottom: verticalScale(12),
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  summaryContent: {
+  
+  // Question Type List
+  listColumn: {
     gap: verticalScale(10),
-    backgroundColor: '#f5f5f5',
-    borderRadius: moderateScale(8),
-    padding: moderateScale(12),
   },
-  summaryRow: {
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: scale(12),
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  typeRowActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#3F51B5',
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  typeText: {
+    flex: 1,
+    fontSize: moderateScale(14),
+    color: '#444',
+    fontWeight: '500',
+  },
+  typeTextActive: {
+    color: '#3F51B5',
+    fontWeight: '700',
+  },
+
+  // Dual Row
+  dualRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: verticalScale(0),
   },
-  summaryLabel: {
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-    color: '#666',
+  chipScroll: {
+    paddingVertical: 4,
   },
-  summaryValue: {
-    fontSize: moderateScale(12),
-    fontWeight: '700',
-    color: '#3F51B5',
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: moderateScale(12),
-    marginBottom: verticalScale(24),
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(10),
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    fontSize: moderateScale(14),
-    fontWeight: '700',
-    color: '#2d2d2d',
-  },
-  startButton: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(10),
+  chipActive: {
     backgroundColor: '#3F51B5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: moderateScale(8),
+    borderColor: '#3F51B5',
   },
-  startButtonText: {
-    fontSize: moderateScale(14),
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555',
+  },
+  chipTextActive: {
+    color: '#FFF',
+  },
+
+  // Topics Grid
+  topicsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  topicPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  topicPillActive: {
+    backgroundColor: '#3F51B5',
+    borderColor: '#3F51B5',
+  },
+  topicText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+  },
+  topicTextActive: {
+    color: '#FFF',
+  },
+
+  // Summary Card
+  summaryCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginTop: verticalScale(10),
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  summaryGradient: {
+    padding: scale(20),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryDetails: {
+    flex: 1,
+  },
+  summaryTitle: {
+    color: '#FFF',
+    fontSize: moderateScale(16),
     fontWeight: '700',
-    color: '#fff',
+    marginBottom: 4,
+  },
+  summarySub: {
+    color: '#BBB',
+    fontSize: moderateScale(12),
+    fontWeight: '500',
+  },
+  startBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    gap: 6,
+  },
+  startBtnText: {
+    color: '#2d2d2d',
+    fontWeight: '700',
+    fontSize: moderateScale(13),
   },
 });
 
