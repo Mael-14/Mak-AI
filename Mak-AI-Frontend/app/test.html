@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+  :root {
+    --bg-color: #f2f2f2;      /* The light grey background */
+    --card-color: #1c1c1e;    /* The dark card color */
+    --curve-size: 20px;       /* How round the connection is */
+  }
+
+  body {
+    background-color: var(--bg-color);
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  /* Main Wrapper */
+  .card-wrapper {
+    position: relative;
+    width: 350px;
+    background-color: transparent; 
+  }
+
+  /* The Top "Tab" Section */
+  .card-tab {
+    background-color: var(--card-color);
+    width: 60%; /* Adjust width of the top tab */
+    height: 60px;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    position: relative;
+    
+    /* Flexbox for content inside the tab */
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    color: white;
+  }
+
+  /* THE MAGIC: Creating the Inverted Curve */
+  .card-tab::after {
+    content: '';
+    position: absolute;
+    right: -20px; /* Width of the curve */
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+    border-bottom-left-radius: 20px; /* The roundness */
+    
+    /* This shadow fills the empty space with the card color */
+    box-shadow: -10px 10px 0 var(--card-color); 
+  }
+
+  /* The Main Body Section */
+  .card-body {
+    background-color: var(--card-color);
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+    border-top-right-radius: 24px; /* Curve the far right corner */
+    padding: 20px;
+    color: white;
+    margin-top: -1px; /* Prevent tiny gaps */
+  }
+
+  /* Styling for the Right Side (Light area) */
+  .header-right {
+    position: absolute;
+    top: 15px;
+    right: 0;
+    width: 35%;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+  }
+
+  /* -- Just styling elements to match image -- */
+  .pill {
+    border: 1px solid #444;
+    border-radius: 20px;
+    padding: 5px 15px;
+    font-size: 0.8rem;
+  }
+  
+  .avatar-stack {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 5px;
+  }
+  
+  .circle-icon {
+    width: 40px; 
+    height: 40px; 
+    background: white; 
+    border-radius: 50%;
+    color: black;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="card-wrapper">
+    <div class="header-right">
+      Created by Max
+      <span class="avatar-stack">👤</span>
+    </div>
+
+    <div class="card-tab">
+      <div class="pill">⌛ Future</div>
+    </div>
+
+    <div class="card-body">
+      <div class="circle-icon">E</div>
+      <h3>Ed-tech market analysis...</h3>
+      <div style="height: 4px; background: #333; border-radius: 2px; width: 100%; margin-top: 20px;">
+        <div style="height: 100%; background: #fff; width: 20%;"></div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

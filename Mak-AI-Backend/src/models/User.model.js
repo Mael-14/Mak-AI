@@ -92,6 +92,9 @@ const updateUserDocument = async (uid, updates) => {
     const updatedDoc = await getUserDocument(uid);
     return updatedDoc;
   } catch (error) {
+    if (error.code === 'not-found') {
+      throw new Error(`User document with UID ${uid} not found`);
+    }
     throw error;
   }
 };
