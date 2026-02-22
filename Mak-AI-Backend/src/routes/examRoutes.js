@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
+const { authenticateToken } = require('../middleware/auth');
 const { db } = require('../config/firebase');
 const { getSubjectCode, getSubjectName } = require('../utils/subjectMapping');
 
@@ -605,6 +606,136 @@ router.post('/submit', async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.message
+        });
+    }
+});
+
+// GET: Summary of all user performance
+router.get('/stats-summary', authenticateToken, async (req, res) => { // Don't forget verifyToken!
+    try {
+        const userId = req.user.uid;
+        const snapshot = await db.collection('user_stats')
+            .where('userId', '==', userId)
+            .orderBy('completedAt', 'desc')
+            .get();
+
+        if (snapshot.empty) {
+            return res.json({
+                success: true,
+                data: { totalHours: 0, strongSubject: 'N/A', weakSubject: 'N/A', totalQuizzes: 0, dailyBreakdown: {}, streak: 0 }
+            });
+        }
+
+        let totalMinutes = 0;
+        const subjectTotals = {};
+        const dailyBreakdown = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+
+            // 1. Calculate Time
+            const duration = data.durationInMinutes || 0;
+            totalMinutes += duration;
+
+            // 2. SAFE Date Parsing (Replaces the duplicate/unsafe block)
+            let dateKey;
+            if (data.completedAt) {
+                if (typeof data.completedAt.toDate === 'function') {
+                    dateKey = data.completedAt.toDate().toISOString().split('T')[0];
+                } else if (typeof data.completedAt === 'string') {
+                    dateKey = data.completedAt.split('T')[0];
+                } else if (typeof data.completedAt === 'number') {
+                    dateKey = new Date(data.completedAt).toISOString().split('T')[0];
+                }
+
+                if (dateKey) {
+                    dailyBreakdown[dateKey] = (dailyBreakdown[dateKey] || 0) + duration;
+                }
+            }
+
+            // 3. Subject Performance (Group by Code, not Name)
+            const code = data.subject || 'Unknown'; // Use 0570 as the unique key
+            const displayName = data.subjectName || code; // Use GCE June as the label
+
+            if (!subjectTotals[code]) {
+                subjectTotals[code] = {
+                    totalPct: 0,
+                    count: 0,
+                    name: displayName
+                };
+            }
+
+            const percentage = data.score?.percentage ?? 0;
+            subjectTotals[code].totalPct += percentage;
+            subjectTotals[code].count += 1;
+        });
+
+        // --- SECTION 4: Determine Strong/Weak ---
+        const subjectsArray = Object.keys(subjectTotals).map(code => ({
+            name: subjectTotals[code].name,
+            avg: subjectTotals[code].totalPct / subjectTotals[code].count
+        }));
+
+        let strong = 'N/A';
+        let weak = 'N/A';
+
+        if (subjectsArray.length === 1) {
+            // Only one subject exists
+            strong = subjectsArray[0].name;
+            weak = "Keep practicing!";
+        } else if (subjectsArray.length > 1) {
+            // Sort by average score (highest to lowest)
+            subjectsArray.sort((a, b) => b.avg - a.avg);
+
+            strong = subjectsArray[0].name;
+            weak = subjectsArray[subjectsArray.length - 1].name;
+
+            // Optional: If top and bottom scores are the same, don't show a weak one
+            if (subjectsArray[0].avg === subjectsArray[subjectsArray.length - 1].avg) {
+                weak = "All balanced";
+            }
+        }
+
+        // 5. STREAK CALCULATION: Walking backwards through the calendar
+        let currentStreak = 0;
+        let dateToCheck = new Date(); // Starts today
+
+        for (let i = 0; i < 365; i++) {
+            const dateStr = dateToCheck.toISOString().split('T')[0];
+
+            if (dailyBreakdown[dateStr]) {
+                currentStreak++;
+                dateToCheck.setDate(dateToCheck.getDate() - 1); // Move to previous day
+            } else {
+                // If no study today yet, allow the streak to continue from yesterday
+                if (i === 0) {
+                    dateToCheck.setDate(dateToCheck.getDate() - 1);
+                    const yesterdayStr = dateToCheck.toISOString().split('T')[0];
+                    if (dailyBreakdown[yesterdayStr]) {
+                        continue;
+                    }
+                }
+                break; // Streak broken
+            }
+        }
+        res.json({
+            success: true,
+            data: {
+                totalHours: (totalMinutes / 60).toFixed(1),
+                strongSubject: subjectsArray[0].name,
+                weakSubject: subjectsArray[subjectsArray.length - 1].name,
+                totalQuizzes: snapshot.size,
+                streak: currentStreak,
+                dailyBreakdown: dailyBreakdown
+            }
+        });
+    } catch (error) {
+        console.error('Stats Error:', error);
+        // TEMPORARY: Send the full error message to the frontend to debug
+        res.status(500).json({
+            success: false,
+            message: error.message, // This will say "The query requires an index" if that's the issue
+            code: error.code
         });
     }
 });
