@@ -740,4 +740,96 @@ router.get('/stats-summary', authenticateToken, async (req, res) => { // Don't f
     }
 });
 
+/**
+ * Save a custom (AI-generated) exam to Firestore
+ * POST /api/exams/custom
+ *
+ * Body: { subject, subjectId, level, difficulty, duration, questionType,
+ *         numQuestions, totalMarks, topics, questions, status }
+ *
+ * Stores the exam metadata in the `custom_exams` collection and each
+ * question as a sub-document inside `custom_exams/{docId}/questions`.
+ */
+router.post('/custom', async (req, res) => {
+    try {
+        // Authenticate
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'No token provided' });
+        }
+
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const userId = decodedToken.uid;
+
+        const {
+            subject,
+            subjectId,
+            level,
+            difficulty,
+            duration,
+            questionType,
+            numQuestions,
+            totalMarks,
+            topics,
+            questions,
+            status,
+            localExamId, // the ID generated on the device
+        } = req.body;
+
+        // Validate required fields
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'questions array is required and must not be empty',
+            });
+        }
+
+        // 1. Create exam metadata document
+        const examRef = await db.collection('custom_exams').add({
+            userId,
+            localExamId: localExamId || null,
+            subject: subject || 'Unknown',
+            subjectId: subjectId || 0,
+            level: level || 'Ordinary Level',
+            difficulty: difficulty || 'Medium',
+            duration: duration || 45,
+            questionType: questionType || 'Mixed',
+            numQuestions: numQuestions || questions.length,
+            totalMarks: totalMarks || 0,
+            topics: topics || [],
+            status: status || 'saved',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // 2. Store each question as a sub-document (batch write for speed)
+        const batch = db.batch();
+        questions.forEach((q, index) => {
+            const qRef = examRef.collection('questions').doc(`q_${index + 1}`);
+            batch.set(qRef, {
+                ...q,
+                index: index + 1,
+            });
+        });
+        await batch.commit();
+
+        console.log(`✅ Custom exam saved for user ${userId}: ${examRef.id} (${questions.length} questions)`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Custom exam saved to cloud',
+            data: {
+                firebaseExamId: examRef.id,
+                questionCount: questions.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error saving custom exam:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+});
+
 module.exports = router;
