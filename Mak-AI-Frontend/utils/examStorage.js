@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { examAPI } from '../services/api';
 
 const CUSTOM_EXAMS_KEY = '@MAK_AI_CUSTOM_EXAMS';
 
@@ -30,7 +31,7 @@ const CUSTOM_EXAMS_KEY = '@MAK_AI_CUSTOM_EXAMS';
 export const saveCustomExam = async (examData) => {
   try {
     const exams = await getAllCustomExams();
-    
+
     // Create exam record with unique ID
     const examId = `exam_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const examRecord = {
@@ -46,7 +47,24 @@ export const saveCustomExam = async (examData) => {
     // Save to AsyncStorage
     await AsyncStorage.setItem(CUSTOM_EXAMS_KEY, JSON.stringify(updatedExams));
 
-    console.log('✅ Exam saved successfully:', examId);
+    console.log('✅ Exam saved locally:', examId);
+
+    // ── Cloud sync (fire-and-forget) ──────────────────────
+    // This runs in the background — it won't block the UI or
+    // cause an error if the network is unavailable.
+    examAPI.saveCustomExamToCloud({
+      ...examData,
+      localExamId: examId,
+    }).then((result) => {
+      if (result?.success) {
+        console.log('☁️ Exam synced to Firebase:', result.data?.firebaseExamId);
+      } else {
+        console.warn('☁️ Cloud sync skipped or failed (exam is still saved locally)');
+      }
+    }).catch(() => {
+      // Silently ignore — local save already succeeded
+    });
+
     return examRecord;
   } catch (error) {
     console.error('❌ Error saving exam:', error);
@@ -61,7 +79,7 @@ export const saveCustomExam = async (examData) => {
 export const getAllCustomExams = async () => {
   try {
     const examsJSON = await AsyncStorage.getItem(CUSTOM_EXAMS_KEY);
-    
+
     if (!examsJSON) {
       return [];
     }
@@ -196,7 +214,7 @@ export const getExamsByDifficulty = async (difficulty) => {
 export const getExamStats = async () => {
   try {
     const exams = await getAllCustomExams();
-    
+
     const stats = {
       total: exams.length,
       completed: exams.filter(e => e.status === 'completed').length,
@@ -220,7 +238,7 @@ export const searchExams = async (searchTerm) => {
   try {
     const exams = await getAllCustomExams();
     const term = searchTerm.toLowerCase();
-    
+
     return exams.filter(exam =>
       exam.subject.toLowerCase().includes(term) ||
       exam.topics.some(t => t.toLowerCase().includes(term))

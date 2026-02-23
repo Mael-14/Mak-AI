@@ -19,7 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MathJaxProvider from '../components/MathJaxProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LaTeXToPDFConverter from '../components/LaTeXToPDFConverter';
+import { parseMarkdown } from '../utils/markdownParser';
+import QuestionCard from '../components/QuestionCard';
 
 const { width } = Dimensions.get('window');
 const TEMP_EXAM_KEY = '@temp_exam_data';
@@ -35,105 +36,7 @@ const SUBJECTS_DATA = {
   8: { title: 'Further Math', colors: ['#FFA07A', '#FF7F50'] },
 };
 
-// OPTIMIZED: Render single question card with combined MathJax content
-const QuestionCard = React.memo(({ question, index, questionType }) => {
-  const [showSolution, setShowSolution] = useState(false);
 
-  if (!question || typeof question !== 'object' || !question.question) {
-    return (
-      <View style={styles.questionCard}>
-        <Text style={styles.errorText}>Invalid question data</Text>
-      </View>
-    );
-  }
-
-  // OPTIMIZATION: Combine all text into ONE MathJax render instead of multiple WebViews
-  const combinedContent = useMemo(() => {
-    let content = `**${index + 1}.** ${question.question}`;
-    
-    // Add options to the same content if they exist
-    if (question.options && Array.isArray(question.options) && question.options.length > 0) {
-      content += '\n\n';
-      question.options.forEach((opt, optIdx) => {
-        if (!opt) return;
-        const label = opt.label || String.fromCharCode(65 + optIdx);
-        const value = opt.value || opt;
-        content += `**${label}.** ${value}\n\n`;
-      });
-    }
-    
-    return content;
-  }, [question, index]);
-
-  // Format solution content for MathJax rendering
-  const solutionContent = useMemo(() => {
-    if (!question.solution && !question.answer && !question.explanation) {
-      return '**Solution:** Not available for this question.';
-    }
-    
-    let content = '';
-    
-    // Add answer if available
-    if (question.answer) {
-      content += `**Answer:** ${question.answer}\n\n`;
-    }
-    
-    // Add solution/explanation if available
-    if (question.solution) {
-      content += `**Solution:**\n${question.solution}`;
-    } else if (question.explanation) {
-      content += `**Explanation:**\n${question.explanation}`;
-    }
-    
-    return content;
-  }, [question.solution, question.answer, question.explanation]);
-
-  const toggleSolution = () => {
-    setShowSolution(!showSolution);
-  };
-
-  return (
-    <View style={styles.questionCard}>
-      <View style={styles.questionHeaderSimple}>
-        <View style={styles.questionTextContainer}>
-          {/* SINGLE WebView for entire question including options */}
-          <MathJaxProvider html={combinedContent} fontSize="11px" />
-        </View>
-        <Text style={styles.marks}>[{question.marks || 1}]</Text>
-      </View>
-
-      {/* Solution Toggle Button */}
-      <TouchableOpacity style={styles.solutionToggle} onPress={toggleSolution}>
-        <Text style={styles.solutionToggleText}>
-          {showSolution ? 'Hide Solution' : 'Show Solution'}
-        </Text>
-        <Ionicons 
-          name={showSolution ? 'chevron-up' : 'chevron-down'} 
-          size={16} 
-          color="#007AFF" 
-        />
-      </TouchableOpacity>
-
-      {/* Solution Display */}
-      {showSolution && (
-        <View style={styles.solutionContainer}>
-          <MathJaxProvider html={solutionContent} fontSize="11px" />
-        </View>
-      )}
-
-      {/* Answer Space for Structural/Mixed - Hidden when solution is shown */}
-      {(questionType === 'Structural (Paper 2)' || questionType === 'Mixed') && !showSolution && (
-        <View style={styles.answerSpace}>
-          {Array(Math.max(1, Math.min(6, (question.marks || 1) > 2 ? 4 : (question.marks || 1) > 1 ? 3 : 2)))
-            .fill()
-            .map((_, lineIdx) => (
-              <View key={lineIdx} style={styles.answerLine} />
-            ))}
-        </View>
-      )}
-    </View>
-  );
-});
 
 const PaperExamSheet = () => {
   const router = useRouter();
@@ -164,14 +67,14 @@ const PaperExamSheet = () => {
         // OPTIMIZATION: Check if we should load from AsyncStorage
         if (localParams?.useStoredData === 'true') {
           console.log('📦 Loading from AsyncStorage...');
-          
+
           const storedData = await AsyncStorage.getItem(TEMP_EXAM_KEY);
           if (storedData) {
             const examData = JSON.parse(storedData);
-            
+
             // Validate and set data
             parsedQuestions = examData.questions || [];
-            
+
             if (Array.isArray(parsedQuestions)) {
               validQuestions = parsedQuestions.filter(
                 q => q && typeof q === 'object' && q.question && typeof q.question === 'string'
@@ -185,7 +88,7 @@ const PaperExamSheet = () => {
               setQuestions([]);
               setError('Invalid question data format');
             }
-            
+
             setSubject(examData.subject || 'Mathematics');
             setSubjectId(examData.subjectId || 1);
             setLevel(examData.level || 'Ordinary Level');
@@ -194,19 +97,19 @@ const PaperExamSheet = () => {
             setQuestionType(examData.questionType || 'Structural (Paper 2)');
             setExamId(examData.examId || examData.id || 'EXAM-123');
             setTimestamp(examData.createdAt || examData.timestamp || new Date().toISOString());
-            
+
             console.log('✅ Loaded', validQuestions.length, 'questions from AsyncStorage');
-            
+
             // Clean up stored data after loading
             await AsyncStorage.removeItem(TEMP_EXAM_KEY);
           } else {
             setError('No exam data found');
           }
-        } 
+        }
         // Fallback: Load from URL params (old method)
         else if (localParams && Object.keys(localParams).length > 0) {
           console.log('📋 Loading from URL params (fallback)...');
-          
+
           // Parse questions
           if (localParams.questions) {
             try {
@@ -250,7 +153,7 @@ const PaperExamSheet = () => {
         } else {
           // Wait a bit for params
           await new Promise(resolve => setTimeout(resolve, 100));
-          
+
           // Try AsyncStorage again
           const storedData = await AsyncStorage.getItem(TEMP_EXAM_KEY);
           if (storedData) {
@@ -280,17 +183,17 @@ const PaperExamSheet = () => {
     try {
       setIsGeneratingPDF(true);
       setShowDownloadModal(false);
-      
+
       // Show loading feedback
       Alert.alert(
-        'Generating PDF', 
-        `Please wait while we prepare your ${includeAnswers ? 'exam sheet with answers' : 'exam sheet'}...`, 
-        [], 
+        'Generating PDF',
+        `Please wait while we prepare your ${includeAnswers ? 'exam sheet with answers' : 'exam sheet'}...`,
+        [],
         { cancelable: false }
       );
-      
+
       const html = generateExamHTML(includeAnswers);
-      
+
       // Generate PDF with better options
       const { uri } = await Print.printToFileAsync({
         html,
@@ -312,24 +215,24 @@ const PaperExamSheet = () => {
           dialogTitle: `${subject} - ${level} ${includeAnswers ? 'Exam Paper with Answers' : 'Exam Paper'}`,
           UTI: 'com.adobe.pdf',
         });
-        
+
         Alert.alert(
-          'PDF Generated Successfully!', 
+          'PDF Generated Successfully!',
           `Your ${includeAnswers ? 'exam paper with answers' : 'exam paper'} has been generated and is ready to share or save to your device.`,
           [{ text: 'OK', style: 'default' }]
         );
       } else {
         Alert.alert(
-          'PDF Generated', 
+          'PDF Generated',
           'PDF has been generated but sharing is not available on this device.',
           [{ text: 'OK', style: 'default' }]
         );
       }
-      
+
     } catch (error) {
       console.error('PDF Generation Error:', error);
       Alert.alert(
-        'PDF Generation Failed', 
+        'PDF Generation Failed',
         `Unable to generate PDF: ${error.message || 'Unknown error'}. Please try again.`,
         [{ text: 'OK', style: 'default' }]
       );
@@ -344,18 +247,18 @@ const PaperExamSheet = () => {
       .map((q, idx) => {
         const questionNum = idx + 1;
         const marks = q.marks || 1;
-        
+
         // Clean the question text for PDF
-        const cleanQuestionText = LaTeXToPDFConverter.cleanMathExpression(q.question);
-        
+        const cleanQuestionText = parseMarkdown(q.question);
+
         let optionsHTML = '';
-        
+
         if (q.options && q.options.length > 0) {
           optionsHTML = `<div class="options">${q.options
             .map((opt, optIdx) => {
               const label = opt.label || String.fromCharCode(65 + optIdx);
               const value = opt.value || opt;
-              const cleanValue = LaTeXToPDFConverter.cleanMathExpression(value);
+              const cleanValue = parseMarkdown(value);
               return `<div class="option"><strong>${label}.</strong> ${cleanValue}</div>`;
             })
             .join('')}</div>`;
@@ -369,14 +272,14 @@ const PaperExamSheet = () => {
           if (q.solution || q.answer || q.explanation) {
             let solutionContent = '';
             if (q.answer) {
-              solutionContent += `<strong>Answer:</strong> ${LaTeXToPDFConverter.cleanMathExpression(q.answer)}<br><br>`;
+              solutionContent += `<strong>Answer:</strong> ${parseMarkdown(q.answer)}<br><br>`;
             }
             if (q.solution) {
-              solutionContent += `<strong>Solution:</strong><br>${LaTeXToPDFConverter.cleanMathExpression(q.solution)}`;
+              solutionContent += `<strong>Solution:</strong><br>${parseMarkdown(q.solution)}`;
             } else if (q.explanation) {
-              solutionContent += `<strong>Explanation:</strong><br>${LaTeXToPDFConverter.cleanMathExpression(q.explanation)}`;
+              solutionContent += `<strong>Explanation:</strong><br>${parseMarkdown(q.explanation)}`;
             }
-            
+
             solutionHTML = `<div class="solution-container">
               <div class="solution-content">${solutionContent}</div>
             </div>`;
@@ -416,7 +319,29 @@ const PaperExamSheet = () => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${subject} - ${level} Exam Paper</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+              delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\\\[', right: '\\\\]', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\\\(', right: '\\\\)', display: false}
+              ],
+              throwOnError: false,
+              trust: true,
+              strict: false
+            });
+          });
+        </script>
         <style>
+          .katex { font-size: 1.1em !important; }
+          .katex-display { margin: 12px 0 !important; overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+          .katex-html { max-width: 100%; }
           @page { 
             margin: 15mm 20mm 25mm 20mm; 
             size: A4;
@@ -699,23 +624,23 @@ const PaperExamSheet = () => {
         animationType="fade"
         onRequestClose={() => setShowDownloadModal(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setShowDownloadModal(false)}
         >
           <View style={styles.modalContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalOption}
               onPress={() => handleDownloadPDF(false)}
             >
               <Ionicons name="document-outline" size={20} color="#333" />
               <Text style={styles.modalOptionText}>Download Paper</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.modalDivider} />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.modalOption}
               onPress={() => handleDownloadPDF(true)}
             >
@@ -801,10 +726,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  errorText: {
-    color: '#FF6B6B',
-    fontSize: moderateScale(12),
-  },
+
   backBtn: {
     marginTop: 16,
     paddingHorizontal: 24,
@@ -909,62 +831,7 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 4,
   },
-  questionCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    padding: scale(12),
-    marginBottom: verticalScale(12),
-  },
-  questionHeaderSimple: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  questionTextContainer: {
-    flex: 1,
-    marginRight: 8,
-  },
-  marks: {
-    fontSize: moderateScale(11),
-    fontWeight: '700',
-    color: '#666',
-  },
-  answerSpace: {
-    marginTop: 12,
-  },
-  answerLine: {
-    height: 18,
-    borderBottomColor: '#CCC',
-    borderBottomWidth: 1,
-    marginBottom: 8,
-  },
-  solutionToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: scale(12),
-    marginTop: verticalScale(8),
-    backgroundColor: '#F8F9FA',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  solutionToggleText: {
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-    color: '#007AFF',
-    marginRight: 6,
-  },
-  solutionContainer: {
-    marginTop: verticalScale(12),
-    padding: scale(12),
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

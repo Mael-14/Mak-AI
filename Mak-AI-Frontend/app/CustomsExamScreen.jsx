@@ -320,7 +320,7 @@ const CustomsExamScreen = () => {
               onPress={() => router.push({
                 pathname: '/CustomExamSetup',
                 params: {
-                  subjectId: subjectIdNum,
+                  subjectId: subjectIdNum.toString(),
                   subjectName: subject.title,
                   level: selectedLevel,
                 },
@@ -349,12 +349,12 @@ const CustomsExamScreen = () => {
                 } else if (questionMode.name === 'Junes') {
                   router.push({
                     pathname: '/JunesModeScreen',
-                    params: { subjectId: subjectIdNum, subjectName: subject.title },
+                    params: { subjectId: subjectIdNum.toString(), subjectName: subject.title },
                   });
                 } else if (questionMode.name === 'Topics') {
                   router.push({
                     pathname: '/TopicsModeScreen',
-                    params: { subjectId: subjectIdNum, subjectName: subject.title },
+                    params: { subjectId: subjectIdNum.toString(), subjectName: subject.title },
                   });
                 }
               }}
@@ -388,7 +388,7 @@ const CustomsExamScreen = () => {
               onPress={() => router.push({
                 pathname: '/CustomExamSetup',
                 params: {
-                  subjectId: subjectIdNum,
+                  subjectId: subjectIdNum.toString(),
                   subjectName: subject.title,
                   level: selectedLevel,
                 },
@@ -399,13 +399,10 @@ const CustomsExamScreen = () => {
           </View>
         ) : (
           <>
-            {/* Filter Tabs */}
+            {/* Filter Section */}
             <View style={styles.filterContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterScroll}
-              >
+              <Text style={styles.filterLabel}>Filter by Status:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
                 {[
                   { label: 'All', value: 'all' },
                   { label: 'Saved', value: 'saved' },
@@ -414,16 +411,16 @@ const CustomsExamScreen = () => {
                 ].map(filterOption => (
                   <TouchableOpacity
                     key={filterOption.value}
-                    onPress={() => setFilter(filterOption.value)}
                     style={[
-                      styles.filterTab,
-                      filter === filterOption.value && styles.filterTabActive,
+                      styles.filterButton,
+                      filter === filterOption.value && styles.filterButtonActive,
                     ]}
+                    onPress={() => setFilter(filterOption.value)}
                   >
                     <Text
                       style={[
-                        styles.filterTabText,
-                        filter === filterOption.value && styles.filterTabTextActive,
+                        styles.filterText,
+                        filter === filterOption.value && styles.filterTextActive,
                       ]}
                     >
                       {filterOption.label}
@@ -572,7 +569,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: verticalScale(16),
+    //marginBottom: verticalScale(2),
   },
   questionModeTab: {
     flexDirection: 'row',
@@ -593,35 +590,48 @@ const styles = StyleSheet.create({
     color: '#2d2d2d',
   },
   filterContainer: {
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: scale(16),
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginHorizontal: 20,
+    borderRadius: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    marginBottom: verticalScale(2),
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
   },
   filterScroll: {
-    paddingVertical: verticalScale(4),
-    gap: scale(8),
+    flexDirection: 'row',
   },
-  filterTab: {
-    paddingHorizontal: scale(14),
-    paddingVertical: verticalScale(8),
-    backgroundColor: '#F5F5F5',
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    marginRight: 8,
     borderWidth: 1,
-    borderColor: '#EFEFEF',
+    borderColor: '#e0e0e0',
   },
-  filterTabActive: {
-    backgroundColor: '#3F51B5',
-    borderColor: '#3F51B5',
+  filterButtonActive: {
+    backgroundColor: '#2d2d2d',
+    borderColor: '#2d2d2d',
   },
-  filterTabText: {
-    fontSize: moderateScale(12),
+  filterText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#555',
+    color: '#666',
   },
-  filterTabTextActive: {
-    color: '#FFF',
+  filterTextActive: {
+    color: '#fff',
   },
   listContent: {
     paddingHorizontal: scale(16),

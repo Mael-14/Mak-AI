@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
   Easing,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -104,6 +105,7 @@ const TopicsModeScreen = () => {
   const [availablePapers, setAvailablePapers] = useState([]);
   const [showModeModal, setShowModeModal] = useState(false);
   const [selectedTopicPaper, setSelectedTopicPaper] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Animation refs
   const [headerOpacityAnim] = useState(new Animated.Value(0));
@@ -317,6 +319,24 @@ const TopicsModeScreen = () => {
           </ScrollView>
         </View>
 
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={18} color="#888" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search topics..."
+            placeholderTextColor="#aaa"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#aaa" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Paper Filter */}
         {availablePapers.length > 0 && (
           <View style={styles.paperFilterContainer}>
@@ -387,7 +407,11 @@ const TopicsModeScreen = () => {
               <Text style={styles.emptyText}>No topics available for this subject</Text>
             </View>
           ) : (
-            topics.map((topic, index) => (
+            topics
+              .filter(topic =>
+                topic.name.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((topic, index) => (
               <View key={`${topic.name}-${index}`} style={[styles.courseCard, { backgroundColor: '#b8b8f0' }]}>
                 <View style={styles.courseHeader}>
                   <View style={styles.courseIconContainer}>
@@ -679,7 +703,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(4),
   },
   questionModeTab: {
     flexDirection: 'row',
@@ -783,6 +807,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: scale(20),
+    marginTop: verticalScale(4),
+    marginBottom: verticalScale(4),
+    borderRadius: 14,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchIcon: {
+    marginRight: scale(8),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: moderateScale(14),
+    color: '#2d2d2d',
+    padding: 0,
   },
 });
 

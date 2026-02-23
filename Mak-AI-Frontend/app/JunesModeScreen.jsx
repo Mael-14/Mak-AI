@@ -10,7 +10,8 @@ import {
   Modal, 
   Animated, 
   Easing,
-  RefreshControl 
+  RefreshControl,
+  TextInput,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -145,6 +146,7 @@ const JunesModeScreen = () => {
   const [showModeModal, setShowModeModal] = useState(false);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Animation refs
   const [headerOpacityAnim] = useState(new Animated.Value(0));
@@ -362,6 +364,25 @@ const JunesModeScreen = () => {
           </ScrollView>
         </View>
 
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={18} color="#888" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by year..."
+            placeholderTextColor="#aaa"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            keyboardType="numeric"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#aaa" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Animated Content Section for GCE Junes */}
         <Animated.View
           style={[
@@ -404,7 +425,11 @@ const JunesModeScreen = () => {
                 <Text style={styles.emptyText}>No years available for this subject</Text>
               </View>
             ) : (
-              years.map((yearData) => (
+              years
+                .filter(yearData =>
+                  yearData.year.toString().includes(searchQuery.trim())
+                )
+                .map((yearData) => (
                 <View key={yearData.year} style={[styles.courseCard, { backgroundColor: '#2d2d2d' }]}>
                   <View style={styles.courseHeader}>
                     <View style={styles.courseIconContainer}>
@@ -732,7 +757,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(4),
   },
   questionModeTab: {
     flexDirection: 'row',
@@ -793,6 +818,32 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
     color: '#666',
     textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: scale(20),
+    marginBottom: verticalScale(8),
+    borderRadius: 14,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchIcon: {
+    marginRight: scale(8),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: moderateScale(14),
+    color: '#2d2d2d',
+    padding: 0,
   },
   modalOverlay: {
     flex: 1,

@@ -138,13 +138,13 @@ const CustomExamSetup = () => {
     { label: 'Medium', color: '#FF9800', icon: 'speedometer-medium' },
     { label: 'Hard', color: '#F44336', icon: 'speedometer' },
   ];
-  
+
   const questionTypes = [
     { label: 'MCQs (Paper 1)', value: 'MCQs (Paper 1)', icon: 'format-list-bulleted' },
     { label: 'Structural (Paper 2)', value: 'Structural (Paper 2)', icon: 'text-box-outline' },
     { label: 'Mixed', value: 'Mixed', icon: 'shuffle-variant' },
   ];
-  
+
   const durations = ['15', '30', '45', '60', '90'];
   const questionCounts = ['5', '10', '15', '20', '25', '30'];
 
@@ -160,7 +160,7 @@ const CustomExamSetup = () => {
       7: ['Physical Geography', 'Human Geography', 'Climatology', 'Geomorphology', 'Biogeography', 'Urban Geography', 'Development', 'Resources'], // Geography
       8: ['Complex Numbers', 'Matrices', 'Differential Equations', 'Numerical Methods', 'Optimization', 'Linear Programming', 'Calculus', 'Sequences'], // Further Math
     };
-    
+
     return topicMap[subjectIdNum] || [];
   };
 
@@ -287,7 +287,7 @@ const CustomExamSetup = () => {
         Alert.alert('Warning', 'Exam generated but failed to save to history. You can still view it now.', [
           { text: 'OK' }
         ]);
-        
+
         // Still navigate to the exam even if save failed
         if (questionType === 'MCQs (Paper 1)') {
           router.push({
@@ -298,8 +298,8 @@ const CustomExamSetup = () => {
               examType: 'custom',
               difficulty,
               questionType,
-              duration: parseInt(duration),
-              numQuestions: parseInt(numQuestions),
+              duration: duration.toString(),
+              numQuestions: numQuestions.toString(),
               topics: includeTopics.join(','),
               examData: JSON.stringify(generatedExam.questions),
               examId: generatedExam.examId,
@@ -325,10 +325,10 @@ const CustomExamSetup = () => {
     } catch (error) {
       setIsGenerating(false);
       console.error('Error generating exam:', error);
-      
+
       // Provide detailed error message to user
       let errorMessage = 'Failed to generate exam. ';
-      
+
       if (error.name === 'AbortError') {
         errorMessage += 'Request timed out. The AI agent took too long to respond. Please try again.';
       } else if (error.message.includes('JSON Parse error')) {
@@ -358,37 +358,37 @@ const CustomExamSetup = () => {
     <View style={styles.container}>
       {/* Animated Header */}
       <Animated.View style={[styles.headerContainer, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
-         <LinearGradient
-            colors={subject.colors || ['#ccc', '#aaa']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
+        <LinearGradient
+          colors={subject.colors || ['#ccc', '#aaa']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
           <SafeAreaView edges={['top']} style={styles.safeAreaHeader}>
             <View style={styles.headerContent}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                 <Ionicons name="chevron-back" size={26} color="#FFF" />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>{subject.title} Custom Exam</Text>
-              <View style={{ width: 40 }} /> 
+              <View style={{ width: 40 }} />
 
-               {/* Large Floating Icon/Badge
+              {/* Large Floating Icon/Badge
             <View style={styles.floatingIcon}>
                <Image source={subject.image} style={styles.floatingImage} resizeMode="contain" />
             </View> */}
             </View>
-             
-            
+
+
           </SafeAreaView>
         </LinearGradient>
       </Animated.View>
 
-      <Animated.ScrollView 
+      <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        style={{ 
-          opacity: contentOpacity, 
-          transform: [{ translateY: contentTranslateY }] 
+        style={{
+          opacity: contentOpacity,
+          transform: [{ translateY: contentTranslateY }]
         }}
       >
         {/* Difficulty Selection */}
@@ -407,10 +407,10 @@ const CustomExamSetup = () => {
                   ]}
                   onPress={() => setDifficulty(diff.label)}
                 >
-                  <MaterialCommunityIcons 
-                    name={diff.icon} 
-                    size={24} 
-                    color={isActive ? diff.color : '#888'} 
+                  <MaterialCommunityIcons
+                    name={diff.icon}
+                    size={24}
+                    color={isActive ? diff.color : '#888'}
                     style={{ marginBottom: 4 }}
                   />
                   <Text style={[styles.optionLabel, isActive && { color: diff.color, fontWeight: '700' }]}>
@@ -440,10 +440,10 @@ const CustomExamSetup = () => {
                   onPress={() => setQuestionType(type.value)}
                 >
                   <View style={[styles.iconCircle, isActive && { backgroundColor: '#3F51B5' }]}>
-                     <MaterialCommunityIcons name={type.icon} size={20} color={isActive ? '#FFF' : '#666'} />
+                    <MaterialCommunityIcons name={type.icon} size={20} color={isActive ? '#FFF' : '#666'} />
                   </View>
                   <Text style={[styles.typeText, isActive && styles.typeTextActive]}>{type.label}</Text>
-                  
+
                   {isActive && (
                     <Ionicons name="checkmark-circle" size={22} color="#3F51B5" />
                   )}
@@ -457,34 +457,34 @@ const CustomExamSetup = () => {
         <View style={styles.dualRow}>
           {/* Duration */}
           <View style={[styles.card, { flex: 1, marginRight: 8 }]}>
-             <SectionHeader title="Duration" icon="time" />
-             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-               {durations.map((dur) => (
-                 <TouchableOpacity
-                   key={dur}
-                   style={[styles.chip, duration === dur && styles.chipActive]}
-                   onPress={() => setDuration(dur)}
-                 >
-                   <Text style={[styles.chipText, duration === dur && styles.chipTextActive]}>{dur}m</Text>
-                 </TouchableOpacity>
-               ))}
-             </ScrollView>
+            <SectionHeader title="Duration" icon="time" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+              {durations.map((dur) => (
+                <TouchableOpacity
+                  key={dur}
+                  style={[styles.chip, duration === dur && styles.chipActive]}
+                  onPress={() => setDuration(dur)}
+                >
+                  <Text style={[styles.chipText, duration === dur && styles.chipTextActive]}>{dur}m</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Count */}
           <View style={[styles.card, { flex: 1, marginLeft: 8 }]}>
-             <SectionHeader title="Questions" icon="list" />
-             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-               {questionCounts.map((count) => (
-                 <TouchableOpacity
-                   key={count}
-                   style={[styles.chip, numQuestions === count && styles.chipActive]}
-                   onPress={() => setNumQuestions(count)}
-                 >
-                   <Text style={[styles.chipText, numQuestions === count && styles.chipTextActive]}>{count}</Text>
-                 </TouchableOpacity>
-               ))}
-             </ScrollView>
+            <SectionHeader title="Questions" icon="list" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+              {questionCounts.map((count) => (
+                <TouchableOpacity
+                  key={count}
+                  style={[styles.chip, numQuestions === count && styles.chipActive]}
+                  onPress={() => setNumQuestions(count)}
+                >
+                  <Text style={[styles.chipText, numQuestions === count && styles.chipTextActive]}>{count}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
 
@@ -495,11 +495,11 @@ const CustomExamSetup = () => {
             <Text style={styles.sectionTitle}>Topics</Text>
             <Text style={styles.subtitle}>({includeTopics.length} selected)</Text>
           </View>
-          
+
           <View style={styles.topicsGrid}>
             {topics.map((topic) => {
-               const isSelected = includeTopics.includes(topic);
-               return (
+              const isSelected = includeTopics.includes(topic);
+              return (
                 <TouchableOpacity
                   key={topic}
                   activeOpacity={0.7}
@@ -509,7 +509,7 @@ const CustomExamSetup = () => {
                   <Text style={[styles.topicText, isSelected && styles.topicTextActive]}>{topic}</Text>
                   {isSelected && <Ionicons name="close-circle" size={14} color="#FFF" style={{ marginLeft: 4 }} />}
                 </TouchableOpacity>
-               );
+              );
             })}
           </View>
         </View>
@@ -517,10 +517,10 @@ const CustomExamSetup = () => {
         {/* Summary Card */}
         <View style={styles.summaryCard}>
           <LinearGradient
-             colors={['#2d2d2d', '#444']}
-             style={styles.summaryGradient}
-             start={{ x: 0, y: 0 }}
-             end={{ x: 1, y: 0 }}
+            colors={['#2d2d2d', '#444']}
+            style={styles.summaryGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           >
             <View style={styles.summaryDetails}>
               <Text style={styles.summaryTitle}>Exam Overview</Text>
@@ -528,13 +528,13 @@ const CustomExamSetup = () => {
                 {difficulty} • {duration} min • {numQuestions} Qs • {includeTopics.length} Topics
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleStartExam}
               style={[styles.startBtn, includeTopics.length === 0 && { opacity: 0.6 }]}
             >
-               <Text style={styles.startBtnText}>Start Now</Text>
-               <Ionicons name="arrow-forward" size={18} color="#2d2d2d" />
+              <Text style={styles.startBtnText}>Start Now</Text>
+              <Ionicons name="arrow-forward" size={18} color="#2d2d2d" />
             </TouchableOpacity>
           </LinearGradient>
         </View>
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
   },
-  
+
   // Content
   scrollContent: {
     paddingTop: verticalScale(50),
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
   },
-  
+
   // Complexity Grid
   rowGrid: {
     flexDirection: 'row',
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginTop: 6,
   },
-  
+
   // Question Type List
   listColumn: {
     gap: verticalScale(10),

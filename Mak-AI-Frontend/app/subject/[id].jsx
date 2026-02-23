@@ -20,14 +20,14 @@ import { verticalScale, moderateScale, scale } from '../../utils/scaling';
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const SUBJECTS_DATA = {
-  1: { id: 1, title: 'Mathematics',     image: require('../../assets/Maths.png'),           headerColor: '#ffb380' },
-  2: { id: 2, title: 'Biology',         image: require('../../assets/Biology.png'),          headerColor: '#90EE90' },
-  3: { id: 3, title: 'Chemistry',       image: require('../../assets/Chemistry.png'),        headerColor: '#FFD700' },
-  4: { id: 4, title: 'Physics',         image: require('../../assets/Physics.png'),          headerColor: '#87CEEB' },
-  5: { id: 5, title: 'Computer Science',image: require('../../assets/Computer science.png'), headerColor: '#DDA0DD' },
-  6: { id: 6, title: 'Math Stats',      image: require('../../assets/Math Statistic.png'),   headerColor: '#F0E68C' },
-  7: { id: 7, title: 'Geography',       image: require('../../assets/Geography.png'),        headerColor: '#98D8C8' },
-  8: { id: 8, title: 'Further Math',    image: require('../../assets/FurtherMath.png'),      headerColor: '#FFA07A' },
+  1: { id: 1, title: 'Mathematics', image: require('../../assets/Maths.png'), headerColor: '#ffb380' },
+  2: { id: 2, title: 'Biology', image: require('../../assets/Biology.png'), headerColor: '#90EE90' },
+  3: { id: 3, title: 'Chemistry', image: require('../../assets/Chemistry.png'), headerColor: '#FFD700' },
+  4: { id: 4, title: 'Physics', image: require('../../assets/Physics.png'), headerColor: '#87CEEB' },
+  5: { id: 5, title: 'Computer Science', image: require('../../assets/Computer science.png'), headerColor: '#DDA0DD' },
+  6: { id: 6, title: 'Math Stats', image: require('../../assets/Math Statistic.png'), headerColor: '#F0E68C' },
+  7: { id: 7, title: 'Geography', image: require('../../assets/Geography.png'), headerColor: '#98D8C8' },
+  8: { id: 8, title: 'Further Math', image: require('../../assets/FurtherMath.png'), headerColor: '#FFA07A' },
 };
 
 const GRADIENT_COLORS = {
@@ -72,11 +72,11 @@ const InvertedCorner = ({ color, size = 26 }) => (
 
 const FolderCourseCard = ({ course, onPress }) => {
   const isDark = course.backgroundColor === '#2d2d2d';
-  const textColor      = isDark ? '#ffffff' : '#2d2d2d';
-  const subtitleColor  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.42)';
-  const iconBg         = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
-  const bookmarkBg     = isDark ? 'rgba(255,255,255,0.1)'  : 'rgba(0,0,0,0.06)';
-  const CORNER_SIZE    = 26;
+  const textColor = isDark ? '#ffffff' : '#2d2d2d';
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.42)';
+  const iconBg = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
+  const bookmarkBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+  const CORNER_SIZE = 26;
 
   return (
     <TouchableOpacity
@@ -84,7 +84,7 @@ const FolderCourseCard = ({ course, onPress }) => {
       activeOpacity={0.88}
       style={styles.courseCardWrapper}
     >
-      
+
       {/* ── Gray back layer — peeks below the card to simulate a stacked folder ── */}
       <View style={styles.courseCardBack} />
 
@@ -94,10 +94,10 @@ const FolderCourseCard = ({ course, onPress }) => {
         {/* Folder tab: rounded top corners, holds the icon */}
         <View style={[styles.courseTab, { backgroundColor: course.backgroundColor }]}>
           <View style={[styles.courseIconContainer, { backgroundColor: iconBg }]}>
-            <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
+            <Ionicons name="document-text-outline" size={24} color="rgb(255, 255, 255)" />
             {/* <Text style={styles.courseTabIcon}>{course.icon}</Text> */}
           </View>
-          <Text style={[styles.courseTabTitle ,{ color: textColor }]}>{course.header}</Text>
+          <Text style={[styles.courseTabTitle, { color: textColor }]}>{course.header}</Text>
         </View>
 
         {/* Concave shoulder — masks the gap between tab & body */}
@@ -106,7 +106,7 @@ const FolderCourseCard = ({ course, onPress }) => {
         {/* Spacer + floating bookmark on the right */}
         <View style={styles.courseTabSpacer}>
           <TouchableOpacity style={[styles.bookmarkButton, { backgroundColor: '#d0d2d5' }]}>
-            <Ionicons name="bookmark-outline" size={14} color= '#000000' />
+            <Ionicons name="bookmark-outline" size={14} color='#000000' />
           </TouchableOpacity>
         </View>
       </View>
@@ -158,22 +158,22 @@ const SubjectScreen = () => {
   const router = useRouter();
   const { id, level } = useLocalSearchParams();
 
-  const subjectId       = parseInt(id);
-  const subject         = SUBJECTS_DATA[subjectId];
-  const selectedLevel   = level || 'Ordinary Level';
-  const gradientColors  = GRADIENT_COLORS[subjectId] || GRADIENT_COLORS[1];
+  const subjectId = parseInt(id);
+  const subject = SUBJECTS_DATA[subjectId];
+  const selectedLevel = level || 'Ordinary Level';
+  const gradientColors = GRADIENT_COLORS[subjectId] || GRADIENT_COLORS[1];
 
-  const [headerOpacityAnim]     = useState(new Animated.Value(0));
-  const [headerTranslateYAnim]  = useState(new Animated.Value(-30));
-  const [contentOpacityAnim]    = useState(new Animated.Value(0));
+  const [headerOpacityAnim] = useState(new Animated.Value(0));
+  const [headerTranslateYAnim] = useState(new Animated.Value(-30));
+  const [contentOpacityAnim] = useState(new Animated.Value(0));
   const [contentTranslateYAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(headerOpacityAnim,    { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(headerOpacityAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.timing(headerTranslateYAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.stagger(100, [
-        Animated.timing(contentOpacityAnim,    { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(contentOpacityAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.spring(contentTranslateYAnim, { toValue: 0, friction: 7, tension: 40, useNativeDriver: true }),
       ]),
     ]).start();
@@ -193,9 +193,9 @@ const SubjectScreen = () => {
   }
 
   const QuestionMode = [
-    { id: 1, name: 'All',          icon: <Ionicons name="grid-outline"     size={14} color="black" />, route: null },
-    { id: 2, name: 'Junes',        icon: '📅',                                                          route: '/JunesModeScreen' },
-    { id: 3, name: 'Topics',       icon: '📂',                                                          route: '/TopicsModeScreen' },
+    { id: 1, name: 'All', icon: <Ionicons name="grid-outline" size={14} color="black" />, route: null },
+    { id: 2, name: 'Junes', icon: '📅', route: '/JunesModeScreen' },
+    { id: 3, name: 'Topics', icon: '📂', route: '/TopicsModeScreen' },
     { id: 4, name: 'Customs exam', icon: <Ionicons name="sparkles-outline" size={14} color="#a35daf" />, route: '/CustomsExamScreen' },
   ];
 
@@ -205,7 +205,7 @@ const SubjectScreen = () => {
       header: 'June Papers',
       title: 'GCE Advance Level Passed June Questions',
       subtitle: 'Past Papers & Answers Analysis for All Subjects',
-      students: ['https://i.pravatar.cc/150?img=1','https://i.pravatar.cc/150?img=2','https://i.pravatar.cc/150?img=3'],
+      students: ['https://i.pravatar.cc/150?img=1', 'https://i.pravatar.cc/150?img=2', 'https://i.pravatar.cc/150?img=3'],
       additionalCount: 3,
       backgroundColor: '#2d2d2d',
       icon: '📄',
@@ -216,7 +216,7 @@ const SubjectScreen = () => {
       header: 'Topics papers',
       title: 'GCE Advance Level Questions per Topics',
       subtitle: 'Past Questions Sorted per Topic',
-      students: ['https://i.pravatar.cc/150?img=4','https://i.pravatar.cc/150?img=5','https://i.pravatar.cc/150?img=6'],
+      students: ['https://i.pravatar.cc/150?img=4', 'https://i.pravatar.cc/150?img=5', 'https://i.pravatar.cc/150?img=6'],
       additionalCount: 12,
       backgroundColor: '#b8b8f0',
       icon: '📚',
@@ -227,7 +227,7 @@ const SubjectScreen = () => {
       header: 'Customs Exam',
       title: 'GCE Advance Level AI Generated Custom Questions',
       subtitle: 'AI Shuffles & Generates Questions on Demand',
-      students: ['https://i.pravatar.cc/150?img=7','https://i.pravatar.cc/150?img=8','https://i.pravatar.cc/150?img=9'],
+      students: ['https://i.pravatar.cc/150?img=7', 'https://i.pravatar.cc/150?img=8', 'https://i.pravatar.cc/150?img=9'],
       additionalCount: 12,
       backgroundColor: '#c5c5d8',
       icon: '🤖',
@@ -272,7 +272,7 @@ const SubjectScreen = () => {
               <TouchableOpacity
                 key={mode.id}
                 style={styles.questionModeTab}
-                onPress={() => mode.route && router.push({ pathname: mode.route, params: { subjectId, subjectName: subject.title, level: selectedLevel } })}
+                onPress={() => mode.route && router.push({ pathname: mode.route, params: { subjectId: subjectId.toString(), subjectName: subject.title, level: selectedLevel } })}
               >
                 <Text style={styles.questionModeIcon}>{mode.icon}</Text>
                 <Text style={styles.questionModeName}>{mode.name}</Text>
@@ -291,7 +291,7 @@ const SubjectScreen = () => {
               <FolderCourseCard
                 key={course.id}
                 course={course}
-                onPress={() => router.push({ pathname: course.route, params: { subjectId, subjectName: subject.title, level: selectedLevel } })}
+                onPress={() => router.push({ pathname: course.route, params: { subjectId: subjectId.toString(), subjectName: subject.title, level: selectedLevel } })}
               />
             ))}
           </View>
@@ -305,81 +305,81 @@ const SubjectScreen = () => {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container:  { 
-    flex: 1, 
-    backgroundColor: '#f0f0f5' 
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f0f5'
   },
-  scrollView: { 
-    flex: 1 
+  scrollView: {
+    flex: 1
   },
 
   // Header
   headerContainer: {
-    borderBottomLeftRadius: 30, 
+    borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    overflow: 'hidden', 
+    overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#000', 
-    shadowOpacity: 0.15, 
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
     shadowRadius: 10,
   },
-  headerGradient: { 
+  headerGradient: {
     paddingBottom: verticalScale(40),
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  headerSection: { 
-    paddingHorizontal: scale(20), 
-    paddingTop: verticalScale(10) , 
+  headerSection: {
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(10),
     flexDirection: 'column',
     justifyContent: 'flex-start',
   },
-  headerTextContainer:  { 
-    marginBottom: verticalScale(20), 
-    marginTop: verticalScale(12) 
+  headerTextContainer: {
+    marginBottom: verticalScale(20),
+    marginTop: verticalScale(12)
   },
   backButton: {
-    width: 40, 
-    height: 40, 
+    width: 40,
+    height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center', 
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: verticalScale(12),
   },
-  backIcon:             { 
-    fontSize: 28, 
-    color: '#2d2d2d', 
-    fontWeight: '300' 
+  backIcon: {
+    fontSize: 28,
+    color: '#2d2d2d',
+    fontWeight: '300'
   },
-  illustrationContainer:{ 
-    position: 'absolute', 
-    right: scale(20), 
-    top: verticalScale(30), 
-    width: 190, 
+  illustrationContainer: {
+    position: 'absolute',
+    right: scale(20),
+    top: verticalScale(30),
+    width: 190,
     height: 190,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  illustrationImage:    { 
-    width: '100%', 
+  illustrationImage: {
+    width: '100%',
     height: '100%',
     resizeMode: 'contain',
   },
-  headerTitle:          { 
-    fontSize: moderateScale(28), 
-    fontWeight: 'bold', 
+  headerTitle: {
+    fontSize: moderateScale(28),
+    fontWeight: 'bold',
     color: '#2d2d2d',
     marginBottom: verticalScale(4),
   },
-  headerSubtitle:       { fontSize: moderateScale(12), color: 'rgba(45,45,45,0.7)' },
-  statsContainer:       { flexDirection: 'row', gap: scale(10) },
+  headerSubtitle: { fontSize: moderateScale(12), color: 'rgba(45,45,45,0.7)' },
+  statsContainer: { flexDirection: 'row', gap: scale(10) },
   statBadge: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d2d2d',
     paddingHorizontal: scale(16), paddingVertical: verticalScale(10), borderRadius: 20, gap: scale(6),
   },
   statBadgeLight: { backgroundColor: 'rgba(255,255,255,0.4)' },
-  dotIcon:  { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
+  dotIcon: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
   statIcon: { fontSize: moderateScale(14) },
   statText: { color: '#fff', fontSize: moderateScale(12), fontWeight: '600' },
 
@@ -407,8 +407,14 @@ const styles = StyleSheet.create({
 
   courseCardWrapper: {
     marginBottom: 22,
-    // Extra bottom padding so the gray back layer can peek out
     paddingBottom: 8,
+    backgroundColor: '#f0f0f5', // required for shadow to render on both iOS & Android
+    borderRadius: 40,
+    shadowColor: '#000',//5456456465156461321351864186151531846
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 8,
   },
 
   // Gray card rendered first — sits behind the main card
@@ -419,7 +425,7 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     height: 28,
-    backgroundColor: '#d4d4de',
+    backgroundColor: '#dcdcea',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     borderTopLeftRadius: 6,
@@ -459,7 +465,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 80,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e1e1e6',
     borderTopRightRadius: 20,
     borderTopLeftRadius: 20,
     zIndex: -1,
@@ -506,7 +512,7 @@ const styles = StyleSheet.create({
   },
 
   // Footer
-  courseFooter:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  courseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   studentsContainer: { flexDirection: 'row', alignItems: 'center' },
   studentAvatar: { width: 30, height: 30, borderRadius: 15, borderWidth: 2 },
   additionalCount: { fontSize: moderateScale(12), fontWeight: '600', marginLeft: 8 },
@@ -518,7 +524,7 @@ const styles = StyleSheet.create({
 
   // Error
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  errorText:      { fontSize: 16, color: '#666', marginBottom: 12 },
+  errorText: { fontSize: 16, color: '#666', marginBottom: 12 },
   backButtonText: { fontSize: 16, color: '#007AFF', fontWeight: '600' },
 });
 

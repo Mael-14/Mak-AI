@@ -52,6 +52,8 @@ export default function Exam({ route }) {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [timerRunning, setTimerRunning] = useState(false);
 
   const explanationHeight = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
@@ -169,10 +171,16 @@ export default function Exam({ route }) {
   }, [subjectCode, topic, level, examData, examId]);
 
   useEffect(() => {
-    if (timer <= 0) return;
+    if (timer <= 0 || !timerRunning) return;
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
-  }, [timer]);
+  }, [timer, timerRunning]);
+
+  const handleStartExam = () => {
+    setShowDisclaimer(false);
+    setTimerRunning(true);
+    startTime.current = Date.now();
+  };
 
   if (loading) {
     return (
@@ -183,6 +191,107 @@ export default function Exam({ route }) {
     );
   }
   if (quizData.length === 0) return <View style={styles.container}><Text>No questions found.</Text></View>;
+
+  // Disclaimer / Instructions Screen
+  if (showDisclaimer) {
+    const durationMins = Math.floor(timer / 60);
+    return (
+      <SafeAreaView style={styles.disclaimerContainer}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.disclaimerScroll}>
+          {/* Header */}
+          <View style={styles.disclaimerHeader}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.disclaimerBackBtn}>
+              <Ionicons name="chevron-back" size={24} color="#1E293B" />
+            </TouchableOpacity>
+            <Text style={styles.disclaimerHeaderTitle}>Exam Details</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Exam Info Card */}
+          <View style={styles.disclaimerCard}>
+            <View style={styles.disclaimerIconRow}>
+              <View style={styles.disclaimerIconCircle}>
+                <Ionicons name="document-text" size={32} color="#2563EB" />
+              </View>
+            </View>
+            <Text style={styles.disclaimerExamTitle}>{examInfo.mathType}</Text>
+            <Text style={styles.disclaimerExamSubtitle}>
+              {examInfo.year ? `June ${examInfo.year}` : 'Custom Exam'}{examInfo.paper ? ` • ${examInfo.paper}` : ''}
+            </Text>
+
+            <View style={styles.disclaimerDivider} />
+
+            {/* Key Details Grid */}
+            <View style={styles.disclaimerGrid}>
+              <View style={styles.disclaimerGridItem}>
+                <Ionicons name="help-circle-outline" size={22} color="#2563EB" />
+                <Text style={styles.disclaimerGridValue}>{quizData.length}</Text>
+                <Text style={styles.disclaimerGridLabel}>Questions</Text>
+              </View>
+              <View style={styles.disclaimerGridItem}>
+                <Ionicons name="time-outline" size={22} color="#D97706" />
+                <Text style={styles.disclaimerGridValue}>{durationMins} min</Text>
+                <Text style={styles.disclaimerGridLabel}>Duration</Text>
+              </View>
+              <View style={styles.disclaimerGridItem}>
+                <Ionicons name="school-outline" size={22} color="#059669" />
+                <Text style={styles.disclaimerGridValue}>{level || 'O/L'}</Text>
+                <Text style={styles.disclaimerGridLabel}>Level</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Instructions Card */}
+          <View style={styles.disclaimerInstructionsCard}>
+            <View style={styles.disclaimerInstructionsHeader}>
+              <Ionicons name="information-circle" size={22} color="#2563EB" />
+              <Text style={styles.disclaimerInstructionsTitleText}>Instructions</Text>
+            </View>
+
+            <View style={styles.disclaimerRule}>
+              <Text style={styles.disclaimerRuleNumber}>1</Text>
+              <Text style={styles.disclaimerRuleText}>Read each question carefully before selecting your answer. Once you move to the next question, you can still go back.</Text>
+            </View>
+            <View style={styles.disclaimerRule}>
+              <Text style={styles.disclaimerRuleNumber}>2</Text>
+              <Text style={styles.disclaimerRuleText}>Each question has only one correct answer. Select the option you believe is correct.</Text>
+            </View>
+            <View style={styles.disclaimerRule}>
+              <Text style={styles.disclaimerRuleNumber}>3</Text>
+              <Text style={styles.disclaimerRuleText}>The timer will start as soon as you press "Start Exam". Manage your time wisely — aim for about {Math.max(1, Math.floor(durationMins / quizData.length))} minute(s) per question.</Text>
+            </View>
+            <View style={styles.disclaimerRule}>
+              <Text style={styles.disclaimerRuleNumber}>4</Text>
+              <Text style={styles.disclaimerRuleText}>You can finish early by pressing the "Done" button at any time. Your results will be saved automatically.</Text>
+            </View>
+            <View style={styles.disclaimerRule}>
+              <Text style={styles.disclaimerRuleNumber}>5</Text>
+              <Text style={styles.disclaimerRuleText}>Unanswered questions will be marked as "Not Done" in your final results. Try to attempt every question.</Text>
+            </View>
+          </View>
+
+          {/* Tips Card */}
+          <View style={styles.disclaimerTipsCard}>
+            <View style={styles.disclaimerInstructionsHeader}>
+              <Ionicons name="bulb-outline" size={22} color="#D97706" />
+              <Text style={[styles.disclaimerInstructionsTitleText, { color: '#D97706' }]}>Tips</Text>
+            </View>
+            <Text style={styles.disclaimerTipText}>• Eliminate obviously wrong answers first to improve your chances.</Text>
+            <Text style={styles.disclaimerTipText}>• Don't spend too long on a single question — skip and return later.</Text>
+            <Text style={styles.disclaimerTipText}>• Stay calm and focused throughout the exam. Good luck!</Text>
+          </View>
+
+          {/* Start Button */}
+          <TouchableOpacity style={styles.disclaimerStartBtn} onPress={handleStartExam} activeOpacity={0.8}>
+            <Ionicons name="play" size={20} color="#FFF" />
+            <Text style={styles.disclaimerStartBtnText}>Start Exam</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.disclaimerFooterNote}>By starting, you agree to complete the exam under fair conditions.</Text>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
 
   const currentQuestion = quizData[currentQuestionIndex];
@@ -1071,7 +1180,190 @@ const styles = StyleSheet.create({
   navBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
   doneBtnPill: { backgroundColor: '#FFF', paddingHorizontal: 25, paddingVertical: 10, borderRadius: 20 },
   doneBtnText: { color: '#3F51B5', fontWeight: '800' },
-  btnDisabled: { opacity: 0.5 }
+  btnDisabled: { opacity: 0.5 },
+
+  // Disclaimer / Instructions Screen
+  disclaimerContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  disclaimerScroll: {
+    paddingHorizontal: scale(20),
+    paddingBottom: verticalScale(40),
+  },
+  disclaimerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: verticalScale(16),
+  },
+  disclaimerBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disclaimerHeaderTitle: {
+    fontSize: moderateScale(18),
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  disclaimerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: scale(24),
+    marginBottom: verticalScale(16),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#64748B',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  disclaimerIconRow: {
+    marginBottom: verticalScale(12),
+  },
+  disclaimerIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disclaimerExamTitle: {
+    fontSize: moderateScale(22),
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  disclaimerExamSubtitle: {
+    fontSize: moderateScale(14),
+    color: '#64748B',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  disclaimerDivider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: verticalScale(18),
+  },
+  disclaimerGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  disclaimerGridItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  disclaimerGridValue: {
+    fontSize: moderateScale(16),
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 4,
+  },
+  disclaimerGridLabel: {
+    fontSize: moderateScale(11),
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  disclaimerInstructionsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: scale(20),
+    marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#64748B',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  disclaimerInstructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: verticalScale(14),
+  },
+  disclaimerInstructionsTitleText: {
+    fontSize: moderateScale(16),
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  disclaimerRule: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(12),
+    gap: 12,
+  },
+  disclaimerRuleNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563EB',
+    overflow: 'hidden',
+  },
+  disclaimerRuleText: {
+    flex: 1,
+    fontSize: moderateScale(13),
+    color: '#475569',
+    lineHeight: 20,
+  },
+  disclaimerTipsCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 20,
+    padding: scale(20),
+    marginBottom: verticalScale(24),
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+  },
+  disclaimerTipText: {
+    fontSize: moderateScale(13),
+    color: '#92400E',
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  disclaimerStartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#2563EB',
+    paddingVertical: verticalScale(16),
+    borderRadius: 16,
+    marginBottom: verticalScale(12),
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  disclaimerStartBtnText: {
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  disclaimerFooterNote: {
+    fontSize: moderateScale(11),
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: verticalScale(10),
+  },
 });
 const KATEX_INLINE_CSS = `
   <head>

@@ -3,7 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSubjectCode } from '../utils/subjectMapping';
 
 // Backend API base URL - Update this with your backend URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-carb.onrender.com/api'
+// Switch between local and production by commenting/uncommenting:
+// const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-seven.vercel.app/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
 
 // Create axios instance
 const api = axios.create({
@@ -98,23 +100,23 @@ export const multiModalAPI = {
   analyzeImage: async (imageUri, message, sessionId, userId) => {
     try {
       const formData = new FormData();
-      
+
       // Convert image URI to blob for upload
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       formData.append('image', blob, 'image.jpg');
       formData.append('message', message || 'Analyze this image');
       formData.append('sessionId', sessionId);
       formData.append('userId', userId);
-      
+
       const apiResponse = await api.post('/chat/analyze-image', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         timeout: 60000, // 60 seconds for image analysis
       });
-      
+
       return apiResponse.data;
     } catch (error) {
       console.error('Image analysis API error:', error);
@@ -126,23 +128,23 @@ export const multiModalAPI = {
   analyzeDocument: async (documentUri, documentName, message, sessionId, userId) => {
     try {
       const formData = new FormData();
-      
+
       // Read document file
       const response = await fetch(documentUri);
       const blob = await response.blob();
-      
+
       formData.append('document', blob, documentName);
       formData.append('message', message || 'Analyze this document');
       formData.append('sessionId', sessionId);
       formData.append('userId', userId);
-      
+
       const apiResponse = await api.post('/chat/analyze-document', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         timeout: 120000, // 2 minutes for document analysis
       });
-      
+
       return apiResponse.data;
     } catch (error) {
       console.error('Document analysis API error:', error);
@@ -154,22 +156,22 @@ export const multiModalAPI = {
   speechToText: async (audioUri, sessionId, userId) => {
     try {
       const formData = new FormData();
-      
+
       // Read audio file
       const response = await fetch(audioUri);
       const blob = await response.blob();
-      
+
       formData.append('audio', blob, 'recording.m4a');
       formData.append('sessionId', sessionId);
       formData.append('userId', userId);
-      
+
       const apiResponse = await api.post('/chat/speech-to-text', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         timeout: 60000, // 60 seconds for transcription
       });
-      
+
       return apiResponse.data;
     } catch (error) {
       console.error('Speech-to-text API error:', error);
@@ -181,12 +183,12 @@ export const multiModalAPI = {
   sendMultiModalMessage: async (message, attachments, sessionId, userId, level) => {
     try {
       const formData = new FormData();
-      
+
       formData.append('message', message);
       formData.append('sessionId', sessionId);
       formData.append('userId', userId);
       formData.append('level', level);
-      
+
       // Add attachments if any
       if (attachments && attachments.length > 0) {
         attachments.forEach((attachment, index) => {
@@ -216,17 +218,17 @@ export const multiModalAPI = {
               });
           }
         });
-        
+
         formData.append('attachments_count', attachments.length.toString());
       }
-      
+
       const apiResponse = await api.post('/chat/multimodal', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         timeout: 120000, // 2 minutes for multi-modal processing
       });
-      
+
       return apiResponse.data;
     } catch (error) {
       console.error('Multi-modal chat API error:', error);
@@ -415,7 +417,26 @@ export const examAPI = {
       }
       throw error;
     }
-  }
+  },
+
+  /**
+   * Save a custom (AI-generated) exam to Firebase
+   * POST /api/exams/custom
+   * @param {Object} examData - Full exam data including questions array
+   * @returns {Promise<Object>} { success, data: { firebaseExamId, questionCount } }
+   */
+  saveCustomExamToCloud: async (examData) => {
+    try {
+      const response = await api.post('/exams/custom', examData, {
+        timeout: 30000, // 30 seconds for batch writes
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving custom exam to cloud:', error);
+      // Don't throw — this is a background sync, we don't want to break the UX
+      return { success: false, error: error.message };
+    }
+  },
 };
 
 export default api;
