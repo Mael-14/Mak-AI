@@ -1,5 +1,6 @@
 const { db, admin } = require('../config/firebase');
 
+
 const USERS_COLLECTION = 'users';
 
 /**
@@ -14,6 +15,7 @@ const createUserDocument = async (uid, userData) => {
       uid,
       email: userData.email,
       name: userData.name || userData.displayName,
+      account_id: userData.account_id,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       emailVerified: false,
@@ -21,7 +23,7 @@ const createUserDocument = async (uid, userData) => {
     };
 
     await db.collection(USERS_COLLECTION).doc(uid).set(userDoc);
-    
+
     return userDoc;
   } catch (error) {
     throw error;
@@ -36,11 +38,11 @@ const createUserDocument = async (uid, userData) => {
 const getUserDocument = async (uid) => {
   try {
     const userDoc = await db.collection(USERS_COLLECTION).doc(uid).get();
-    
+
     if (!userDoc.exists) {
       return null;
     }
-    
+
     return {
       id: userDoc.id,
       ...userDoc.data()
@@ -59,11 +61,11 @@ const getUserDocumentByEmail = async (email) => {
   try {
     const usersRef = db.collection(USERS_COLLECTION);
     const snapshot = await usersRef.where('email', '==', email).limit(1).get();
-    
+
     if (snapshot.empty) {
       return null;
     }
-    
+
     const userDoc = snapshot.docs[0];
     return {
       id: userDoc.id,
@@ -88,7 +90,7 @@ const updateUserDocument = async (uid, updates) => {
     };
 
     await db.collection(USERS_COLLECTION).doc(uid).update(updateData);
-    
+
     const updatedDoc = await getUserDocument(uid);
     return updatedDoc;
   } catch (error) {
