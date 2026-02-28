@@ -6,8 +6,9 @@ node_modules/
 .env.local
 .env.production
 
-# Firebase service account key
+# Firebase service account keys
 serviceAccountKey.json
+*-firebase-adminsdk-*.json
 
 # Logs
 logs

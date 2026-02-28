@@ -1,5 +1,6 @@
 const authService = require('../services/firebase/authService');
 const userModel = require('../models/User.model');
+const { createAccountDocument } = require('../models/account.model');
 const { responseFormatter } = require('../utils/responseFormatter');
 const googleAuthService = require('../services/google/googleAuthService');
 
@@ -77,12 +78,17 @@ const signup = async (req, res, next) => {
       );
     }
 
+    // Create user financial account document in Firestore
+    const account = await createAccountDocument(uid);
+    const account_id = account.uid;
+
     // Create user document in Firestore
     const userDoc = await userModel.createUserDocument(uid, {
       email: email,
       name: name,
       displayName: name,
-      emailVerified: decodedToken.email_verified || false
+      emailVerified: decodedToken.email_verified || false,
+      account_id: account_id
     });
 
     // Return success response
@@ -195,7 +201,7 @@ const login = async (req, res, next) => {
 const getCurrentUser = async (req, res, next) => {
   try {
     const uid = req.user.uid;
-    
+
     const userRecord = await authService.getUserByUid(uid);
     const userDoc = await userModel.getUserDocument(uid);
 
@@ -231,7 +237,7 @@ const forgotPassword = async (req, res, next) => {
 
     try {
       const resetData = await authService.sendPasswordResetEmail(email);
-      
+
       // In production, you would send the reset link via email service
       // For now, we'll return it (remove this in production)
       res.status(200).json(
@@ -299,7 +305,7 @@ const updateProfile = async (req, res, next) => {
 const getGoogleAuthUrl = async (req, res, next) => {
   try {
     const authUrl = googleAuthService.getGoogleAuthUrl();
-    
+
     res.status(200).json(
       responseFormatter.success({
         authUrl: authUrl
@@ -340,7 +346,7 @@ const handleGoogleCallback = async (req, res, next) => {
     // Frontend will use this custom token to sign in to Firebase
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:19006';
     const redirectUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(customToken)}&uid=${userRecord.uid}`;
-    
+
     res.redirect(redirectUrl);
   } catch (error) {
     if (error.message.includes('invalid_grant')) {
