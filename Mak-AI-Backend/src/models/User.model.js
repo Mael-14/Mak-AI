@@ -77,6 +77,25 @@ const getUserDocumentByEmail = async (email) => {
 };
 
 /**
+ * Get a specific field from a user document by user ID
+ * @param {string} field - The field to retrieve from the user document
+ * @param {string} user_id - User ID (document ID)
+ * @returns {Promise<*|null>} The field value or null if user/field not found
+ */
+const getUserSpecificDataByUserId = async (field, user_id) => {
+  try {
+    const userDoc = await db.collection(USERS_COLLECTION).doc(user_id).get();
+    if (!userDoc.exists) {
+      return null;
+    }
+    const data = userDoc.data();
+    return data[field] !== undefined ? data[field] : null;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * Update user document in Firestore
  * @param {string} uid - User UID
  * @param {Object} updates - Fields to update
@@ -118,6 +137,7 @@ module.exports = {
   createUserDocument,
   getUserDocument,
   getUserDocumentByEmail,
+  getUserSpecificDataByUserId,
   updateUserDocument,
   deleteUserDocument
 };

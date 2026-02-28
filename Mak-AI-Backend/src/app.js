@@ -6,6 +6,7 @@ const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const healthRoutes = require('./routes/health');
 const examRoutes = require('./routes/examRoutes');
+const depositRoutes = require('./routes/depositRoutes');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/deposit', depositRoutes);
 
 // 404 handler
 app.use((req, res) => {

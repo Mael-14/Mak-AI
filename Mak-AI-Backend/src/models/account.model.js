@@ -66,6 +66,36 @@ const getAccountDocument = async (uid) => {
 }
 
 /**
+ * Retrieves an account document by user ID.
+ * @param {string} user_id - The user's unique identifier.
+ * @returns {Promise<Object|null>} The account data, or null if not found.
+ * @throws {Error} If the Firestore read operation fails.
+ */
+const getAccountDocumentByUserId = async (user_id) => {
+    try {
+        const accountDoc = await db.collection(ACCOUNTS_COLLECTION).where('user_id', '==', user_id).get();
+        if (accountDoc.empty) {
+            return null;
+        }
+        return {
+            uid: accountDoc.docs[0].id,
+            ...accountDoc.docs[0].data()
+            /*account data:
+            uid: string,
+            user_id: string,
+            ai_tokens: number,
+            cumulative_balance: number,
+            createdAt: Timestamp,
+            updatedAt: Timestamp
+            */
+        };
+    } catch (error) {
+        console.error('Error getting account document by user ID:', error);
+        throw error;
+    }
+}
+
+/**
  * Updates an existing account document with partial data.
  * @param {string} uid - The account's unique identifier.
  * @param {Object} updates - The fields to update.
@@ -96,5 +126,6 @@ const updateAccountDocument = async (uid, updates) => {
 module.exports = {
     createAccountDocument,
     getAccountDocument,
+    getAccountDocumentByUserId,
     updateAccountDocument
 }
