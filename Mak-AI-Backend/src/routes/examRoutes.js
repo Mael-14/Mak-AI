@@ -832,4 +832,245 @@ router.post('/custom', async (req, res) => {
     }
 });
 
+/**
+ * Get all custom exams for authenticated user
+ * GET /api/exams/custom
+ */
+router.get('/custom', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { status, subjectId } = req.query;
+
+        console.log(`Fetching custom exams for user: ${userId}`);
+
+        // Build query
+        let customExamsQuery = db.collection('custom_exams')
+            .where('userId', '==', userId);
+
+        // Apply optional filters
+        if (status) {
+            customExamsQuery = customExamsQuery.where('status', '==', status);
+        }
+        if (subjectId) {
+            const subjectIdNum = parseInt(subjectId);
+            if (!isNaN(subjectIdNum)) {
+                customExamsQuery = customExamsQuery.where('subjectId', '==', subjectIdNum);
+            }
+        }
+
+        // Order by creation date (most recent first)
+        customExamsQuery = customExamsQuery.orderBy('createdAt', 'desc');
+
+        const customExamsSnapshot = await customExamsQuery.get();
+
+        if (customExamsSnapshot.empty) {
+            return res.status(200).json({
+                success: true,
+                data: [],
+                message: 'No custom exams found'
+            });
+        }
+
+        // Get exam metadata without questions for list view
+        const exams = customExamsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            // Format timestamp for frontend
+            createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: exams,
+            count: exams.length
+        });
+    } catch (error) {
+        console.error('Error fetching custom exams:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Get specific custom exam with questions
+ * GET /api/exams/custom/:examId
+ */
+router.get('/custom/:examId', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { examId } = req.params;
+
+        console.log(`Fetching custom exam ${examId} for user: ${userId}`);
+
+        // Get exam metadata
+        const examDoc = await db.collection('custom_exams').doc(examId).get();
+
+        if (!examDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Custom exam not found'
+            });
+        }
+
+        const examData = examDoc.data();
+
+        // Verify the exam belongs to the authenticated user
+        if (examData.userId !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. This exam belongs to another user'
+            });
+        }
+
+        // Get questions
+        const questionsSnapshot = await examDoc.ref
+            .collection('questions')
+            .orderBy('index')
+            .get();
+
+        const questions = questionsSnapshot.docs.map(doc => doc.data());
+
+        // Return exam with questions
+        const examWithQuestions = {
+            id: examDoc.id,
+            ...examData,
+            questions: questions,
+            // Format timestamp for frontend
+            createdAt: examData.createdAt?.toDate?.() || examData.createdAt
+        };
+
+        res.status(200).json({
+            success: true,
+            data: examWithQuestions
+        });
+    } catch (error) {
+        console.error('Error fetching custom exam:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Delete a custom exam
+ * DELETE /api/exams/custom/:examId
+ */
+router.delete('/custom/:examId', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { examId } = req.params;
+
+        console.log(`Deleting custom exam ${examId} for user: ${userId}`);
+
+        // Get exam metadata first
+        const examDoc = await db.collection('custom_exams').doc(examId).get();
+
+        if (!examDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Custom exam not found'
+            });
+        }
+
+        const examData = examDoc.data();
+
+        // Verify the exam belongs to the authenticated user
+        if (examData.userId !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. This exam belongs to another user'
+            });
+        }
+
+        // Delete all questions in subcollection first
+        const questionsSnapshot = await examDoc.ref.collection('questions').get();
+        const batch = db.batch();
+
+        questionsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Delete the exam document itself
+        batch.delete(examDoc.ref);
+
+        await batch.commit();
+
+        console.log(`✅ Custom exam ${examId} deleted successfully`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Custom exam deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting custom exam:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Update custom exam status or metadata
+ * PATCH /api/exams/custom/:examId
+ */
+router.patch('/custom/:examId', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { examId } = req.params;
+        const { status, difficulty, duration } = req.body;
+
+        console.log(`Updating custom exam ${examId} for user: ${userId}`);
+
+        // Get exam metadata first
+        const examDoc = await db.collection('custom_exams').doc(examId).get();
+
+        if (!examDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Custom exam not found'
+            });
+        }
+
+        const examData = examDoc.data();
+
+        // Verify the exam belongs to the authenticated user
+        if (examData.userId !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. This exam belongs to another user'
+            });
+        }
+
+        // Build update object
+        const updateData = {
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (status) updateData.status = status;
+        if (difficulty) updateData.difficulty = difficulty;
+        if (duration) updateData.duration = duration;
+
+        // Update the exam
+        await examDoc.ref.update(updateData);
+
+        console.log(`✅ Custom exam ${examId} updated successfully`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Custom exam updated successfully',
+            data: { examId, updatedFields: Object.keys(updateData) }
+        });
+    } catch (error) {
+        console.error('Error updating custom exam:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

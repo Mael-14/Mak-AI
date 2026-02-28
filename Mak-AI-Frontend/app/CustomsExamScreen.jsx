@@ -21,6 +21,8 @@ import { getAllCustomExams, deleteCustomExam, getCustomExamById } from '../utils
 import ExamHistoryCard from '../components/ExamHistoryCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../context/AuthContext';
+import { examAPI } from '../services/api';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -91,6 +93,7 @@ const TEMP_EXAM_KEY = '@temp_exam_data';
 const CustomsExamScreen = () => {
   const router = useRouter();
   const { subjectId, subjectName, level } = useLocalSearchParams();
+  const { userData, isAuthenticated } = useAuth();
 
   const subjectIdNum = subjectId ? parseInt(subjectId) : 1;
   const subject = SUBJECTS_DATA[subjectIdNum] || SUBJECTS_DATA[1];
@@ -109,11 +112,11 @@ const CustomsExamScreen = () => {
   const [contentOpacityAnim] = useState(new Animated.Value(0));
   const [contentTranslateYAnim] = useState(new Animated.Value(50));
 
-  // Load exams when screen is focused
+  // Load exams when screen is focused or user authentication state changes
   useFocusEffect(
     useCallback(() => {
       loadExams();
-    }, [subjectIdNum])
+    }, [subjectIdNum, userData?.uid, isAuthenticated])
   );
 
   useEffect(() => {
@@ -149,13 +152,41 @@ const CustomsExamScreen = () => {
   const loadExams = async () => {
     try {
       setLoading(true);
-      const allExams = await getAllCustomExams();
-      // Filter exams by subject
-      const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
-      setExams(subjectExams);
+      
+      // Check if user is authenticated and has userData
+      if (!isAuthenticated || !userData?.uid) {
+        console.log('User not authenticated, falling back to local storage');
+        // Fallback to local storage if user is not authenticated
+        const allExams = await getAllCustomExams();
+        const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
+        setExams(subjectExams);
+        return;
+      }
+
+      try {
+        // Fetch user-specific custom exams from database by subject
+        const response = await examAPI.getUserCustomExamsBySubject(userData.uid, subjectIdNum);
+        
+        if (response.success) {
+          setExams(response.data || []);
+        } else {
+          console.error('Failed to fetch custom exams:', response.error);
+          // Fallback to local storage on API failure
+          const allExams = await getAllCustomExams();
+          const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
+          setExams(subjectExams);
+        }
+      } catch (apiError) {
+        console.error('API error loading custom exams:', apiError);
+        // Fallback to local storage on API error
+        const allExams = await getAllCustomExams();
+        const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
+        setExams(subjectExams);
+      }
     } catch (error) {
       console.error('Error loading exams:', error);
       Alert.alert('Error', 'Failed to load exam history');
+      setExams([]); // Set empty array on complete failure
     } finally {
       setLoading(false);
     }
@@ -180,6 +211,8 @@ const CustomsExamScreen = () => {
           text: 'Delete',
           onPress: async () => {
             try {
+              // For now, we'll only handle local storage deletion
+              // Database deletion would require a new API endpoint
               await deleteCustomExam(examId);
               setExams(exams.filter(e => e.id !== examId));
               Alert.alert('Success', 'Exam deleted from history');
@@ -196,7 +229,14 @@ const CustomsExamScreen = () => {
 
   const handleOpenExam = async (examId) => {
     try {
-      const exam = await getCustomExamById(examId);
+      // First try to find the exam in the current exams state (which may be from database or local storage)
+      let exam = exams.find(e => e.id === examId);
+      
+      // If not found in state, try local storage as fallback
+      if (!exam) {
+        exam = await getCustomExamById(examId);
+      }
+      
       if (!exam) {
         Alert.alert('Error', 'Exam not found');
         return;
@@ -643,7 +683,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: scale(20),
-    paddingTop: verticalScale(60),
+    minHeight: verticalScale(400),
   },
   emptyTitle: {
     fontSize: moderateScale(16),

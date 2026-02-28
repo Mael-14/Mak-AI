@@ -201,7 +201,7 @@ const CustomExamSetup = () => {
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 60 second timeout
 
       const response = await fetch(
-        'https://boyz.app.n8n.cloud/webhook-test/exam/generate',
+        'https://n8n.srv1427812.hstgr.cloud/webhook-test/exam/generate',
         {
           method: 'POST',
           headers: {
@@ -551,9 +551,9 @@ const CustomExamSetup = () => {
           <View style={styles.modalContent}>
             <View style={styles.lottieContainer}>
               <LottieView
-                source={require('../animations/ai_animation_flow_1.json')}
+                source={require('../animations/aiflow.json')}
                 autoPlay
-                loop
+                loop={true}
                 resizeMode="contain"
                 style={styles.lottieAnim}
               />
@@ -589,10 +589,12 @@ const styles = StyleSheet.create({
     height: width * 0.6,
   },
   lottieContainer: {
-    justifyContent: 'center',
+    width: 160,
+    height: 160,
     alignItems: 'center',
-    width: '100%',
-    height: 300,
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 16,
   },
   loadingText: {
     marginTop: 20,

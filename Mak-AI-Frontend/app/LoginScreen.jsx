@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
-import GoogleOAuthModal from '../components/GoogleOAuthModal';
+import { useGoogleSignIn } from '../services/googleAuth';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -33,7 +33,9 @@ const LoginScreen = () => {
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  
+  // Initialize Google Sign-In
+  const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleSignIn();
 
   // Validation functions
   const validateEmail = (email) => {
@@ -181,21 +183,50 @@ const LoginScreen = () => {
     }
   };
 
-  // Handle Google login via custom modal
-  const handleGoogleLogin = () => {
-    setShowGoogleModal(true);
-  };
-
-  // Handle Google login success
-  const handleGoogleLoginSuccess = (userData) => {
-    updateUserData(userData);
-    showSuccess('Login successful! Welcome back.');
-    router.replace('/(tabs)');
-  };
-
-  // Handle Google login error
-  const handleGoogleLoginError = (errorMessage) => {
-    showError(errorMessage);
+  // Handle Google login
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Sign in with Google
+      const userCredential = await googleSignIn();
+      
+      // Get Firebase ID token
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Store authentication data
+      const userData = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        name: userCredential.user.displayName || userCredential.user.email?.split('@')[0],
+        emailVerified: userCredential.user.emailVerified
+      };
+      
+      // Save login data
+      await saveLoginData(idToken, userData);
+      updateUserData(userData);
+      
+      // Success
+      showSuccess('Login successful! Welcome back.');
+      router.replace('/(tabs)');
+      
+    } catch (error) {
+      console.error('Google login error:', error);
+      
+      let errorMessage = 'Google login failed. Please try again.';
+      
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Google sign-in was cancelled.';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle forgot password
@@ -343,12 +374,21 @@ const LoginScreen = () => {
 
         {/* Google Button */}
         <TouchableOpacity
-          style={styles.googleButton}
+          style={[
+            styles.googleButton,
+            (isLoading || googleLoading) && styles.googleButtonDisabled
+          ]}
           onPress={handleGoogleLogin}
-          disabled={isLoading}
+          disabled={isLoading || googleLoading}
         >
-          <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
+          {(isLoading || googleLoading) ? (
+            <ActivityIndicator color="#373130ff" size="small" />
+          ) : (
+            <>
+              <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -367,15 +407,6 @@ const LoginScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Google OAuth Modal */}
-      <GoogleOAuthModal
-        visible={showGoogleModal}
-        onClose={() => setShowGoogleModal(false)}
-        onSuccess={handleGoogleLoginSuccess}
-        onError={handleGoogleLoginError}
-        title="Sign in with Google"
-        mode="login"
-      />
     </SafeAreaView>
   )
 }
@@ -489,6 +520,9 @@ const styles = StyleSheet.create({
     color: '#373130ff',
     fontSize: wp('3.75%'),
     fontWeight: '600',
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   footer: {
     flexDirection: 'row',

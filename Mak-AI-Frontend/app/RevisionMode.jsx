@@ -176,7 +176,7 @@ export default function Revision() {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-      <View style={[styles.mainContainer, { backgroundColor: '#f5f5f5' }]}>
+      <View style={[styles.mainContainer, styles.backgroundContainer]}>
         {/* Main ScrollView with all content */}
         <ScrollView 
           style={styles.mainScrollView}
@@ -260,6 +260,20 @@ export default function Revision() {
                   }
                 }
 
+                // Determine indicator background and text color
+                let indicatorBgColor = '#f0f0f0';
+                let indicatorTextColor = '#666666';
+                
+                if (selected && isSelected) {
+                  if (selected === currentQuestion.correct) {
+                    indicatorBgColor = '#10B981'; // Green for correct
+                    indicatorTextColor = '#FFF';
+                  } else {
+                    indicatorBgColor = '#EF4444'; // Red for incorrect
+                    indicatorTextColor = '#FFF';
+                  }
+                }
+
                 return (
                   <TouchableOpacity
                     key={option.label}
@@ -270,8 +284,14 @@ export default function Revision() {
                       { backgroundColor, borderColor }
                     ]}
                   >
-                    <View style={[styles.optionIndicator, isSelected && styles.optionIndicatorActive]}>
-                      <Text style={[styles.optionLetter, isSelected && { color: '#FFF' }]}>
+                    <View style={[
+                      styles.optionIndicator, 
+                      { backgroundColor: indicatorBgColor }
+                    ]}>
+                      <Text style={[
+                        styles.optionLetter, 
+                        { color: indicatorTextColor }
+                      ]}>
                         {option.label}
                       </Text>
                     </View>
@@ -385,7 +405,7 @@ export default function Revision() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -393,6 +413,10 @@ export default function Revision() {
 const styles = StyleSheet.create({
   mainContainer: { 
     flex: 1 
+  },
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
   },
 
   // Header Styles
@@ -424,12 +448,12 @@ const styles = StyleSheet.create({
     marginRight: scale(15),
   },
   headerSubject: { 
-    color: '#2d2d2d', 
+    color: '#1e293b', 
     fontSize: moderateScale(18), 
-    fontWeight: '800' 
+    fontWeight: '800'
   },
   headerMeta: { 
-    color: '#666666', 
+    color: '#64748b', 
     fontSize: moderateScale(12),
     marginTop: 2,
   },
@@ -460,9 +484,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressCountText: { 
-    color: '#666666', 
+    color: '#475569', 
     fontSize: 14, 
-    fontWeight: '700' 
+    fontWeight: '700'
   },
   progressBarBg: { 
     flexDirection: 'row',
@@ -476,10 +500,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressDotActive: {
-    backgroundColor: '#2d2d2d',
+    backgroundColor: '#3b82f6',
   },
   progressDotInactive: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e2e8f0',
   },
 
   // Main Scroll View
@@ -511,7 +535,7 @@ const styles = StyleSheet.create({
     marginBottom: scale(16),
   },
   revisionBadge: {
-    backgroundColor: '#2d2d2d',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -554,9 +578,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: 12 
-  },
-  optionIndicatorActive: { 
-    backgroundColor: '#2d2d2d' 
   },
   optionLetter: { 
     fontSize: 14, 
@@ -611,7 +632,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalHeader: {
-    backgroundColor: '#2d2d2d',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: scale(20),
     paddingVertical: verticalScale(16),
     paddingTop: verticalScale(20),
@@ -707,12 +728,12 @@ const styles = StyleSheet.create({
     fontSize: 14 
   },
   revisionPill: { 
-    backgroundColor: '#2d2d2d', 
+    backgroundColor: '#3b82f6', 
     paddingHorizontal: scale(28), 
     paddingVertical: verticalScale(10), 
     borderRadius: 20,
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
+    shadowColor: '#3b82f6',
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
@@ -731,7 +752,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   loadingText: {
     marginTop: 16,
