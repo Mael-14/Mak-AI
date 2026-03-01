@@ -437,6 +437,47 @@ export const examAPI = {
       return { success: false, error: error.message };
     }
   },
+
+  /**
+   * Fetch user-specific custom exams by subject
+   * GET /api/exams/custom/user/:userId/subject/:subjectId
+   * @param {string} userId - The user ID
+   * @param {number} subjectId - The subject ID (1-8)
+   * @returns {Promise<Object>} { success, data: [customExams...] }
+   */
+  getUserCustomExamsBySubject: async (userId, subjectId) => {
+    try {
+      const response = await api.get(`/exams/custom/user/${userId}/subject/${subjectId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching custom exams for user ${userId}, subject ${subjectId}:`, error);
+      if (error.response?.status === 404) {
+        // No custom exams found - return empty array
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch all custom exams for a specific user
+   * GET /api/exams/custom/user/:userId
+   * @param {string} userId - The user ID
+   * @returns {Promise<Object>} { success, data: [customExams...] }
+   */
+  getUserCustomExams: async (userId) => {
+    try {
+      const response = await api.get(`/exams/custom/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching custom exams for user ${userId}:`, error);
+      if (error.response?.status === 404) {
+        // No custom exams found - return empty array
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
+  },
 };
 
 export default api;

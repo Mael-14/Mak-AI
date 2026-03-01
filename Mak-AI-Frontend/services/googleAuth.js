@@ -1,85 +1,101 @@
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import React from 'react';
+import { GoogleAuthProvider, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { Platform } from 'react-native';
+import { authAPI } from './api';
 
 // Complete web browser authentication
 WebBrowser.maybeCompleteAuthSession();
 
 /**
- * Sign in with Google using Firebase Auth
- * This function handles Google authentication for all platforms
+ * Google Sign-In using web browser and backend API
+ * 
+ * This implementation:
+ * - Gets Google OAuth URL from backend API
+ * - Opens Google OAuth in the device's default web browser
+ * - Uses backend to handle OAuth code exchange
+ * - Returns Firebase custom token for authentication
+ * 
+ * @returns {Object} userCredential from Firebase
  */
-export const signInWithGoogle = async () => {
+export const signInWithGoogleBrowser = async () => {
   try {
-    // Configure Google OAuth request
-    const [request, response, promptAsync] = Google.useAuthRequest({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // Required for Firebase
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    });
+    // Get Google OAuth URL from backend
+    const authUrlResponse = await authAPI.getGoogleAuthUrl();
+    const authUrl = authUrlResponse?.data?.authUrl || authUrlResponse?.authUrl;
+    
+    if (!authUrl) {
+      throw new Error('Failed to get Google OAuth URL from backend');
+    }
 
-    // Prompt user to sign in
-    const result = await promptAsync();
+    // Define callback URL that backend expects
+    const callbackUrl = authUrl.includes('localhost') 
+      ? authUrl.replace('/auth/google', '/auth/google/callback')
+      : authUrl.replace('/auth/google', '/auth/google/callback');
+
+    // Open web browser for authentication
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, callbackUrl);
     
     if (result.type !== 'success') {
       throw new Error('Google sign-in was cancelled or failed');
     }
 
-    // Get the ID token from Google
-    const { id_token } = result.params;
-    
-    if (!id_token) {
-      throw new Error('No ID token received from Google');
-    }
+    // Parse the callback URL for token
+    if (result.url && result.url.includes('token=')) {
+      const url = new URL(result.url);
+      const token = url.searchParams.get('token');
+      const error = url.searchParams.get('error');
 
-    // Create Firebase credential from Google ID token
-    const credential = GoogleAuthProvider.credential(id_token);
+      if (error) {
+        throw new Error('Google authentication failed');
+      }
+
+      if (!token) {
+        throw new Error('No authentication token received');
+      }
+
+      // Sign in to Firebase with custom token from backend
+      const userCredential = await signInWithCustomToken(auth, token);
+      return userCredential;
+    } else {
+      throw new Error('Invalid callback URL received');
+    }
     
-    // Sign in to Firebase with Google credential
-    const userCredential = await signInWithCredential(auth, credential);
-    
-    return userCredential;
   } catch (error) {
-    console.error('Google sign-in error:', error);
+    console.error('Google authentication error:', error);
     throw error;
   }
 };
 
 /**
- * Simplified Google Sign-In that can be used directly in components
- * Note: This uses hooks, so it should be called from within a component
+ * Hook for Google Sign-In using web browser
+ * 
+ * This implementation:
+ * - Uses WebBrowser.openAuthSessionAsync for authentication
+ * - Works with the existing backend API
+ * - No complex dependencies required
+ * 
+ * @returns {Object} Hook interface matching previous implementation
  */
 export const useGoogleSignIn = () => {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  });
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const signIn = async () => {
     try {
-      const result = await promptAsync();
-      
-      if (result.type !== 'success') {
-        throw new Error('Google sign-in was cancelled');
-      }
-
-      const { id_token } = result.params;
-      
-      if (!id_token) {
-        throw new Error('No ID token received');
-      }
-
-      const credential = GoogleAuthProvider.credential(id_token);
-      const userCredential = await signInWithCredential(auth, credential);
-      
-      return userCredential;
+      setIsLoading(true);
+      return await signInWithGoogleBrowser();
     } catch (error) {
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { signIn, isLoading: request === null };
+  return { 
+    signIn, 
+    isLoading,
+    request: true, // Always ready - no async initialization needed
+    response: null,
+    promptAsync: signIn 
+  };
 };

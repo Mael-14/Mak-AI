@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import GoogleOAuthModal from '../components/GoogleOAuthModal';
+import { useGoogleSignIn } from '../services/googleAuth';
 
 const SignUpScreen = () => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -34,7 +34,9 @@ const SignUpScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  
+  // Initialize Google Sign-In
+  const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleSignIn();
 
   // Validation functions
   const validateName = (name) => {
@@ -235,22 +237,72 @@ const SignUpScreen = () => {
     }
   };
 
-  // Handle Google signup via custom modal
-  const handleGoogleSignUp = () => {
-    setShowGoogleModal(true);
-  };
+  // Handle Google signup
+  const handleGoogleSignUp = async () => {
+    try {
+      if (!agreedToTerms) {
+        showError('Please agree to the Terms and Conditions to continue.');
+        return;
+      }
 
-  // Handle Google signup success
-  const handleGoogleSignUpSuccess = (userData) => {
-    showSuccess('Account created successfully! Welcome to Mak AI.');
-    setTimeout(() => {
-      router.replace('/(tabs)');
-    }, 1000);
-  };
-
-  // Handle Google signup error
-  const handleGoogleSignUpError = (errorMessage) => {
-    showError(errorMessage);
+      setIsLoading(true);
+      
+      // Sign in with Google
+      const userCredential = await googleSignIn();
+      
+      // Get Firebase ID token
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Create user profile in Firestore
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          name: userCredential.user.displayName || userCredential.user.email?.split('@')[0],
+          email: userCredential.user.email,
+          uid: userCredential.user.uid,
+          emailVerified: userCredential.user.emailVerified,
+          createdAt: serverTimestamp(),
+          loginMethod: 'google'
+        });
+      } catch (firestoreError) {
+        console.log('Firestore error (continuing anyway):', firestoreError);
+      }
+      
+      // Store authentication data
+      const userData = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        name: userCredential.user.displayName || userCredential.user.email?.split('@')[0],
+        emailVerified: userCredential.user.emailVerified
+      };
+      
+      // Save login data
+      await saveLoginData(idToken, userData);
+      
+      // Success
+      showSuccess('Account created successfully! Welcome to Mak AI.');
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Google signup error:', error);
+      
+      let errorMessage = 'Google sign-up failed. Please try again.';
+      
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Google sign-up was cancelled.';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = 'An account already exists with this email. Please try signing in instead.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Toggle terms agreement
@@ -411,12 +463,21 @@ const SignUpScreen = () => {
 
           {/* Google Button */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[
+              styles.googleButton,
+              (isLoading || googleLoading) && styles.googleButtonDisabled
+            ]}
             onPress={handleGoogleSignUp}
-            disabled={isLoading}
+            disabled={isLoading || googleLoading}
           >
-            <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {(isLoading || googleLoading) ? (
+              <ActivityIndicator color="#373130ff" size="small" />
+            ) : (
+              <>
+                <Image source={Gicon} style={{ width: wp('6.25%'), height: wp('6.25%'), marginRight: wp('2.5%') }} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -436,15 +497,6 @@ const SignUpScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Google OAuth Modal */}
-      <GoogleOAuthModal
-        visible={showGoogleModal}
-        onClose={() => setShowGoogleModal(false)}
-        onSuccess={handleGoogleSignUpSuccess}
-        onError={handleGoogleSignUpError}
-        title="Sign up with Google"
-        mode="signup"
-      />
     </SafeAreaView>
   )
 }
@@ -599,6 +651,9 @@ const styles = StyleSheet.create({
     color: '#373130ff',
     fontSize: wp('3.75%'),
     fontWeight: '600',
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   footer: {
     flexDirection: 'row',
