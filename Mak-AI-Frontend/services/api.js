@@ -94,6 +94,29 @@ export const authAPI = {
   },
 };
 
+// Push Notifications API methods
+export const notificationsAPI = {
+  /**
+   * Saves the device's ExpoPushToken to the backend.
+   * Must be called after login/signup while the user has a valid auth token.
+   * @param {string} token    - ExpoPushToken string
+   * @param {string} platform - 'ios' | 'android'
+   */
+  registerToken: async (token, platform) => {
+    const response = await api.post('/notifications/token', { token, platform });
+    return response.data;
+  },
+
+  /**
+   * Deactivates the push token on logout so the user stops receiving notifications.
+   * @param {string} token - ExpoPushToken string
+   */
+  deactivateToken: async (token) => {
+    const response = await api.delete('/notifications/token', { data: { token } });
+    return response.data;
+  },
+};
+
 // Multi-modal Chat API methods
 export const multiModalAPI = {
   // Upload and analyze image

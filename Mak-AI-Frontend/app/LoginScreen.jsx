@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
 import { useGoogleSignIn } from '../services/googleAuth';
+import { registerAndSendToken } from '../services/notificationService';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -33,7 +34,7 @@ const LoginScreen = () => {
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Initialize Google Sign-In
   const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleSignIn();
 
@@ -130,7 +131,10 @@ const LoginScreen = () => {
           await saveLoginData(idToken, userData);
           updateUserData(userData); // Update AuthContext
 
-          // Step 5: Success - show toast and navigate
+          // Step 5: Register push token — fires after auth token is stored
+          registerAndSendToken().catch(() => { }); // Silent, non-blocking
+
+          // Step 6: Success - show toast and navigate
           showSuccess('Login successful! Welcome back.');
           // Navigate to home screen - adjust route as needed
           router.replace('/(tabs)'); // Navigate to tabs
@@ -145,6 +149,9 @@ const LoginScreen = () => {
             };
             await saveLoginData(idToken, userData);
             updateUserData(userData); // Update AuthContext
+
+            // Register push token after auth data is stored
+            registerAndSendToken().catch(() => { });
 
             showSuccess('Login successful! Welcome back.');
             router.replace('/(tabs)');
@@ -187,13 +194,13 @@ const LoginScreen = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
-      
+
       // Sign in with Google
       const userCredential = await googleSignIn();
-      
+
       // Get Firebase ID token
       const idToken = await userCredential.user.getIdToken();
-      
+
       // Store authentication data
       const userData = {
         uid: userCredential.user.uid,
@@ -201,20 +208,23 @@ const LoginScreen = () => {
         name: userCredential.user.displayName || userCredential.user.email?.split('@')[0],
         emailVerified: userCredential.user.emailVerified
       };
-      
+
       // Save login data
       await saveLoginData(idToken, userData);
       updateUserData(userData);
-      
+
+      // Register push token after auth data is stored
+      registerAndSendToken().catch(() => { });
+
       // Success
       showSuccess('Login successful! Welcome back.');
       router.replace('/(tabs)');
-      
+
     } catch (error) {
       console.error('Google login error:', error);
-      
+
       let errorMessage = 'Google login failed. Please try again.';
-      
+
       if (error.message.includes('cancelled')) {
         errorMessage = 'Google sign-in was cancelled.';
       } else if (error.message.includes('network')) {
@@ -222,7 +232,7 @@ const LoginScreen = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
     } finally {
       setIsLoading(false);
