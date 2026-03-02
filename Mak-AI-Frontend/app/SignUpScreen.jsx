@@ -20,6 +20,7 @@ import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useGoogleSignIn } from '../services/googleAuth';
+import { registerAndSendToken } from '../services/notificationService';
 
 const SignUpScreen = () => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -34,7 +35,7 @@ const SignUpScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  
+
   // Initialize Google Sign-In
   const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleSignIn();
 
@@ -164,7 +165,10 @@ const SignUpScreen = () => {
           };
           await saveLoginData(idToken, userData);
 
-          // Step 6: Success - show toast and navigate
+          // Step 6: Register push token (before navigation)
+          registerAndSendToken().catch(() => { });
+
+          // Step 7: Success - show toast and navigate
           showSuccess('Account created successfully! Please sign in to continue.');
           setTimeout(() => {
             router.push('/LoginScreen');
@@ -215,7 +219,7 @@ const SignUpScreen = () => {
       } catch (error) {
         // Handle errors gracefully without triggering verbose call stack
         let errorMessage = 'Signup failed. Please try again.';
-        
+
         // Handle Firebase Auth errors
         if (error?.code === 'auth/email-already-in-use') {
           errorMessage = 'This email is already registered. Please login instead.';
@@ -228,7 +232,7 @@ const SignUpScreen = () => {
         } else if (error?.message) {
           errorMessage = error.message;
         }
-        
+
         // Show error toast
         showError(errorMessage);
       } finally {
@@ -246,13 +250,13 @@ const SignUpScreen = () => {
       }
 
       setIsLoading(true);
-      
+
       // Sign in with Google
       const userCredential = await googleSignIn();
-      
+
       // Get Firebase ID token
       const idToken = await userCredential.user.getIdToken();
-      
+
       // Create user profile in Firestore
       try {
         await setDoc(doc(db, 'users', userCredential.user.uid), {
@@ -266,7 +270,7 @@ const SignUpScreen = () => {
       } catch (firestoreError) {
         console.log('Firestore error (continuing anyway):', firestoreError);
       }
-      
+
       // Store authentication data
       const userData = {
         uid: userCredential.user.uid,
@@ -274,21 +278,24 @@ const SignUpScreen = () => {
         name: userCredential.user.displayName || userCredential.user.email?.split('@')[0],
         emailVerified: userCredential.user.emailVerified
       };
-      
+
       // Save login data
       await saveLoginData(idToken, userData);
-      
+
+      // Register push token after auth data is stored
+      registerAndSendToken().catch(() => { });
+
       // Success
       showSuccess('Account created successfully! Welcome to Mak AI.');
       setTimeout(() => {
         router.replace('/(tabs)');
       }, 1000);
-      
+
     } catch (error) {
       console.error('Google signup error:', error);
-      
+
       let errorMessage = 'Google sign-up failed. Please try again.';
-      
+
       if (error.message.includes('cancelled')) {
         errorMessage = 'Google sign-up was cancelled.';
       } else if (error.message.includes('network')) {
@@ -298,7 +305,7 @@ const SignUpScreen = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
     } finally {
       setIsLoading(false);

@@ -37,6 +37,14 @@
       "expo-router",
       "expo-web-browser",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/mak1.jpg",
+          "color": "#AAB6FF",
+          "sounds": []
+        }
+      ],
+      [
         "expo-document-picker",
         {
           "iCloudContainerEnvironment": "Production"
