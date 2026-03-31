@@ -51,7 +51,7 @@ import * as ImagePicker from 'expo-image-picker';
 // ============================================================
 const CONFIG = {
   // Replace with your n8n webhook URL after importing the workflow
-  API_URL: 'https://n8n.srv1427812.hstgr.cloud/webhook-test/chat',
+  API_URL: 'https://n8n.srv1427812.hstgr.cloud/webhook/chat',
   
   // Student level - can be made dynamic based on user profile
   STUDENT_LEVEL: 'A-Level', // or 'O-Level'
