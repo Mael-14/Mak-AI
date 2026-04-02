@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, AudioModule, RecordingOptions } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import {
   widthPercentageToDP as wp,
@@ -18,19 +18,18 @@ import {
 } from 'react-native-responsive-screen';
 import { useToast } from '../context/ToastContext';
 
-const VoiceRecorder = ({ 
-  onVoiceRecorded, 
-  onTranscriptReady, 
+const VoiceRecorder = ({
+  onVoiceRecorded,
+  onTranscriptReady,
   style,
   mode = 'record' // 'record' | 'speak-to-text'
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [recording, setRecording] = useState(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState('');
-  
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim1 = useRef(new Animated.Value(0.3)).current;
   const waveAnim2 = useRef(new Animated.Value(0.5)).current;
@@ -39,21 +38,30 @@ const VoiceRecorder = ({
 
   const { showError, showSuccess, showWarning } = useToast();
 
+  // Initialize the new expo-audio recorder
+  const audioRecorder = useAudioRecorder({
+    sampleRate: 44100,
+    numberOfChannels: 2,
+    bitRate: 128000,
+    extension: '.m4a',
+    outputFormat: 'mpeg_4',
+  });
+
   useEffect(() => {
     return () => {
-      if (recording) {
-        recording.stopAndUnloadAsync();
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop();
       }
       if (durationInterval.current) {
         clearInterval(durationInterval.current);
       }
     };
-  }, [recording]);
+  }, []);
 
   // Request audio permissions
   const requestPermissions = async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
+      const { status } = await AudioModule.requestRecordingPermissionsAsync();
       if (status !== 'granted') {
         showError('Microphone permission is required to record audio');
         return false;
@@ -138,7 +146,7 @@ const VoiceRecorder = ({
     waveAnim1.stopAnimation();
     waveAnim2.stopAnimation();
     waveAnim3.stopAnimation();
-    
+
     // Reset to default values
     pulseAnim.setValue(1);
     waveAnim1.setValue(0.3);
@@ -152,38 +160,10 @@ const VoiceRecorder = ({
       const hasPermissions = await requestPermissions();
       if (!hasPermissions) return;
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+      // In expo-audio, recording preparation and starting is split
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
 
-      const { recording } = await Audio.Recording.createAsync({
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
-          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.m4a',
-          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
-          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/webm',
-          bitsPerSecond: 128000,
-        },
-      });
-
-      setRecording(recording);
       setIsRecording(true);
       setRecordingDuration(0);
       startPulseAnimation();
@@ -203,12 +183,11 @@ const VoiceRecorder = ({
   // Stop recording
   const stopRecording = async () => {
     try {
-      if (!recording) return;
+      if (!audioRecorder.isRecording) return;
 
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      
-      setRecording(null);
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+
       setIsRecording(false);
       stopAnimations();
 
@@ -221,7 +200,7 @@ const VoiceRecorder = ({
           // Simulate transcription (in real app, you'd call a speech-to-text service)
           setIsTranscribing(true);
           showWarning('Transcribing audio... (This is a demo)');
-          
+
           setTimeout(() => {
             const demoTranscript = "This is a demo transcription. In a real app, you would send the audio to a speech-to-text service.";
             setTranscript(demoTranscript);
@@ -274,10 +253,10 @@ const VoiceRecorder = ({
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <Ionicons 
-          name={mode === 'speak-to-text' ? "mic" : "musical-notes"} 
-          size={wp('6%')} 
-          color="#FF6B6B" 
+        <Ionicons
+          name={mode === 'speak-to-text' ? "mic" : "musical-notes"}
+          size={wp('6%')}
+          color="#FF6B6B"
         />
       </TouchableOpacity>
 
@@ -290,116 +269,116 @@ const VoiceRecorder = ({
       >
         <View style={styles.modalOverlay}>
           <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleClose}
-            >
-              <Ionicons name="close" size={wp('6%')} color="#666" />
-            </TouchableOpacity>
-            
-            <Text style={styles.modalTitle}>
-              {mode === 'speak-to-text' ? 'Speech to Text' : 'Voice Recorder'}
-            </Text>
-            
-            <View style={styles.placeholder} />
-          </View>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+              >
+                <Ionicons name="close" size={wp('6%')} color="#666" />
+              </TouchableOpacity>
 
-          <View style={styles.recordingContainer}>
-            {/* Waveform Animation */}
-            <View style={styles.waveformContainer}>
-              <Animated.View 
-                style={[
-                  styles.waveBar, 
-                  styles.waveBar1,
-                  { transform: [{ scaleY: waveAnim1 }] }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.waveBar, 
-                  styles.waveBar2,
-                  { transform: [{ scaleY: waveAnim2 }] }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.waveBar, 
-                  styles.waveBar3,
-                  { transform: [{ scaleY: waveAnim3 }] }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.waveBar, 
-                  styles.waveBar2,
-                  { transform: [{ scaleY: waveAnim2 }] }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.waveBar, 
-                  styles.waveBar1,
-                  { transform: [{ scaleY: waveAnim1 }] }
-                ]} 
-              />
+              <Text style={styles.modalTitle}>
+                {mode === 'speak-to-text' ? 'Speech to Text' : 'Voice Recorder'}
+              </Text>
+
+              <View style={styles.placeholder} />
             </View>
 
-            {/* Record Button */}
-            <Animated.View style={[styles.recordButtonContainer, { transform: [{ scale: pulseAnim }] }]}>
-              <TouchableOpacity
-                style={[styles.recordButton, isRecording && styles.recordingButton]}
-                onPress={handleRecordToggle}
-                disabled={isTranscribing}
-              >
-                {isTranscribing ? (
-                  <ActivityIndicator size="large" color="#FFF" />
-                ) : (
-                  <Ionicons 
-                    name={isRecording ? "stop" : "mic"} 
-                    size={wp('12%')} 
-                    color="#FFF" 
-                  />
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* Duration */}
-            <Text style={styles.duration}>
-              {formatDuration(recordingDuration)}
-            </Text>
-
-            {/* Status */}
-            <Text style={styles.status}>
-              {isTranscribing 
-                ? 'Transcribing...' 
-                : isRecording 
-                  ? `Recording... Tap stop when finished` 
-                  : 'Tap the microphone to start recording'
-              }
-            </Text>
-
-            {/* Transcript */}
-            {transcript && (
-              <View style={styles.transcriptContainer}>
-                <Text style={styles.transcriptTitle}>Transcript:</Text>
-                <Text style={styles.transcriptText}>{transcript}</Text>
+            <View style={styles.recordingContainer}>
+              {/* Waveform Animation */}
+              <View style={styles.waveformContainer}>
+                <Animated.View
+                  style={[
+                    styles.waveBar,
+                    styles.waveBar1,
+                    { transform: [{ scaleY: waveAnim1 }] }
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.waveBar,
+                    styles.waveBar2,
+                    { transform: [{ scaleY: waveAnim2 }] }
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.waveBar,
+                    styles.waveBar3,
+                    { transform: [{ scaleY: waveAnim3 }] }
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.waveBar,
+                    styles.waveBar2,
+                    { transform: [{ scaleY: waveAnim2 }] }
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.waveBar,
+                    styles.waveBar1,
+                    { transform: [{ scaleY: waveAnim1 }] }
+                  ]}
+                />
               </View>
-            )}
-          </View>
 
-          {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructionsTitle}>
-              {mode === 'speak-to-text' ? '🗣️ Tips for better transcription:' : '🎵 Recording Tips:'}
-            </Text>
-            <Text style={styles.instructionsText}>
-              {mode === 'speak-to-text' 
-                ? '• Speak clearly and at normal pace\n• Minimize background noise\n• Keep device close to your mouth'
-                : '• Hold device steady while recording\n• Speak clearly for best quality\n• Keep recordings under 2 minutes'
-              }
-            </Text>
-          </View>
+              {/* Record Button */}
+              <Animated.View style={[styles.recordButtonContainer, { transform: [{ scale: pulseAnim }] }]}>
+                <TouchableOpacity
+                  style={[styles.recordButton, isRecording && styles.recordingButton]}
+                  onPress={handleRecordToggle}
+                  disabled={isTranscribing}
+                >
+                  {isTranscribing ? (
+                    <ActivityIndicator size="large" color="#FFF" />
+                  ) : (
+                    <Ionicons
+                      name={isRecording ? "stop" : "mic"}
+                      size={wp('12%')}
+                      color="#FFF"
+                    />
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* Duration */}
+              <Text style={styles.duration}>
+                {formatDuration(recordingDuration)}
+              </Text>
+
+              {/* Status */}
+              <Text style={styles.status}>
+                {isTranscribing
+                  ? 'Transcribing...'
+                  : isRecording
+                    ? `Recording... Tap stop when finished`
+                    : 'Tap the microphone to start recording'
+                }
+              </Text>
+
+              {/* Transcript */}
+              {transcript && (
+                <View style={styles.transcriptContainer}>
+                  <Text style={styles.transcriptTitle}>Transcript:</Text>
+                  <Text style={styles.transcriptText}>{transcript}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Instructions */}
+            <View style={styles.instructionsContainer}>
+              <Text style={styles.instructionsTitle}>
+                {mode === 'speak-to-text' ? '🗣️ Tips for better transcription:' : '🎵 Recording Tips:'}
+              </Text>
+              <Text style={styles.instructionsText}>
+                {mode === 'speak-to-text'
+                  ? '• Speak clearly and at normal pace\n• Minimize background noise\n• Keep device close to your mouth'
+                  : '• Hold device steady while recording\n• Speak clearly for best quality\n• Keep recordings under 2 minutes'
+                }
+              </Text>
+            </View>
           </SafeAreaView>
         </View>
       </Modal>

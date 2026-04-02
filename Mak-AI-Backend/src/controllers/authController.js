@@ -3,7 +3,6 @@ const userModel = require('../models/User.model');
 const { createAccountDocument } = require('../models/account.model');
 const { responseFormatter } = require('../utils/responseFormatter');
 const googleAuthService = require('../services/google/googleAuthService');
-const { sendPushNotificationToUser } = require('../services/notificationService');
 
 /**
  * Sign up a new user
@@ -102,14 +101,6 @@ const signup = async (req, res, next) => {
         createdAt: userDoc.createdAt
       }, 'User document created successfully in Firestore', 201)
     );
-
-    // Send welcome push notification (non-blocking — after response is sent)
-    sendPushNotificationToUser(
-      uid,
-      '🎉 Welcome to Mak AI!',
-      `Hi ${name}! Your account is ready. Start exploring now.`,
-      { screen: '/(tabs)' }
-    ).catch((err) => console.warn('[Notifications] Welcome notification failed:', err.message));
   } catch (error) {
     // Handle Firestore errors
     if (error.code === 'permission-denied') {
@@ -146,14 +137,6 @@ const login = async (req, res, next) => {
             name: decodedToken.name || decodedToken.email.split('@')[0]
           });
         }
-
-        // Fire welcome-back notification (non-blocking — does NOT delay the response)
-        sendPushNotificationToUser(
-          decodedToken.uid,
-          '👋 Welcome back!',
-          'You are now logged in to Mak AI.',
-          { screen: '/(tabs)' }
-        ).catch((err) => console.warn('[Notifications] Login notification failed:', err.message));
 
         return res.status(200).json(
           responseFormatter.success({

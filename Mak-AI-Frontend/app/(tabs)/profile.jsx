@@ -71,7 +71,6 @@ const Profile = () => {
                 {/* 3. Settings List */}
                 <View style={styles.menuWrapper}>
                     <ProfileItem icon="person-outline" title="Account Settings" color="#6366F1" />
-                    <ProfileItem icon="notifications-outline" title="Notifications" color="#F59E0B" />
                     <ProfileItem
                         icon="heart-outline"
                         title="My Favorites"

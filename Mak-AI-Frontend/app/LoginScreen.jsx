@@ -17,7 +17,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
 import { useGoogleSignIn } from '../services/googleAuth';
-import { registerAndSendToken } from '../services/notificationService';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -131,9 +130,6 @@ const LoginScreen = () => {
           await saveLoginData(idToken, userData);
           updateUserData(userData); // Update AuthContext
 
-          // Step 5: Register push token — fires after auth token is stored
-          registerAndSendToken().catch(() => { }); // Silent, non-blocking
-
           // Step 6: Success - show toast and navigate
           showSuccess('Login successful! Welcome back.');
           // Navigate to home screen - adjust route as needed
@@ -149,9 +145,6 @@ const LoginScreen = () => {
             };
             await saveLoginData(idToken, userData);
             updateUserData(userData); // Update AuthContext
-
-            // Register push token after auth data is stored
-            registerAndSendToken().catch(() => { });
 
             showSuccess('Login successful! Welcome back.');
             router.replace('/(tabs)');
@@ -212,9 +205,6 @@ const LoginScreen = () => {
       // Save login data
       await saveLoginData(idToken, userData);
       updateUserData(userData);
-
-      // Register push token after auth data is stored
-      registerAndSendToken().catch(() => { });
 
       // Success
       showSuccess('Login successful! Welcome back.');

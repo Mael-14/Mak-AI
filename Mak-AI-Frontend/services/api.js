@@ -3,9 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSubjectCode } from '../utils/subjectMapping';
 
 // Backend API base URL - Update this with your backend URL
-// Switch between local and production by commenting/uncommenting:
-// const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-seven.vercel.app/api';
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api';
+
+// Debug flag - Set to true to see detailed logs
+const DEBUG_MODE = process.env.EXPO_PUBLIC_DEBUG_API === 'true' || false;
+
+if (DEBUG_MODE) {
+  console.log('🔧 API Debug Mode Enabled');
+  console.log('📍 Base URL:', API_BASE_URL);
+}
 
 // Create axios instance
 const api = axios.create({
@@ -13,7 +19,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 15000, // 15 seconds timeout (increased for cold starts)
 });
 
 // Request interceptor - Add auth token to requests
@@ -23,6 +29,9 @@ api.interceptors.request.use(
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      if (DEBUG_MODE) {
+        console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
       }
     } catch (error) {
       console.error('Error getting auth token:', error);
@@ -37,9 +46,24 @@ api.interceptors.request.use(
 // Response interceptor - Handle errors globally
 api.interceptors.response.use(
   (response) => {
+    if (DEBUG_MODE) {
+      console.log('✅ API Response:', response.status, response.config.url);
+    }
     return response;
   },
   async (error) => {
+    // Log detailed error information
+    if (DEBUG_MODE || error.message.includes('Network')) {
+      console.error('❌ API Error Details:');
+      console.error('   Message:', error.message);
+      console.error('   Status:', error.response?.status);
+      console.error('   URL:', error.config?.url);
+      console.error('   Timeout:', error.config?.timeout);
+      if (error.response?.data) {
+        console.error('   Response:', error.response.data);
+      }
+    }
+    
     // Handle token expiration
     if (error.response?.status === 401) {
       try {
@@ -450,12 +474,30 @@ export const examAPI = {
    */
   saveCustomExamToCloud: async (examData) => {
     try {
+      if (DEBUG_MODE) {
+        console.log('☁️ Saving exam to cloud...', {
+          subject: examData.subject,
+          numQuestions: examData.numQuestions,
+          url: `${API_BASE_URL}/exams/custom`,
+        });
+      }
+      
       const response = await api.post('/exams/custom', examData, {
         timeout: 30000, // 30 seconds for batch writes
       });
+      
+      if (DEBUG_MODE) {
+        console.log('✅ Exam saved successfully:', response.data);
+      }
       return response.data;
     } catch (error) {
-      console.error('Error saving custom exam to cloud:', error);
+      console.error('Error saving custom exam to cloud:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        isNetworkError: error.message === 'Network Error',
+      });
       // Don't throw — this is a background sync, we don't want to break the UX
       return { success: false, error: error.message };
     }
