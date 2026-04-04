@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { auth } from '../../config/firebase';
 import { scale, verticalScale, moderateScale } from '../../utils/scaling';
 import { examAPI } from '../../services/api';
 const Profile = () => {
+    const router = useRouter();
     const user = auth.currentUser;
     const userName = user?.displayName || 'Learner';
     const firstLetter = userName.charAt(0).toUpperCase();
@@ -71,6 +73,7 @@ const Profile = () => {
                 {/* 3. Settings List */}
                 <View style={styles.menuWrapper}>
                     <ProfileItem icon="person-outline" title="Account Settings" color="#6366F1" />
+                    <ProfileItem icon="star-outline" title="Subscribe" color="#F59E0B" onPress={() => router.push('/SubscriptionScreen')} />
                     <ProfileItem icon="notifications-outline" title="Notifications" color="#F59E0B" />
                     <ProfileItem
                         icon="heart-outline"

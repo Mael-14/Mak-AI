@@ -9,7 +9,7 @@ const { handleDepositCallback } = require('../services/financial_service/handleC
  * @desc    Create a deposit transaction
  * @access  Private
  */
-router.post('/deposit', authenticateToken, createDepositTransaction);
+router.post('/', authenticateToken, createDepositTransaction);
 
 /**
  * @route   POST /api/deposit/callback

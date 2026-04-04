@@ -57,10 +57,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#001A72',
     paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
+    paddingHorizontal: 40,
+    borderRadius: 25,
     alignSelf: 'center',
   },
   buttonText: {

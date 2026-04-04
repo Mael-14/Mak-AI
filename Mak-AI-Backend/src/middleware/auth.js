@@ -8,6 +8,8 @@ const { responseFormatter } = require('../utils/responseFormatter');
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('🛡️ [AUTH] Incoming request to:', req.path);
+    console.log('🔑 [AUTH] Authorization header:', authHeader ? 'Found (Bearer ...)' : 'MISSING ❌');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json(
