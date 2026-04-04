@@ -5,7 +5,10 @@ import { getSubjectCode } from '../utils/subjectMapping';
 // Backend API base URL - Update this with your backend URL
 // Switch between local and production by commenting/uncommenting:
 // const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-seven.vercel.app/api';
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
+//const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
+
+const API_BASE_URL = 'https://semibiological-implicitly-karan.ngrok-free.dev/api';
+
 
 // Create axios instance
 const api = axios.create({
@@ -21,6 +24,8 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
+      console.log(`🌐 [API] Requesting: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`🔑 [API] Token present: ${token ? 'YES (Bearer ...)' : 'NO ❌'}`);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -498,6 +503,26 @@ export const examAPI = {
         // No custom exams found - return empty array
         return { success: true, data: [] };
       }
+      throw error;
+    }
+  },
+};
+
+/**
+ * Financial / Payment API methods
+ */
+export const financialAPI = {
+  /**
+   * Create a deposit transaction
+   * @param {Object} depositData - { amount, phone_number, provider }
+   * @returns {Promise<Object>} { success, data: { deposit_id } }
+   */
+  createDeposit: async (depositData) => {
+    try {
+      const response = await api.post('/deposit', depositData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating deposit:', error);
       throw error;
     }
   },
