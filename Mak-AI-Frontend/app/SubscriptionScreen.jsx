@@ -32,6 +32,7 @@ const SubscriptionScreen = () => {
         visible: false,
         title: '',
         message: '',
+        onClose: null,
     });
 
     const handlePhoneNumberChange = (text) => {
@@ -44,11 +45,12 @@ const SubscriptionScreen = () => {
         }
     };
 
-    const showAlert = (title, message) => {
+    const showAlert = (title, message, onClose = null) => {
         setAlertConfig({
             visible: true,
             title,
             message,
+            onClose,
         });
     };
 
@@ -115,7 +117,8 @@ const SubscriptionScreen = () => {
             if (response.success) {
                 showAlert(
                     'Deposit Initiated', 
-                    'A prompt has been sent to your phone. Please enter your PIN to complete the payment.'
+                    'A prompt has been sent to your phone. Please enter your PIN to complete the payment.',
+                    () => router.back()
                 );
             } else {
                 showAlert('Payment Error', response.message || 'We could not initiate your payment. Please try again.');
@@ -178,7 +181,10 @@ const SubscriptionScreen = () => {
                     visible={alertConfig.visible}
                     title={alertConfig.title}
                     message={alertConfig.message}
-                    onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+                    onClose={() => {
+                        setAlertConfig({ ...alertConfig, visible: false });
+                        if (alertConfig.onClose) alertConfig.onClose();
+                    }}
                 />
             </SafeAreaView>
         </>
