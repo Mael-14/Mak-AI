@@ -7,10 +7,10 @@ import {
   Dimensions,
   Animated,
   ScrollView,
-  FlatList,
   StatusBar,
   Image,
   ActivityIndicator,
+  FlatList,
   Modal as RNModal,
 } from 'react-native';
 import DayStreak from '../components/DayStreak';
@@ -35,6 +35,7 @@ function formatTime(seconds) {
   const sec = seconds % 60;
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 }
+
 /* Helper to generate combined HTML for a question review card */
 const generateQuestionReviewHTML = (q, idx, userAnswer) => {
   const isCorrect = userAnswer === q.correct;
@@ -174,7 +175,7 @@ const ReviewCard = React.memo(({ question, index, userAnswer }) => {
   const combinedHtml = generateQuestionReviewHTML(question, index, userAnswer);
   return (
     <View style={styles.questionCard}>
-      <MathJaxProvider html={combinedHtml} />
+      <MathJaxProvider html={combinedHtml} useRawHtml={true} />
     </View>
   );
 });
