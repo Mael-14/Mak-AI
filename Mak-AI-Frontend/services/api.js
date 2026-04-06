@@ -5,9 +5,9 @@ import { getSubjectCode } from '../utils/subjectMapping';
 // Backend API base URL - Update this with your backend URL
 // Switch between local and production by commenting/uncommenting:
 // const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-seven.vercel.app/api';
-//const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
 
-const API_BASE_URL = 'https://semibiological-implicitly-karan.ngrok-free.dev/api';
+//const API_BASE_URL = 'https://semibiological-implicitly-karan.ngrok-free.dev/api';
 
 
 // Create axios instance
