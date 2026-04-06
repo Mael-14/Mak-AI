@@ -7,11 +7,11 @@ import { useRouter } from 'expo-router';
 import { auth } from '../../config/firebase';
 import { scale, verticalScale, moderateScale } from '../../utils/scaling';
 import { examAPI } from '../../services/api';
-import { useRouter } from 'expo-router';
+
 const Profile = () => {
     const router = useRouter();
     const user = auth.currentUser;
-    const router = useRouter();
+
     const userName = user?.displayName || 'Learner';
     const firstLetter = userName.charAt(0).toUpperCase();
     const [stats, setStats] = useState(null);
