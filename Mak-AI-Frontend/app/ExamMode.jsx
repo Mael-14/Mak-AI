@@ -7,6 +7,7 @@ import {
   Dimensions,
   Animated,
   ScrollView,
+  FlatList,
   StatusBar,
   Image,
   ActivityIndicator,
@@ -34,6 +35,149 @@ function formatTime(seconds) {
   const sec = seconds % 60;
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 }
+/* Helper to generate combined HTML for a question review card */
+const generateQuestionReviewHTML = (q, idx, userAnswer) => {
+  const isCorrect = userAnswer === q.correct;
+  const userOption = q.options?.find(opt => opt.label === userAnswer);
+  const correctOption = q.options?.find(opt => opt.label === q.correct);
+
+  const statusColor = isCorrect ? '#059669' : (userAnswer ? '#DC2626' : '#64748B');
+  const statusBg = isCorrect ? '#ECFDF5' : (userAnswer ? '#FEF2F2' : '#F1F5F9');
+  const statusText = isCorrect ? 'Correct' : (userAnswer ? 'Incorrect' : 'Skipped');
+
+  const answerRowClass = isCorrect ? 'correct-row' : (userAnswer ? 'incorrect-row' : 'skipped-row');
+
+  return `
+    <div class="card-content">
+      <div class="card-header">
+        <div class="status-badge" style="background-color: ${statusBg}; color: ${statusColor};">
+          ${statusText}
+        </div>
+        <div class="question-number">Q${idx + 1}</div>
+      </div>
+
+      <div class="question-section">
+        ${q.question}
+      </div>
+
+      <div class="details-section">
+        <div class="answer-row ${answerRowClass}">
+          <div class="label">Your Answer:</div>
+          <div class="value">${userOption ? `<strong>${userOption.label}.</strong> ${userOption.value}` : 'No answer'}</div>
+        </div>
+
+        ${!isCorrect ? `
+          <div class="answer-row correct-row" style="margin-top: 8px;">
+            <div class="label">Correct Answer:</div>
+            <div class="value">${correctOption ? `<strong>${correctOption.label}.</strong> ${correctOption.value}` : 'Unknown'}</div>
+          </div>
+        ` : ''}
+
+        <div class="explanation-box">
+          <div class="explanation-label">Explanation:</div>
+          <div class="explanation-content">${q.explanation}</div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, system-ui, sans-serif;
+      }
+      .card-content {
+        background-color: #FFFFFF;
+        padding: 0;
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .status-badge {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .question-number {
+        font-size: 14px;
+        font-weight: 700;
+        color: #94A3B8;
+      }
+      .question-section {
+        font-size: 16px;
+        line-height: 1.5;
+        color: #1E293B;
+        margin-bottom: 20px;
+      }
+      .details-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .answer-row {
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+      }
+      .label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+      .value {
+        font-size: 15px;
+        color: #1E293B;
+      }
+      .correct-row {
+        background-color: #ECFDF5;
+        border-color: #10B981;
+      }
+      .incorrect-row {
+        background-color: #FEF2F2;
+        border-color: #EF4444;
+      }
+      .skipped-row {
+        background-color: #F1F5F9;
+        border-color: #E2E8F0;
+      }
+      .explanation-box {
+        margin-top: 12px;
+        padding: 16px;
+        background-color: #F8FAFC;
+        border-radius: 12px;
+        border: 1px dashed #E2E8F0;
+      }
+      .explanation-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: #1E293B;
+        margin-bottom: 8px;
+      }
+      .explanation-content {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #334155;
+      }
+      /* KaTeX tweak */
+      .katex { font-size: 1.1em !important; }
+    </style>
+  `;
+};
+
+const ReviewCard = React.memo(({ question, index, userAnswer }) => {
+  const combinedHtml = generateQuestionReviewHTML(question, index, userAnswer);
+  return (
+    <View style={styles.questionCard}>
+      <MathJaxProvider html={combinedHtml} />
+    </View>
+  );
+});
 
 export default function Exam({ route }) {
   const startTime = useRef(Date.now());
@@ -555,141 +699,108 @@ export default function Exam({ route }) {
 
     const scorePercentage = Math.round((passed / quizData.length) * 100);
 
+    const renderHeader = () => (
+      <View>
+        {/* Header */}
+        <View style={styles.headerWrapper}>
+          <TouchableOpacity
+            style={styles.backCircle}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="home-outline" size={24} color="#2d2d2d" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.headerSubject}>Exam Completed</Text>
+            <Text style={styles.headerMeta}>{examInfo.mathType}</Text>
+          </View>
+        </View>
+
+        {/* Score Summary Card */}
+        <View style={styles.resultsSummaryCard}>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scorePercentageText}>{scorePercentage}%</Text>
+            <Text style={styles.scoreLabelText}>Overall Score</Text>
+          </View>
+
+          <View style={styles.resultsDivider} />
+
+          <View style={styles.disclaimerGrid}>
+            <View style={styles.disclaimerGridItem}>
+              <Ionicons name="checkmark-circle" size={22} color="#059669" />
+              <Text style={styles.disclaimerGridValue}>{passed}</Text>
+              <Text style={styles.disclaimerGridLabel}>Correct</Text>
+            </View>
+            <View style={styles.disclaimerGridItem}>
+              <Ionicons name="close-circle" size={22} color="#DC2626" />
+              <Text style={styles.disclaimerGridValue}>{failed}</Text>
+              <Text style={styles.disclaimerGridLabel}>Incorrect</Text>
+            </View>
+            <View style={styles.disclaimerGridItem}>
+              <Ionicons name="help-circle" size={22} color="#64748B" />
+              <Text style={styles.disclaimerGridValue}>{notDone}</Text>
+              <Text style={styles.disclaimerGridLabel}>Skipped</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.reviewSectionTitle}>Question Review</Text>
+      </View>
+    );
+
+    const renderFooter = () => (
+      <View style={styles.resultsActionsContainer}>
+        <TouchableOpacity
+          style={styles.resultsHomeBtn}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="home" size={20} color="#2563EB" />
+          <Text style={styles.resultsHomeBtnText}>Go to Home</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.resultsRetryBtn}
+          onPress={() => {
+            hasSyncedRef.current = false; // Reset the sync flag for the new attempt
+            setShowResults(false);
+            setCurrentQuestionIndex(0);
+            setSelectedOptions({});
+            setTimer(60 * 90);
+          }}
+        >
+          <Ionicons name="refresh" size={20} color="#FFF" />
+          <Text style={styles.resultsRetryBtnText}>Retry Exam</Text>
+        </TouchableOpacity>
+      </View>
+    );
+
     return (
       <React.Fragment>
         <StreakModal />
         <SafeAreaView style={styles.mainContainer}>
           <View style={[styles.mainContainer, styles.backgroundContainer]}>
-            <ScrollView
-              style={styles.mainScrollView}
+            <FlatList
+              data={quizData}
+              keyExtractor={(item, index) => item.id || index.toString()}
+              renderItem={({ item, index }) => (
+                <ReviewCard
+                  question={item}
+                  index={index}
+                  userAnswer={selectedOptions[index]}
+                />
+              )}
+              ListHeaderComponent={renderHeader}
+              ListFooterComponent={renderFooter}
+              contentContainerStyle={{
+                paddingHorizontal: scale(15),
+                paddingTop: verticalScale(20),
+                paddingBottom: verticalScale(40),
+              }}
               showsVerticalScrollIndicator={false}
-            >
-              {/* Header */}
-              <View style={styles.headerWrapper}>
-                <TouchableOpacity
-                  style={styles.backCircle}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="home-outline" size={24} color="#2d2d2d" />
-                </TouchableOpacity>
-                <View style={styles.headerTitleGroup}>
-                  <Text style={styles.headerSubject}>Exam Completed</Text>
-                  <Text style={styles.headerMeta}>{examInfo.mathType}</Text>
-                </View>
-              </View>
-
-              {/* Score Summary Card */}
-              <View style={styles.resultsSummaryCard}>
-                <View style={styles.scoreCircle}>
-                  <Text style={styles.scorePercentageText}>{scorePercentage}%</Text>
-                  <Text style={styles.scoreLabelText}>Overall Score</Text>
-                </View>
-
-                <View style={styles.resultsDivider} />
-
-                <View style={styles.disclaimerGrid}>
-                  <View style={styles.disclaimerGridItem}>
-                    <Ionicons name="checkmark-circle" size={22} color="#059669" />
-                    <Text style={styles.disclaimerGridValue}>{passed}</Text>
-                    <Text style={styles.disclaimerGridLabel}>Correct</Text>
-                  </View>
-                  <View style={styles.disclaimerGridItem}>
-                    <Ionicons name="close-circle" size={22} color="#DC2626" />
-                    <Text style={styles.disclaimerGridValue}>{failed}</Text>
-                    <Text style={styles.disclaimerGridLabel}>Incorrect</Text>
-                  </View>
-                  <View style={styles.disclaimerGridItem}>
-                    <Ionicons name="help-circle" size={22} color="#64748B" />
-                    <Text style={styles.disclaimerGridValue}>{notDone}</Text>
-                    <Text style={styles.disclaimerGridLabel}>Skipped</Text>
-                  </View>
-                </View>
-              </View>
-
-              <Text style={styles.reviewSectionTitle}>Question Review</Text>
-
-              {/* Question Review Cards */}
-              {quizData.map((q, idx) => {
-                const userAnswer = selectedOptions[idx];
-                const isCorrect = userAnswer === q.correct;
-                const userOption = q.options?.find(opt => opt.label === userAnswer);
-                const correctOption = q.options?.find(opt => opt.label === q.correct);
-
-                return (
-                  <View key={q.id || idx} style={styles.questionCard}>
-                    <View style={styles.cardHeader}>
-                      <View style={[
-                        styles.resultStatusBadge,
-                        { backgroundColor: isCorrect ? '#ECFDF5' : (userAnswer ? '#FEF2F2' : '#F1F5F9') }
-                      ]}>
-                        <Text style={[
-                          styles.resultStatusText,
-                          { color: isCorrect ? '#059669' : (userAnswer ? '#DC2626' : '#64748B') }
-                        ]}>
-                          {isCorrect ? 'Correct' : (userAnswer ? 'Incorrect' : 'Skipped')}
-                        </Text>
-                      </View>
-                      <Text style={styles.questionNumberText}>Q{idx + 1}</Text>
-                    </View>
-
-                    <View style={styles.questionSection}>
-                      <MathJaxProvider html={q.question} />
-                    </View>
-
-                    <View style={styles.resultDetailsSection}>
-                      <View style={[
-                        styles.resultAnswerRow,
-                        isCorrect ? styles.correctAnswerRow : (userAnswer ? styles.incorrectAnswerRow : styles.skippedAnswerRow)
-                      ]}>
-                        <Text style={styles.resultLineLabel}>Your Answer:</Text>
-                        <View style={styles.resultValueWrap}>
-                          <MathJaxProvider html={userOption ? `${userOption.label}. ${userOption.value}` : 'No answer'} />
-                        </View>
-                      </View>
-
-                      {!isCorrect && (
-                        <View style={[styles.resultAnswerRow, styles.correctAnswerRow, { marginTop: 8 }]}>
-                          <Text style={styles.resultLineLabel}>Correct Answer:</Text>
-                          <View style={styles.resultValueWrap}>
-                            <MathJaxProvider html={correctOption ? `${correctOption.label}. ${correctOption.value}` : 'Unknown'} />
-                          </View>
-                        </View>
-                      )}
-
-                      <View style={styles.resultExplanationBox}>
-                        <Text style={styles.explanationLabelText}>Explanation:</Text>
-                        <MathJaxProvider html={q.explanation} />
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-
-              {/* Action Buttons */}
-              <View style={styles.resultsActionsContainer}>
-                <TouchableOpacity
-                  style={styles.resultsHomeBtn}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="home" size={20} color="#2563EB" />
-                  <Text style={styles.resultsHomeBtnText}>Go to Home</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.resultsRetryBtn}
-                  onPress={() => {
-                    hasSyncedRef.current = false; // Reset the sync flag for the new attempt
-                    setShowResults(false);
-                    setCurrentQuestionIndex(0);
-                    setSelectedOptions({});
-                    setTimer(60 * 90);
-                  }}
-                >
-                  <Ionicons name="refresh" size={20} color="#FFF" />
-                  <Text style={styles.resultsRetryBtnText}>Retry Exam</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+              removeClippedSubviews={true}
+              initialNumToRender={3}
+              maxToRenderPerBatch={2}
+              windowSize={5}
+            />
           </View>
         </SafeAreaView>
       </React.Fragment>
