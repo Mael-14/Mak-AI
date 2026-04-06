@@ -435,14 +435,6 @@ export const examAPI = {
       const response = await api.get('/exams/stats-summary');
       return response.data;
     } catch (error) {
-      // This will tell you if it's a Timeout, a 404, or a 500
-      if (error.response) {
-        console.error("Server responded with:", error.response.status); // 404? 500?
-      } else if (error.request) {
-        console.error("No response received. Server might be down or timed out.");
-      } else {
-        console.error("Setup error:", error.message);
-      }
       throw error;
     }
   },

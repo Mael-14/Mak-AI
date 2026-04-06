@@ -15,16 +15,16 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
-import { 
-  ChevronLeft, 
-  Settings2, 
-  HelpCircle, 
-  Plus, 
-  Send, 
-  Edit2, 
-  RotateCcw, 
-  ThumbsUp, 
-  ThumbsDown, 
+import {
+  ChevronLeft,
+  Settings2,
+  HelpCircle,
+  Plus,
+  Send,
+  Edit2,
+  RotateCcw,
+  ThumbsUp,
+  ThumbsDown,
   Copy,
   History,
   MessageSquarePlus,
@@ -52,13 +52,13 @@ import * as ImagePicker from 'expo-image-picker';
 const CONFIG = {
   // Replace with your n8n webhook URL after importing the workflow
   API_URL: 'https://n8n.srv1427812.hstgr.cloud/webhook/chat',
-  
+
   // Student level - can be made dynamic based on user profile
   STUDENT_LEVEL: 'A-Level', // or 'O-Level'
-  
+
   // Timeout for API requests (in milliseconds)
   TIMEOUT: 30000,
-  
+
   // Enable debug mode to see full response in console
   DEBUG: true,
 };
@@ -118,8 +118,8 @@ const AiChatScreen = ({ route }) => {
     try {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
-      
-      const chatTitle = chatMessages.length > 0 
+
+      const chatTitle = chatMessages.length > 0
         ? chatMessages[0].text.substring(0, 40) + (chatMessages[0].text.length > 40 ? '...' : '')
         : 'New Chat';
 
@@ -150,10 +150,10 @@ const AiChatScreen = ({ route }) => {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
       const filteredChats = existingChats.filter(c => c.id !== chatId);
-      
+
       await AsyncStorage.setItem(`chats_${userId}`, JSON.stringify(filteredChats));
       setConversations(filteredChats);
-      
+
       if (currentChatId === chatId) {
         setMessages([]);
         setIsNewChat(true);
@@ -172,7 +172,7 @@ const AiChatScreen = ({ route }) => {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
       const chat = existingChats.find(c => c.id === chatId);
-      
+
       if (chat) {
         setMessages(chat.messages);
         setCurrentChatId(chatId);
@@ -245,7 +245,7 @@ const AiChatScreen = ({ route }) => {
 
       // Get response text first
       const responseText = await response.text();
-      
+
       if (CONFIG.DEBUG) {
         console.log('📥 Raw response:', responseText.substring(0, 200));
       }
@@ -274,7 +274,7 @@ const AiChatScreen = ({ route }) => {
           timestamp: data.timestamp || new Date().toISOString(),
         };
       }
-      
+
       if (data && data.success === false && data.error) {
         throw new Error(data.error);
       }
@@ -553,7 +553,7 @@ const AiChatScreen = ({ route }) => {
     if (inputText.trim() === '' && !selectedImage && !selectedDocument) return;
 
     const userMessageText = inputText.trim();
-    
+
     // Create user message with attachments
     const newMessage = {
       id: Date.now().toString(),
@@ -712,33 +712,33 @@ const AiChatScreen = ({ route }) => {
             <Text style={styles.voiceText}>Voice message ({duration}s)</Text>
           </View>
         )}
-        
+
         {/* Image Attachment */}
         {hasImage && imageUri && (
           <View style={styles.imageContainer}>
             <Text style={styles.attachmentText}>📷 Image attached</Text>
           </View>
         )}
-        
+
         {/* Document Attachment */}
         {hasDocument && document && (
           <View style={styles.documentContainer}>
             <Text style={styles.attachmentText}>📄 {document.name}</Text>
           </View>
         )}
-        
+
         {/* Message Text */}
         <Text style={styles.userMessageText}>{text}</Text>
       </View>
       <Text style={styles.userTimeText}>{time}</Text>
       <View style={styles.userActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
           onPress={() => setInputText(text)}
         >
           <Edit2 size={16} color="#666" />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleRegenerate(text)}
         >
@@ -766,7 +766,7 @@ const AiChatScreen = ({ route }) => {
           <TouchableOpacity style={styles.actionButton}>
             <ThumbsDown size={16} color="#666" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleCopyMessage(text)}
           >
@@ -901,13 +901,13 @@ const AiChatScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setShowSidebar(!showSidebar)}
           >
@@ -919,17 +919,17 @@ const AiChatScreen = ({ route }) => {
           </View>
           <View style={styles.headerRight}>
             <View style={styles.settingsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.headerButton}
                 onPress={() => setShowDropdown(!showDropdown)}
               >
                 <Settings2 size={20} color={showDropdown ? "#007AFF" : "#000"} />
               </TouchableOpacity>
-              
+
               {/* Dropdown Menu */}
               {showDropdown && (
                 <View style={styles.dropdown}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.dropdownItem}
                     onPress={handleHistory}
                     activeOpacity={0.7}
@@ -938,7 +938,7 @@ const AiChatScreen = ({ route }) => {
                     <Text style={styles.dropdownText}>History</Text>
                   </TouchableOpacity>
                   <View style={styles.dropdownDivider} />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.dropdownItem}
                     onPress={handleNewChat}
                     activeOpacity={0.7}
@@ -957,7 +957,7 @@ const AiChatScreen = ({ route }) => {
 
         {/* Overlay to close dropdown */}
         {showDropdown && (
-          <Pressable 
+          <Pressable
             style={styles.dropdownOverlay}
             onPress={() => setShowDropdown(false)}
           />
@@ -965,7 +965,7 @@ const AiChatScreen = ({ route }) => {
 
         {/* Overlay to close plus menu */}
         {showPlusMenu && (
-          <Pressable 
+          <Pressable
             style={styles.dropdownOverlay}
             onPress={() => setShowPlusMenu(false)}
           />
@@ -977,7 +977,7 @@ const AiChatScreen = ({ route }) => {
             <SalutationMessage />
           </View>
         ) : (
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
@@ -985,21 +985,21 @@ const AiChatScreen = ({ route }) => {
           >
             {messages.length > 0 && (
               <Text style={styles.dateSeparator}>
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'short', 
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'short',
                   day: 'numeric',
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                  hour: '2-digit',
+                  minute: '2-digit'
                 })}
               </Text>
             )}
-            
+
             {messages.map((msg) => (
               msg.type === 'user' ? (
-                <UserMessage 
-                  key={msg.id} 
-                  text={msg.text} 
+                <UserMessage
+                  key={msg.id}
+                  text={msg.text}
                   time={msg.time}
                   hasImage={msg.hasImage}
                   hasDocument={msg.hasDocument}
@@ -1010,10 +1010,10 @@ const AiChatScreen = ({ route }) => {
                   duration={msg.duration}
                 />
               ) : (
-                <AiMessage 
-                  key={msg.id} 
-                  title={msg.title} 
-                  text={msg.text} 
+                <AiMessage
+                  key={msg.id}
+                  title={msg.title}
+                  text={msg.text}
                   time={msg.time}
                   isError={msg.isError}
                 />
@@ -1034,7 +1034,7 @@ const AiChatScreen = ({ route }) => {
                   {attachment.type === 'voice' && '🎵 '}
                   {attachment.name || `${attachment.type} attachment`}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
                   style={styles.removeAttachment}
                 >
@@ -1048,7 +1048,7 @@ const AiChatScreen = ({ route }) => {
         {/* Plus Menu Drop-up */}
         {showPlusMenu && (
           <View style={styles.plusMenuContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
                 setShowPlusMenu(false);
@@ -1060,10 +1060,10 @@ const AiChatScreen = ({ route }) => {
               </View>
               <Text style={styles.plusMenuText}>Analyze Image</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.menuDivider} />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
                 setShowPlusMenu(false);
@@ -1075,10 +1075,10 @@ const AiChatScreen = ({ route }) => {
               </View>
               <Text style={styles.plusMenuText}>Import Document</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.menuDivider} />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
                 setShowPlusMenu(false);
@@ -1095,13 +1095,13 @@ const AiChatScreen = ({ route }) => {
 
         {/* Input Area */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.plusButton}
             onPress={() => setShowPlusMenu(!showPlusMenu)}
           >
             <Plus size={24} color={showPlusMenu ? "#007AFF" : "#000"} />
           </TouchableOpacity>
-          
+
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
@@ -1114,21 +1114,21 @@ const AiChatScreen = ({ route }) => {
             />
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.sendButton, 
+              styles.sendButton,
               (!inputText.trim() && attachments.length === 0 || isTyping) && styles.sendButtonDisabled
-            ]} 
+            ]}
             onPress={handleSend}
             disabled={!inputText.trim() && attachments.length === 0 || isTyping}
           >
             {isTyping ? (
               <ActivityIndicator size="small" color="#007AFF" />
             ) : (
-              <Send 
-                size={20} 
-                color={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "#ccc"} 
-                fill={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "none"} 
+              <Send
+                size={20}
+                color={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "#ccc"}
+                fill={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "none"}
               />
             )}
           </TouchableOpacity>
@@ -1194,7 +1194,7 @@ const AiChatScreen = ({ route }) => {
                 <X size={24} color="#666" />
               </TouchableOpacity>
             </View>
-            
+
             <TouchableOpacity
               style={styles.imageModalOption}
               onPress={handleTakePhoto}
@@ -1205,7 +1205,7 @@ const AiChatScreen = ({ route }) => {
                 <Text style={styles.imageModalOptionDesc}>Capture a new image with your camera</Text>
               </View>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.imageModalOption}
               onPress={handleSelectFromGallery}
@@ -1222,7 +1222,7 @@ const AiChatScreen = ({ route }) => {
 
       {/* Voice Recorder Modal from Plus Menu */}
       {showPlusVoiceModal && (
-        <VoiceRecorder 
+        <VoiceRecorder
           onVoiceRecorded={(uri, duration) => {
             handleVoiceRecorded(uri, duration);
             setShowPlusVoiceModal(false);

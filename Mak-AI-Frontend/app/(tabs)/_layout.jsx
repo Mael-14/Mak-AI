@@ -70,7 +70,7 @@ const _layout = () => {
                         }
                     }
                 }
-                
+
                 // If onboarding completed and on onboarding screen, redirect to login
                 if (currentRoute === 'OnboardingScreen' && !isAuthenticated) {
                     router.replace('/LoginScreen');
@@ -90,7 +90,7 @@ const _layout = () => {
             setIsCheckingOnboarding(false);
         }
     };
-    
+
     // Re-check when auth state changes
     useEffect(() => {
         if (isInitialized && !authLoading) {
@@ -114,8 +114,13 @@ const _layout = () => {
 
     return (
         <Tabs
-            tabBar={(props) => <CustomNavBar {...props} />}
-            screenOptions={{ headerShown: false }}
+            tabBar={(props) => tabBarVisible ? <CustomNavBar {...props} /> : null}
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    display: tabBarVisible ? 'flex' : 'none'
+                }
+            }}
         >
             <Tabs.Screen name='index' options={{ title: 'Home' }} />
             <Tabs.Screen name='Chat' options={{ title: 'Chat' }} />
