@@ -152,7 +152,7 @@ const CustomsExamScreen = () => {
   const loadExams = async () => {
     try {
       setLoading(true);
-      
+
       // Check if user is authenticated and has userData
       if (!isAuthenticated || !userData?.uid) {
         console.log('User not authenticated, falling back to local storage');
@@ -166,7 +166,7 @@ const CustomsExamScreen = () => {
       try {
         // Fetch user-specific custom exams from database by subject
         const response = await examAPI.getUserCustomExamsBySubject(userData.uid, subjectIdNum);
-        
+
         if (response.success) {
           setExams(response.data || []);
         } else {
@@ -231,12 +231,12 @@ const CustomsExamScreen = () => {
     try {
       // First try to find the exam in the current exams state (which may be from database or local storage)
       let exam = exams.find(e => e.id === examId);
-      
+
       // If not found in state, try local storage as fallback
       if (!exam) {
         exam = await getCustomExamById(examId);
       }
-      
+
       if (!exam) {
         Alert.alert('Error', 'Exam not found');
         return;
@@ -311,17 +311,6 @@ const CustomsExamScreen = () => {
     { id: 3, name: 'Topics', icon: '📐', color: '#fff' },
     { id: 4, name: 'Customs exam', icon: (<Ionicons name="sparkles-outline" size={18} color="#a35dafff" />), color: '#fff' },
   ];
-
-  if (loading && exams.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerView}>
-          <ActivityIndicator size="large" color="#3F51B5" />
-          <Text style={styles.loadingText}>Loading exam history...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -416,7 +405,12 @@ const CustomsExamScreen = () => {
           },
         ]}
       >
-        {exams.length === 0 ? (
+        {loading && exams.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color="#3F51B5" />
+            <Text style={styles.loadingText}>Loading exam history...</Text>
+          </View>
+        ) : exams.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-outline" size={64} color="#CCC" />
             <Text style={styles.emptyTitle}>No Custom Exams Yet</Text>
@@ -680,6 +674,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
+    top: verticalScale(-80),
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: scale(20),
@@ -702,7 +697,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(24),
     paddingHorizontal: scale(24),
     paddingVertical: verticalScale(12),
-    backgroundColor: '#3F51B5',
+    backgroundColor: '#191a1bff',
     borderRadius: 8,
   },
   createButtonText: {

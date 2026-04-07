@@ -20,7 +20,6 @@ import { useToast } from '../context/ToastContext';
 import { saveLoginData } from '../utils/loginStorage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useGoogleSignIn } from '../services/googleAuth';
-import { registerAndSendToken } from '../services/notificationService';
 
 const SignUpScreen = () => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -165,9 +164,6 @@ const SignUpScreen = () => {
           };
           await saveLoginData(idToken, userData);
 
-          // Step 6: Register push token (before navigation)
-          registerAndSendToken().catch(() => { });
-
           // Step 7: Success - show toast and navigate
           showSuccess('Account created successfully! Please sign in to continue.');
           setTimeout(() => {
@@ -281,9 +277,6 @@ const SignUpScreen = () => {
 
       // Save login data
       await saveLoginData(idToken, userData);
-
-      // Register push token after auth data is stored
-      registerAndSendToken().catch(() => { });
 
       // Success
       showSuccess('Account created successfully! Welcome to Mak AI.');

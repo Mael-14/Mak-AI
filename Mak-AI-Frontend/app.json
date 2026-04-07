@@ -27,7 +27,8 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
-        "android.permission.ACCESS_MEDIA_LOCATION"
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -36,14 +37,6 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/mak1.jpg",
-          "color": "#AAB6FF",
-          "sounds": []
-        }
-      ],
       [
         "expo-document-picker",
         {
@@ -58,6 +51,11 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "42c8118d-565a-47a0-9a9a-cb560a439994"
+      }
+    }
   }
 }
