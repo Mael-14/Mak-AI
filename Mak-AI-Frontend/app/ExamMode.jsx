@@ -180,6 +180,28 @@ const ReviewCard = React.memo(({ question, index, userAnswer }) => {
   );
 });
 
+const StreakModal = ({ visible, streak, onClose }) => (
+  <RNModal
+    visible={visible}
+    transparent={true}
+    animationType="fade"
+    onRequestClose={onClose}
+  >
+    <View style={styles.streakOverlay}>
+      <View style={styles.streakCard}>
+        <Text style={styles.streakCardTitle}>🔥 Streak Updated!</Text>
+        <DayStreak streak={streak} />
+        <TouchableOpacity
+          style={styles.streakContinueBtn}
+          onPress={onClose}
+        >
+          <Text style={styles.streakContinueBtnText}>CONTINUE</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </RNModal>
+);
+
 export default function Exam({ route }) {
   const startTime = useRef(Date.now());
   const router = useRouter();
@@ -396,6 +418,7 @@ export default function Exam({ route }) {
   };
 
   const finishSession = (onContinue) => {
+    setTimerRunning(false);
     // 1. Go to results right away — no waiting
     onContinue();
   };
@@ -628,34 +651,16 @@ export default function Exam({ route }) {
     });
   };
 
-  // Only renders when streak actually increased after this session
-  // Floats on top of whatever screen is currently showing
-  const StreakModal = () => (
-    <RNModal
-      visible={showStreakModal}
-      transparent={false}
-      animationType="fade"
-      onRequestClose={() => setShowStreakModal(false)}
-    >
-      <View style={styles.streakOverlay}>
-        <View style={styles.streakCard}>
-          <Text style={styles.streakCardTitle}>🔥 Streak Updated!</Text>
-          <DayStreak streak={newStreak} />
-          <TouchableOpacity
-            style={styles.streakContinueBtn}
-            onPress={() => setShowStreakModal(false)}
-          >
-            <Text style={styles.streakContinueBtnText}>CONTINUE</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </RNModal>
-  );
+
 
   if (showCongrats) {
     return (
       <React.Fragment>
-        <StreakModal />
+        <StreakModal 
+          visible={showStreakModal} 
+          streak={newStreak} 
+          onClose={() => setShowStreakModal(false)} 
+        />
         <Modal isVisible={true} animationIn="zoomIn" animationOut="zoomOut" backdropOpacity={0.7}>
           <View style={styles.congratsModal}>
             <View style={styles.congratsTrophyWrapper}>
@@ -776,7 +781,11 @@ export default function Exam({ route }) {
 
     return (
       <React.Fragment>
-        <StreakModal />
+        <StreakModal 
+          visible={showStreakModal} 
+          streak={newStreak} 
+          onClose={() => setShowStreakModal(false)} 
+        />
         <SafeAreaView style={styles.mainContainer}>
           <View style={[styles.mainContainer, styles.backgroundContainer]}>
             <FlatList
@@ -1342,7 +1351,48 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   streakOverlay: {
-    backgroundColor: 'white',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  streakCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    padding: 24,
+    width: '90%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  streakCardTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#1E293B',
+    marginBottom: 16,
+  },
+  streakContinueBtn: {
+    backgroundColor: '#f97316',
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 20,
+    marginTop: 24,
+  },
+  streakContinueBtnText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   // Disclaimer Styles
   disclaimerContainer: {

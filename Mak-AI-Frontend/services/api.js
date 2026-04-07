@@ -5,9 +5,9 @@ import { getSubjectCode } from '../utils/subjectMapping';
 // Backend API base URL - Update this with your backend URL
 // Switch between local and production by commenting/uncommenting:
 // const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-seven.vercel.app/api';
-//const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
 
-const API_BASE_URL = 'https://semibiological-implicitly-karan.ngrok-free.dev/api';
+//const API_BASE_URL = 'https://semibiological-implicitly-karan.ngrok-free.dev/api';
 
 
 // Create axios instance
@@ -435,6 +435,14 @@ export const examAPI = {
       const response = await api.get('/exams/stats-summary');
       return response.data;
     } catch (error) {
+      // This will tell you if it's a Timeout, a 404, or a 500
+      if (error.response) {
+        console.error("Server responded with:", error.response.status); // 404? 500?
+      } else if (error.request) {
+        console.error("No response received. Server might be down or timed out.");
+      } else {
+        console.error("Setup error:", error.message);
+      }
       throw error;
     }
   },
@@ -521,4 +529,3 @@ export const financialAPI = {
 };
 
 export default api;
-
