@@ -158,7 +158,7 @@ const Home = () => {
                         </View>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>Subject</Text>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/ExploreSubjects')}>
                                 <Text style={styles.seeAllText}>See all</Text>
                             </TouchableOpacity>
                         </View>
