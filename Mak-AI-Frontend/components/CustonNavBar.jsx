@@ -19,6 +19,11 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
   const { colors } = useTheme();
   const { buildHref } = useLinkBuilder();
 
+  // Hide nav bar on Chat screen
+  if (state.routes[state.index]?.name === 'Chat') {
+    return null;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: secondary }]}>
       {state.routes.map((route, index) => {

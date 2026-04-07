@@ -201,7 +201,7 @@ const CustomExamSetup = () => {
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 60 second timeout
 
       const response = await fetch(
-        'https://n8n.srv1427812.hstgr.cloud/webhook-test/exam/generate',
+        'https://n8n.srv1427812.hstgr.cloud/webhook/exam/generate',
         {
           method: 'POST',
           headers: {

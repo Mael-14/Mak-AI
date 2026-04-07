@@ -1,0 +1,390 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "exam/generate",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "c648f0e9-3a16-4ab1-8723-045b6a314c6a",
+      "name": "Webhook - Exam Generate Endpoint",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        320
+      ],
+      "webhookId": "gce-exam-generate-endpoint"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "subject",
+              "name": "subject",
+              "value": "={{ $json.body.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "subjectId",
+              "name": "subjectId",
+              "value": "={{ $json.body.subjectId }}",
+              "type": "number"
+            },
+            {
+              "id": "level",
+              "name": "level",
+              "value": "={{ $json.body.level || 'O-Level' }}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{ $json.body.difficulty || 'Medium' }}",
+              "type": "string"
+            },
+            {
+              "id": "type",
+              "name": "type",
+              "value": "={{ $json.body.type }}",
+              "type": "string"
+            },
+            {
+              "id": "numQuestions",
+              "name": "numQuestions",
+              "value": "={{ $json.body.limit || $json.body.numQuestions || 20 }}",
+              "type": "number"
+            },
+            {
+              "id": "duration",
+              "name": "duration",
+              "value": "={{ $json.body.duration || 45 }}",
+              "type": "number"
+            },
+            {
+              "id": "topics",
+              "name": "topics",
+              "value": "={{ Array.isArray($json.body.topics) ? $json.body.topics.join(', ') : ($json.body.topics || 'General') }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d2c8e07-986d-4c8e-81bc-dff5df00730c",
+      "name": "Extract Exam Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        608,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-subject",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "check-topics",
+              "leftValue": "={{ $json.topics }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "check-count",
+              "leftValue": "={{ $json.numQuestions }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "577d6800-4f98-45ef-a09d-b4facf882007",
+      "name": "Validate Exam Config",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        816,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate {{ $json.numQuestions }} exam questions for {{ $json.subject }} at {{ $json.difficulty }} level on the following topics: {{ $json.topics }}. Question type requested: {{ $json.type }}",
+        "options": {
+          "systemMessage": "=You are an expert GCE exam question generator. Generate EXACTLY the requested number of questions in valid JSON format based on the question type: {{ $json.type }}.\n\nReturn ONLY a JSON object with this structure (NO markdown, NO code blocks):\n\n{\n  \"examId\": \"EXAM_12345\",\n  \"subject\": \"[{{ $json.subject }}]\",\n  \"level\": \"[{{ $json.level }}]\",\n  \"difficulty\": \"[{{ $json.difficulty }}]\",\n  \"questionType\": \"[{{ $json.type }}]\",\n  \"duration\": [{{ $json.duration }}],\n  \"generatedAt\": \"[{{ $json.timestamp }}]\",\n  \"questions\": [\n    // Question format depends on type below\n  ]\n}\n\nQUESTION TYPE FORMATS:\n\n1. For \"MCQs (Paper 1)\" - Multiple Choice Questions:\n{\n  \"id\": 1,\n  \"topic\": \"Topic Name\",\n  \"type\": \"mcq\",\n  \"question\": \"Question text here?\",\n  \"options\": [\"A) Option A\", \"B) Option B\", \"C) Option C\", \"D) Option D\"],\n  \"correctAnswer\": \"A\",\n  \"marks\": 1,\n  \"explanation\": \"Explanation here\"\n}\n\n2. For \"Structural (Paper 2)\" - Essay/Calculation Questions:\n{\n  \"id\": 1,\n  \"topic\": \"Topic Name\",\n  \"type\": \"structural\",\n  \"question\": \"Detailed question requiring explanation/calculation\",\n  \"marks\": 5,\n  \"markingScheme\": [\"Point 1 (1 mark)\", \"Point 2 (2 marks)\", \"Point 3 (2 marks)\"],\n  \"sampleAnswer\": \"Detailed sample answer\",\n  \"explanation\": \"Explanation of concepts tested\"\n}\n\n3. For \"Mixed\" - Generate both types:\n- 60% MCQs (using format 1)\n- 40% Structural (using format 2)\n\nRules:\n- Generate EXACTLY the requested number of questions\n- Return ONLY valid JSON (no markdown formatting)\n- Follow the exact format for the requested question type\n- For Mixed: distribute questions as specified above\n- Use appropriate difficulty level\n- Provide clear explanations"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        368,
+        -32
+      ],
+      "id": "d0a317e8-a93a-452a-b36c-9c1d6adef5b4",
+      "name": "Claude Exam Generator"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        176
+      ],
+      "id": "5febe574-a392-46f7-b317-53ee0940e8be",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "3xCdmMSS7Mh2ntgA",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced JSON Parser & Cleaner for Exam Generation\n// Following n8n-automation-rules.md standards\n\ntry {\n  const inputData = $input.first();\n  if (!inputData || !inputData.json) {\n    throw new Error('No input data received from AI generator');\n  }\n\n  let rawOutput = inputData.json.output;\n  if (!rawOutput || typeof rawOutput !== 'string') {\n    throw new Error('AI output is empty or not a string');\n  }\n\n  console.log('AI Response Preview:', rawOutput.substring(0, 200) + '...');\n\n  // Clean and normalize the response\n  rawOutput = rawOutput.trim();\n\n  // Remove markdown code block wrappers\n  const codeBlockPatterns = [\n    /^```(?:json|JSON)?\\s*\\n([\\s\\S]*?)\\n```$/m,\n    /^```\\s*\\n([\\s\\S]*?)\\n```$/m,\n    /^```(?:json|JSON)?\\s*([\\s\\S]*?)```$/m,\n    /^```([\\s\\S]*?)```$/m\n  ];\n\n  for (const pattern of codeBlockPatterns) {\n    const match = rawOutput.match(pattern);\n    if (match) {\n      rawOutput = match[1].trim();\n      console.log('Removed code block wrapper');\n      break;\n    }\n  }\n\n  // Multiple JSON extraction strategies\n  let jsonString = null;\n  let extractionMethod = '';\n\n  // Strategy 1: Balanced brace extraction\n  const start = rawOutput.indexOf('{');\n  if (start !== -1) {\n    let braceCount = 0;\n    let inString = false;\n    let escapeNext = false;\n    \n    for (let i = start; i < rawOutput.length; i++) {\n      const char = rawOutput[i];\n      \n      if (escapeNext) {\n        escapeNext = false;\n        continue;\n      }\n      \n      if (char === '\\\\') {\n        escapeNext = true;\n        continue;\n      }\n      \n      if (char === '\"' && !escapeNext) {\n        inString = !inString;\n        continue;\n      }\n      \n      if (!inString) {\n        if (char === '{') {\n          braceCount++;\n        } else if (char === '}') {\n          braceCount--;\n          if (braceCount === 0) {\n            jsonString = rawOutput.substring(start, i + 1);\n            extractionMethod = 'balanced-braces';\n            break;\n          }\n        }\n      }\n    }\n  }\n\n  // Strategy 2: First to last brace\n  if (!jsonString) {\n    const firstBrace = rawOutput.indexOf('{');\n    const lastBrace = rawOutput.lastIndexOf('}');\n    \n    if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {\n      jsonString = rawOutput.substring(firstBrace, lastBrace + 1);\n      extractionMethod = 'first-last-brace';\n    }\n  }\n\n  if (!jsonString) {\n    throw new Error('No valid JSON structure found in AI response');\n  }\n\n  console.log(`JSON extracted using: ${extractionMethod}`);\n\n  // Clean the JSON string\n  jsonString = jsonString\n    .trim()\n    .replace(/^[^{]*/, '')\n    .replace(/[^}]*$/, '')\n    .replace(/\\s*:\\s*/g, ':')\n    .replace(/\\s*,\\s*/g, ',')\n    .replace(/[\\x00-\\x1f\\x7f-\\x9f]/g, '');\n\n  // Parse JSON with error handling\n  let parsedJSON;\n  try {\n    parsedJSON = JSON.parse(jsonString);\n  } catch (parseError) {\n    console.log('Initial JSON parse failed, attempting repairs...');\n    \n    // Fix common JSON issues\n    const repairedJSON = jsonString\n      .replace(/,(\\s*[}\\]])/g, '$1')  // Remove trailing commas\n      .replace(/}(\\s*){/g, '},$1{')   // Add missing commas\n      .replace(/](\\s*)\\[/g, '],$1['); // Add missing commas\n    \n    try {\n      parsedJSON = JSON.parse(repairedJSON);\n      console.log('JSON successfully repaired and parsed');\n    } catch (repairError) {\n      throw new Error(`JSON parsing failed. Original: ${parseError.message}. Repair: ${repairError.message}`);\n    }\n  }\n\n  // Validate JSON structure with support for different question types\n  const errors = [];\n  if (!parsedJSON.examId) errors.push('Missing examId field');\n  if (!parsedJSON.subject) errors.push('Missing subject field');\n  if (!parsedJSON.questions) errors.push('Missing questions field');\n  \n  if (!Array.isArray(parsedJSON.questions)) {\n    errors.push('questions field must be an array');\n  } else {\n    parsedJSON.questions.forEach((question, index) => {\n      if (!question.id) errors.push(`Question ${index + 1}: Missing id`);\n      if (!question.question) errors.push(`Question ${index + 1}: Missing question text`);\n      if (!question.type) errors.push(`Question ${index + 1}: Missing type`);\n      \n      // Validate based on question type\n      if (question.type === 'mcq' || question.type === 'MCQ') {\n        if (!Array.isArray(question.options) || question.options.length !== 4) {\n          errors.push(`Question ${index + 1}: MCQ must have 4 options`);\n        }\n        if (!question.correctAnswer) {\n          errors.push(`Question ${index + 1}: MCQ missing correctAnswer`);\n        }\n      } else if (question.type === 'structural') {\n        if (!question.markingScheme || !Array.isArray(question.markingScheme)) {\n          errors.push(`Question ${index + 1}: Structural question missing markingScheme array`);\n        }\n        if (!question.sampleAnswer) {\n          errors.push(`Question ${index + 1}: Structural question missing sampleAnswer`);\n        }\n      }\n    });\n  }\n  \n  if (errors.length > 0) {\n    throw new Error(`JSON validation failed: ${errors.join(', ')}`);\n  }\n\n  // Enhance and normalize the exam data with proper type handling\n  const enhancedExam = {\n    examId: parsedJSON.examId || `EXAM_${Date.now()}`,\n    subject: parsedJSON.subject || 'Unknown Subject',\n    level: parsedJSON.level || 'Unknown Level',\n    difficulty: parsedJSON.difficulty || 'Medium',\n    questionType: parsedJSON.questionType || 'Mixed',\n    duration: parsedJSON.duration || 60,\n    generatedAt: parsedJSON.generatedAt || new Date().toISOString(),\n    totalQuestions: parsedJSON.questions ? parsedJSON.questions.length : 0,\n    questions: []\n  };\n  \n  if (Array.isArray(parsedJSON.questions)) {\n    enhancedExam.questions = parsedJSON.questions.map((question, index) => {\n      const baseQuestion = {\n        id: question.id || (index + 1),\n        topic: question.topic || 'General',\n        type: question.type || 'mcq',\n        question: question.question || '',\n        marks: question.marks || 1,\n        explanation: question.explanation || 'Explanation not provided',\n        difficulty: question.difficulty || enhancedExam.difficulty\n      };\n      \n      // Add type-specific fields\n      if (question.type === 'mcq' || question.type === 'MCQ') {\n        baseQuestion.options = Array.isArray(question.options) ? question.options : [];\n        baseQuestion.correctAnswer = question.correctAnswer || 'A';\n      } else if (question.type === 'structural') {\n        baseQuestion.markingScheme = Array.isArray(question.markingScheme) ? question.markingScheme : [];\n        baseQuestion.sampleAnswer = question.sampleAnswer || 'Sample answer not provided';\n      }\n      \n      return baseQuestion;\n    });\n  }\n\n  // Return success response\n  return {\n    json: {\n      success: true,\n      generatedQuestions: enhancedExam,\n      metadata: {\n        extractionMethod: extractionMethod,\n        originalLength: rawOutput.length,\n        parsedLength: jsonString.length,\n        questionCount: enhancedExam.questions.length,\n        processedAt: new Date().toISOString()\n      }\n    }\n  };\n\n} catch (error) {\n  console.error('Parse & Clean JSON Error:', error.message);\n  \n  return {\n    json: {\n      success: false,\n      error: error.message,\n      errorType: 'JSON_PARSING_ERROR',\n      timestamp: new Date().toISOString(),\n      debugInfo: {\n        inputType: typeof $input.first()?.json?.output,\n        inputLength: $input.first()?.json?.output?.length || 0,\n        hasInput: !!$input.first()?.json?.output\n      }\n    }\n  };\n}"
+      },
+      "id": "a4febef0-494c-4e4c-b2f5-1da87ea81795",
+      "name": "Parse & Clean Exam JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.generatedQuestions) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "420849c7-2b78-42e7-bf88-f9db99a598bf",
+      "name": "Send Exam Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error",
+              "name": "error",
+              "value": "Invalid exam configuration. Please provide subject, topics, and valid question count.",
+              "type": "string"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7296c0c8-e128-423a-87e7-18332ec9f997",
+      "name": "Format Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1184,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: $json.success, error: $json.error, timestamp: $json.timestamp }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fffeb44b-066b-43b5-bb78-6f71c84b9a95",
+      "name": "Send Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1456,
+        512
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Exam Generate Endpoint": {
+      "main": [
+        [
+          {
+            "node": "Extract Exam Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Exam Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Exam Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Exam Config": {
+      "main": [
+        [
+          {
+            "node": "Claude Exam Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Exam Generator": {
+      "main": [
+        [
+          {
+            "node": "Parse & Clean Exam JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Claude Exam Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Clean Exam JSON": {
+      "main": [
+        [
+          {
+            "node": "Send Exam Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Response": {
+      "main": [
+        [
+          {
+            "node": "Send Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2351a0406a4ad4107428f60a2d701ce84e42606cd592f56fe3e60a2bf7339fed"
+  }
+}

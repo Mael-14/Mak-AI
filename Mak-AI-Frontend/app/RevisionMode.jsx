@@ -18,6 +18,8 @@ import { scale, verticalScale, moderateScale } from '../utils/scaling';
 import MathJaxProvider from '../components/MathJaxProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
 export default function Revision() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -177,62 +179,46 @@ export default function Revision() {
   return (
     <SafeAreaView style={styles.mainContainer}>
       <View style={[styles.mainContainer, styles.backgroundContainer]}>
-        {/* Main ScrollView with all content */}
-        <ScrollView 
+
+        {/* ── Dark header band ── */}
+        <View style={styles.headerBand}>
+          <TouchableOpacity style={styles.backCircle} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={15} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.headerSubject} numberOfLines={1}>{examInfo.title}</Text>
+            <Text style={styles.headerMeta}>Revision Mode  ·  {examInfo.date}</Text>
+          </View>
+          <View style={styles.headerCounter}>
+            <Text style={styles.headerCounterText}>{currentQuestionIndex + 1}/{totalQuestions}</Text>
+          </View>
+        </View>
+
+        {/* ── Progress bar (part of header band) ── */}
+        <View style={styles.progressBandContainer}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }]} />
+          </View>
+        </View>
+
+        {/* ── Main scroll content ── */}
+        <ScrollView
           style={styles.mainScrollView}
           showsVerticalScrollIndicator={false}
           scrollEnabled={true}
         >
-          {/* Header */}
-          <View style={styles.headerWrapper}>
-            <TouchableOpacity 
-              style={styles.backCircle}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={24} color="#2d2d2d" />
-            </TouchableOpacity>
-            <View style={styles.headerTitleGroup}>
-              <Text style={styles.headerSubject}>{examInfo.title}</Text>
-              <Text style={styles.headerMeta}>Revision Mode • {examInfo.date}</Text>
-            </View>
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressCountText}>
-                Question {currentQuestionIndex + 1} of {totalQuestions}
-              </Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              {Array.from({ length: totalQuestions }).map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.progressDot,
-                    index <= currentQuestionIndex ? styles.progressDotActive : styles.progressDotInactive,
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-
           {/* Question Card */}
           <View style={styles.questionCard}>
             <View style={styles.cardHeader}>
               <View style={styles.revisionBadge}>
-                <Text style={styles.revisionBadgeText}>🤖 Ask Mak</Text>
+                <Ionicons name="sparkles-outline" size={12} color="#FFFFFF" />
+                <Text style={styles.revisionBadgeText}>Ask Mak</Text>
               </View>
-
-              <TouchableOpacity 
-                style={styles.hintPill}
-                onPress={setShowHint}
-              >
+              <TouchableOpacity style={styles.hintPill} onPress={setShowHint}>
                 <Ionicons name="bulb-outline" size={14} color="#D97706" />
                 <Text style={styles.hintPillText}>Hint</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.questionSection}>
               <MathJaxProvider html={currentQuestion.question} />
             </View>
@@ -241,95 +227,64 @@ export default function Revision() {
           {/* Options */}
           <View style={styles.optionsSection}>
             {currentQuestion.options.map((option) => {
-                const selected = selectedOptions[currentQuestionIndex];
-                const isSelected = selected === option.label;
-                let backgroundColor = '#FFFFFF';
-                let borderColor = '#e0e0e0';
-                let isAnswered = false;
-
-                if (selected) {
-                  isAnswered = true;
-                  if (isSelected) {
-                    if (selected === currentQuestion.correct) {
-                      backgroundColor = '#ECFDF5';
-                      borderColor = '#10B981';
-                    } else {
-                      backgroundColor = '#FEF2F2';
-                      borderColor = '#EF4444';
-                    }
-                  }
-                }
-
-                // Determine indicator background and text color
-                let indicatorBgColor = '#f0f0f0';
-                let indicatorTextColor = '#666666';
-                
-                if (selected && isSelected) {
-                  if (selected === currentQuestion.correct) {
-                    indicatorBgColor = '#10B981'; // Green for correct
-                    indicatorTextColor = '#FFF';
-                  } else {
-                    indicatorBgColor = '#EF4444'; // Red for incorrect
-                    indicatorTextColor = '#FFF';
-                  }
-                }
-
-                return (
-                  <TouchableOpacity
-                    key={option.label}
-                    onPress={() => handleSelectOption(option.label)}
-                    style={[
-                      styles.optionRow,
-                      isSelected && styles.optionRowActive,
-                      { backgroundColor, borderColor }
-                    ]}
-                  >
-                    <View style={[
-                      styles.optionIndicator, 
-                      { backgroundColor: indicatorBgColor }
-                    ]}>
-                      <Text style={[
-                        styles.optionLetter, 
-                        { color: indicatorTextColor }
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </View>
-                    <View style={styles.optionMathWrap} pointerEvents="none">
-                      <MathJaxProvider html={option.value} />
-                    </View>
-                    {isSelected && (
-                      <Ionicons 
-                        name={selected === currentQuestion.correct ? "checkmark-circle" : "close-circle"} 
-                        size={20} 
-                        color={selected === currentQuestion.correct ? "#10B981" : "#EF4444"}
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              const selected = selectedOptions[currentQuestionIndex];
+              const isSelected = selected === option.label;
+              let backgroundColor = '#FFFFFF';
+              let borderColor = '#e8edf2';
+              if (selected && isSelected) {
+                backgroundColor = selected === currentQuestion.correct ? '#ECFDF5' : '#FEF2F2';
+                borderColor   = selected === currentQuestion.correct ? '#10B981'  : '#EF4444';
+              }
+              let indicatorBgColor   = '#f0f4f8';
+              let indicatorTextColor = '#64748b';
+              if (selected && isSelected) {
+                indicatorBgColor   = selected === currentQuestion.correct ? '#10B981' : '#EF4444';
+                indicatorTextColor = '#FFF';
+              }
+              return (
+                <TouchableOpacity
+                  key={option.label}
+                  onPress={() => handleSelectOption(option.label)}
+                  style={[styles.optionRow, isSelected && styles.optionRowActive, { backgroundColor, borderColor }]}
+                >
+                  <View style={[styles.optionIndicator, { backgroundColor: indicatorBgColor }]}>
+                    <Text style={[styles.optionLetter, { color: indicatorTextColor }]}>{option.label}</Text>
+                  </View>
+                  <View style={styles.optionMathWrap} pointerEvents="none">
+                    <MathJaxProvider html={option.value} />
+                  </View>
+                  {isSelected && (
+                    <Ionicons
+                      name={selected === currentQuestion.correct ? 'checkmark-circle' : 'close-circle'}
+                      size={20}
+                      color={selected === currentQuestion.correct ? '#10B981' : '#EF4444'}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          <TouchableOpacity 
-            style={styles.viewExplanationBtn} 
-            onPress={() => setShowExplanationModal(true)}
-          >
-            <Ionicons name="book-outline" size={16} color="#2d2d2d" />
+          {/* Explanation button */}
+          <TouchableOpacity style={styles.viewExplanationBtn} onPress={() => setShowExplanationModal(true)}>
+            <Ionicons name="document-text-outline" size={16} color="#000E38" />
             <Text style={styles.viewExplanationBtnText}>View Explanation</Text>
+            <Ionicons name="chevron-up" size={14} color="#000E38" />
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Floating Navigation Section */}
+        {/* ── Bottom navigation bar ── */}
         <View style={styles.floatingNavContainer}>
           <TouchableOpacity
             onPress={handlePrevious}
             style={[styles.navBtn, currentQuestionIndex === 0 && styles.btnDisabled]}
             disabled={currentQuestionIndex === 0}
           >
+            <Ionicons name="chevron-back" size={16} color="#475569" />
             <Text style={styles.navBtnText}>Previous</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.revisionPill}
             onPress={() => {
               if (currentQuestionIndex === totalQuestions - 1) {
@@ -338,12 +293,17 @@ export default function Revision() {
                   `You have completed all ${totalQuestions} questions!`,
                   [
                     { text: 'Review Again', onPress: () => setCurrentQuestionIndex(0) },
-                    { text: 'Done', onPress: () => router.back() }
+                    { text: 'Done', onPress: () => router.back() },
                   ]
                 );
               }
             }}
           >
+            <Ionicons
+              name={currentQuestionIndex === totalQuestions - 1 ? 'checkmark-done' : 'checkmark'}
+              size={16}
+              color="#fff"
+            />
             <Text style={styles.revisionPillText}>
               {currentQuestionIndex === totalQuestions - 1 ? 'Complete' : 'Done'}
             </Text>
@@ -355,347 +315,250 @@ export default function Revision() {
             disabled={currentQuestionIndex === totalQuestions - 1}
           >
             <Text style={styles.navBtnText}>Next</Text>
+            <Ionicons name="chevron-forward" size={16} color="#475569" />
           </TouchableOpacity>
         </View>
 
-      {/* Explanation Modal */}
-      <Modal
-        visible={showExplanationModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowExplanationModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Explanation</Text>
-              <TouchableOpacity 
-                onPress={() => setShowExplanationModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={24} color="#FFF" />
-              </TouchableOpacity>
-            </View>
+        {/* ── Explanation modal (1/3 screen) ── */}
+        <Modal
+          visible={showExplanationModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowExplanationModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {/* Drag handle */}
+              <View style={styles.modalDragArea}>
+                <View style={styles.modalDragHandle} />
+              </View>
 
-            <ScrollView 
-              style={styles.modalScrollView}
-              showsVerticalScrollIndicator={true}
-            >
-              <View style={styles.modalBody}>
-                <Text style={styles.explanationLabel}>Question Explanation</Text>
-                <MathJaxProvider html={currentQuestion.explanation} />
-                
-                {selectedOptions[currentQuestionIndex] && (
-                  <View style={styles.answerBox}>
-                    <Text style={styles.answerBoxTitle}>Correct Answer</Text>
-                    <View style={styles.correctAnswerContent}>
-                      <View style={styles.answerLabel}>
-                        <Text style={styles.answerLabelText}>
-                          {currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.label}.
-                        </Text>
+              {/* Modal header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <Ionicons name="document-text-outline" size={18} color="#000E38" />
+                  <Text style={styles.modalTitle}>Explanation</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowExplanationModal(false)} style={styles.modalCloseBtn}>
+                  <Ionicons name="close" size={18} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.modalBody}>
+                  <Text style={styles.explanationLabel}>Question Explanation</Text>
+                  <MathJaxProvider html={currentQuestion.explanation} />
+
+                  {selectedOptions[currentQuestionIndex] && (
+                    <View style={styles.answerBox}>
+                      <View style={styles.answerBoxHeader}>
+                        <Ionicons name="checkmark-circle" size={15} color="#047857" />
+                        <Text style={styles.answerBoxTitle}>Correct Answer</Text>
                       </View>
-                      <View style={styles.answerValueWrap}>
-                        <MathJaxProvider html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} />
+                      <View style={styles.correctAnswerContent}>
+                        <View style={styles.answerLabel}>
+                          <Text style={styles.answerLabelText}>
+                            {currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.label}
+                          </Text>
+                        </View>
+                        <View style={styles.answerValueWrap}>
+                          <MathJaxProvider html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} />
+                        </View>
                       </View>
                     </View>
-                  </View>
-                )}
-              </View>
-            </ScrollView>
+                  )}
+                </View>
+              </ScrollView>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { 
-    flex: 1 
-  },
-  backgroundContainer: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  mainContainer: { flex: 1 },
+  backgroundContainer: { flex: 1, backgroundColor: '#f0f2f8' },
 
-  // Header Styles
-  headerWrapper: {
+  // ── Header band ────────────────────────────────────────────────────────────
+  headerBand: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: verticalScale(5),
-    paddingBottom: verticalScale(15),
-    justifyContent: 'space-between',
+    backgroundColor: '#EEF1FB',
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(14),
+    gap: scale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: '#D8DCF0',
   },
   backCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,14,56,0.07)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
-  headerTitleGroup: { 
-    flex: 1, 
-    marginLeft: scale(15),
-    marginRight: scale(15),
+  headerTitleGroup: { flex: 1 },
+  headerSubject: {
+    color: '#000E38',
+    fontSize: moderateScale(15),
+    fontWeight: '700',
   },
-  headerSubject: { 
-    color: '#1e293b', 
-    fontSize: moderateScale(18), 
-    fontWeight: '800'
-  },
-  headerMeta: { 
-    color: '#64748b', 
-    fontSize: moderateScale(12),
+  headerMeta: {
+    color: 'rgba(0,14,56,0.5)',
+    fontSize: moderateScale(11),
     marginTop: 2,
   },
+  headerCounter: {
+    backgroundColor: 'rgba(0,14,56,0.07)',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(5),
+    borderRadius: 10,
+  },
+  headerCounterText: {
+    color: '#000E38',
+    fontSize: moderateScale(12),
+    fontWeight: '700',
+  },
+
+  // ── Progress bar ───────────────────────────────────────────────────────────
+  progressBandContainer: {
+    backgroundColor: '#EEF1FB',
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(14),
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: 'rgba(5, 19, 62, 0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#062171',
+    borderRadius: 2,
+  },
+
+  // ── Main scroll ────────────────────────────────────────────────────────────
+  mainScrollView: {
+    flex: 1,
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(16),
+    marginBottom: verticalScale(80),
+  },
+
+  // ── Question card ──────────────────────────────────────────────────────────
+  questionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: scale(18),
+    marginBottom: verticalScale(12),
+    shadowColor: '#94a3b8',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+    //borderLeftWidth: 4,
+    //borderLeftColor: '#062171',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: scale(14),
+  },
+  revisionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#062171',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  revisionBadgeText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
   hintPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
     gap: 4,
   },
-  hintPillText: { 
-    color: '#D97706', 
-    fontSize: 12, 
-    fontWeight: 'bold'
-  },
-
-  // Progress Bar
-  progressContainer: { 
-    marginTop: 5,
-    marginBottom: 20,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  progressCountText: { 
-    color: '#475569', 
-    fontSize: 14, 
-    fontWeight: '700'
-  },
-  progressBarBg: { 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 4,
-  },
-  progressDot: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-  },
-  progressDotActive: {
-    backgroundColor: '#3b82f6',
-  },
-  progressDotInactive: {
-    backgroundColor: '#e2e8f0',
-  },
-
-  // Main Scroll View
-  mainScrollView: {
-    flex: 1,
-    marginHorizontal: scale(15),
-    marginTop: verticalScale(20),
-    marginBottom: verticalScale(80), // Add margin to prevent content from hiding behind floating nav
-  },
-
-  // Card Styles
-  questionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: scale(20),
-    marginBottom: verticalScale(16),
-    shadowColor: '#000000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  optionsCard: {},
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: scale(16),
-  },
-  revisionBadge: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-  },
-  revisionBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  hintPillText: { color: '#D97706', fontSize: 11, fontWeight: '600' },
   questionSection: {
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
+    paddingTop: 4,
   },
 
-  // Options
-  optionsSection: {
-    marginBottom: scale(20),
-  },
+  // ── Options ────────────────────────────────────────────────────────────────
+  optionsSection: { marginBottom: scale(16) },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 6,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e8edf2',
+    marginBottom: 8,
     backgroundColor: '#FFFFFF',
+    shadowColor: '#94a3b8',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  optionRowActive: { 
-    borderWidth: 2,
+  optionRowActive: { borderWidth: 1.5 },
+  optionIndicator: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f0f4f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  optionIndicator: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
-    backgroundColor: '#f0f0f0', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 12 
-  },
-  optionLetter: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    color: '#666666' 
-  },
-  optionValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#2d2d2d',
-    flex: 1,
-  },
+  optionLetter: { fontSize: 13, fontWeight: '700', color: '#64748b' },
   optionMathWrap: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 36,
     justifyContent: 'center',
     backgroundColor: 'transparent',
     marginLeft: 40,
   },
 
-  // Explanation Button
+  // ── Explanation button ─────────────────────────────────────────────────────
   viewExplanationBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#EEF1FB',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginBottom: 16,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#D8DCF0',
   },
   viewExplanationBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2d2d2d',
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginTop: verticalScale(80),
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: scale(20),
-    paddingVertical: verticalScale(16),
-    paddingTop: verticalScale(20),
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: moderateScale(20),
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  modalCloseBtn: {
-    padding: 8,
-  },
-  modalScrollView: {
-    flex: 1,
-  },
-  modalBody: {
-    padding: scale(20),
-  },
-  explanationLabel: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#2d2d2d',
-    marginBottom: 8,
-  },
-  answerBox: {
-    backgroundColor: '#ECFDF5',
-    borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  answerBoxTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#047857',
-    marginBottom: 8,
-  },
-  correctAnswerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  answerLabel: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  answerLabelText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  answerValueWrap: {
+    fontWeight: '600',
+    color: '#000E38',
     flex: 1,
-    minHeight: 30,
+    textAlign: 'center',
   },
 
-  // Footer
+  // ── Bottom nav bar ─────────────────────────────────────────────────────────
   floatingNavContainer: {
     position: 'absolute',
     bottom: 0,
@@ -704,65 +567,138 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: scale(20),
-    paddingVertical: verticalScale(15),
-    paddingBottom: verticalScale(25), // Extra padding for safe area
-    backgroundColor: 'transparent',
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
+    paddingBottom: verticalScale(22),
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#e8edf2',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 8,
   },
-  navBtn: { 
-    paddingHorizontal: scale(16), 
+  navBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#f0f4f8',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    borderColor: '#e2e8f0',
   },
-  navBtnText: { 
-    color: '#2d2d2d', 
-    fontWeight: '700', 
-    fontSize: 14 
-  },
-  revisionPill: { 
-    backgroundColor: '#3b82f6', 
-    paddingHorizontal: scale(28), 
-    paddingVertical: verticalScale(10), 
-    borderRadius: 20,
-    shadowColor: '#3b82f6',
-    shadowOpacity: 0.3,
+  navBtnText: { color: '#475569', fontWeight: '600', fontSize: 13 },
+  revisionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#062171',
+    paddingHorizontal: scale(22),
+    paddingVertical: verticalScale(10),
+    borderRadius: 14,
+    shadowColor: '#000E38',
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  revisionPillText: { 
-    color: '#FFFFFF', 
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  btnDisabled: { 
-    opacity: 0.5 
-  },
+  revisionPillText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  btnDisabled: { opacity: 0.4 },
 
-  // Loading
+  // ── Explanation modal ──────────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+  },
+  modalContent: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginTop: SCREEN_HEIGHT * (2 / 3),
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  modalDragArea: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  modalDragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#cbd5e1',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: scale(18),
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modalTitle: {
+    fontSize: moderateScale(15),
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalScrollView: { flex: 1 },
+  modalBody: { padding: scale(18) },
+  explanationLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  answerBox: {
+    backgroundColor: '#ECFDF5',
+    borderLeftWidth: 4,
+    borderLeftColor: '#10B981',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  answerBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  answerBoxTitle: { fontSize: 12, fontWeight: '700', color: '#047857' },
+  correctAnswerContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  answerLabel: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  answerLabelText: { fontSize: 13, fontWeight: '700', color: '#FFF' },
+  answerValueWrap: { flex: 1, minHeight: 30 },
+
+  // ── Loading ────────────────────────────────────────────────────────────────
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0f4f8',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666666',
-  },
-  backButtonText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#2d2d2d',
-    fontWeight: '600',
-  },
+  loadingText: { marginTop: 16, fontSize: 15, color: '#64748b', fontWeight: '500' },
+  backButtonText: { marginTop: 16, fontSize: 15, color: '#000E38', fontWeight: '600' },
 });

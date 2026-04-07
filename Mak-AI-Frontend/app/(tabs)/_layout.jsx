@@ -8,7 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 import SplashScreen from '../../components/SplashScreen';
 
 const _layout = () => {
-    const [tabBarVisible, setTabBarVisible] = useState(true);
     const [showSplash, setShowSplash] = useState(true);
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
     const router = useRouter();
@@ -29,14 +28,6 @@ const _layout = () => {
 
         return () => clearTimeout(splashTimer);
     }, []);
-
-    useEffect(() => {
-        if (currentRouteName === 'Chat') {
-            setTabBarVisible(false);
-        } else {
-            setTabBarVisible(true);
-        }
-    }, [currentRouteName]);
 
     const checkOnboardingStatus = async () => {
         setIsCheckingOnboarding(true);
