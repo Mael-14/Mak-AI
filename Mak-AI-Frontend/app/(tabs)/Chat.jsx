@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -45,6 +45,7 @@ import DocumentUploadModal from '../../components/DocumentUploadModal';
 import { multiModalAPI } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 
 // ============================================================
 // CONFIGURATION - UPDATE THESE VALUES
@@ -64,6 +65,7 @@ const CONFIG = {
 };
 
 const AiChatScreen = ({ route }) => {
+  const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -197,6 +199,23 @@ const AiChatScreen = ({ route }) => {
   useEffect(() => {
     loadConversations();
   }, [userId]);
+
+  const params = useLocalSearchParams();
+
+  // Auto-trigger upload using useFocusEffect for robustness
+  useFocusEffect(
+    useCallback(() => {
+      const action = params?.action || route?.params?.action;
+      if (action === 'upload') {
+        const timer = setTimeout(() => {
+          setShowPlusImageModal(true);
+          // Clear the param so it doesn't trigger again
+          router.setParams({ action: undefined });
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }, [params?.action, route?.params?.action])
+  );
 
   // Auto-save conversation when messages change
   useEffect(() => {
