@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { examAPI } from '../services/api';
 import { scale, verticalScale, moderateScale } from '../utils/scaling';
 import MathJaxProvider from '../components/MathJaxProvider';
+import QuestionMeasurer from '../components/QuestionMeasurer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -37,6 +38,8 @@ export default function Revision() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [heightsCache, setHeightsCache] = useState(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   // Simple approach: Fetch questions using subjectCode + level
   useEffect(() => {
@@ -53,15 +56,13 @@ export default function Revision() {
 
         console.log('Fetching questions for subjectCode:', subjectCode, 'level:', level);
 
-        // Simple approach: Use subjectCode + level to fetch questions
-        const response = await examAPI.getQuestions(subjectCode, level);
+        // Local-first per-topic when topic is selected; otherwise local-first subject cache.
+        const response = topic
+          ? await examAPI.getQuestionsForTopic(subjectCode, level, topic)
+          : await examAPI.getQuestions(subjectCode, level);
 
         if (response.success) {
-          // Filter by topic if provided
-          let questions = response.data;
-          if (topic) {
-            questions = questions.filter(q => q.topic === topic);
-          }
+          const questions = response.data;
 
           // Format questions to match UI structure
           const formattedQuestions = questions.map(q => ({
@@ -86,6 +87,7 @@ export default function Revision() {
           });
 
           setQuizData(sortedQuestions);
+          setIsPreparing(true);
 
           // Update exam info
           setExamInfo({
@@ -119,11 +121,22 @@ export default function Revision() {
     loadQuestions();
   }, [subjectCode, level, topic]);
 
-  if (loading) {
+  if (loading || isPreparing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2d2d2d" />
-        <Text style={styles.loadingText}>Loading questions...</Text>
+        <Text style={styles.loadingText}>
+          {isPreparing ? 'Optimizing layouts for you...' : 'Loading questions...'}
+        </Text>
+        {isPreparing && (
+          <QuestionMeasurer 
+            quizData={quizData} 
+            onMeasured={(data) => {
+              setHeightsCache(data);
+              setIsPreparing(false);
+            }} 
+          />
+        )}
       </View>
     );
   }
@@ -220,7 +233,10 @@ export default function Revision() {
               </TouchableOpacity>
             </View>
             <View style={styles.questionSection}>
-              <MathJaxProvider html={currentQuestion.question} />
+              <MathJaxProvider 
+                html={currentQuestion.question} 
+                preCalculatedHeight={heightsCache ? heightsCache[`q_${currentQuestionIndex}`] : null}
+              />
             </View>
           </View>
 
@@ -251,7 +267,10 @@ export default function Revision() {
                     <Text style={[styles.optionLetter, { color: indicatorTextColor }]}>{option.label}</Text>
                   </View>
                   <View style={styles.optionMathWrap} pointerEvents="none">
-                    <MathJaxProvider html={option.value} />
+                    <MathJaxProvider 
+                      html={option.value} 
+                      preCalculatedHeight={heightsCache ? heightsCache[`o_${currentQuestionIndex}_${option.label}`] : null}
+                    />
                   </View>
                   {isSelected && (
                     <Ionicons
@@ -347,7 +366,10 @@ export default function Revision() {
               <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.modalBody}>
                   <Text style={styles.explanationLabel}>Question Explanation</Text>
-                  <MathJaxProvider html={currentQuestion.explanation} />
+                  <MathJaxProvider 
+                    html={currentQuestion.explanation} 
+                    preCalculatedHeight={heightsCache ? heightsCache[`e_${currentQuestionIndex}`] : null}
+                  />
 
                   {selectedOptions[currentQuestionIndex] && (
                     <View style={styles.answerBox}>
@@ -362,7 +384,10 @@ export default function Revision() {
                           </Text>
                         </View>
                         <View style={styles.answerValueWrap}>
-                          <MathJaxProvider html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} />
+                          <MathJaxProvider 
+                            html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} 
+                            preCalculatedHeight={heightsCache ? heightsCache[`o_${currentQuestionIndex}_${currentQuestion.correct}`] : null}
+                          />
                         </View>
                       </View>
                     </View>
