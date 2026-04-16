@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSubjectCode } from '../utils/subjectMapping';
 
 // Backend API base URL - Update this with your backend URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-server.onrender.com/api' || 'https://mak-ai-seven.vercel.app/api';
 
 // Debug flag - Set to true to see detailed logs
 const DEBUG_MODE = process.env.EXPO_PUBLIC_DEBUG_API === 'true' || false;
