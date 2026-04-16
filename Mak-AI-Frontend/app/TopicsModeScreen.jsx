@@ -236,14 +236,50 @@ const TopicsModeScreen = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await examAPI.getTopicsBySubjectId(
-          subjectIdNum, 
-          selectedLevel, 
+
+        // Instant display: hydrate from local cache first if available.
+        const cachedResponse = await examAPI.getCachedTopicsBySubjectId(
+          subjectIdNum,
+          selectedLevel,
           selectedPaper || undefined
         );
+
+        if (cachedResponse?.success && cachedResponse.data) {
+          setTopics(cachedResponse.data);
+          const papers = new Set();
+          cachedResponse.data.forEach(topic => {
+            topic.papers.forEach(paper => papers.add(paper));
+          });
+          setAvailablePapers(Array.from(papers).sort());
+          setLoading(false);
+
+          // Refresh in the background so the cache stays current.
+          examAPI.getTopicsBySubjectId(subjectIdNum, selectedLevel, selectedPaper || undefined)
+            .then((response) => {
+              if (response.success && response.data) {
+                setTopics(response.data);
+                const freshPapers = new Set();
+                response.data.forEach(topic => {
+                  topic.papers.forEach(paper => freshPapers.add(paper));
+                });
+                setAvailablePapers(Array.from(freshPapers).sort());
+              }
+            })
+            .catch((err) => {
+              console.error('Background topic refresh failed:', err);
+            });
+          return;
+        }
+
+        // No cache yet, fall back to online load.
+        const response = await examAPI.getTopicsBySubjectId(
+          subjectIdNum,
+          selectedLevel,
+          selectedPaper || undefined
+        );
+
         if (response.success && response.data) {
           setTopics(response.data);
-          // Extract unique papers from topics
           const papers = new Set();
           response.data.forEach(topic => {
             topic.papers.forEach(paper => papers.add(paper));
