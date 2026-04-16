@@ -21,6 +21,7 @@ import { verticalScale, moderateScale, scale } from '../utils/scaling';
 import ModeSelectionModal from '../components/ModeSelectionModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -126,6 +127,97 @@ const gceJunes = [
   { id: 9, title: 'GCE June 2017', students: [], commentCount: 0 },
   { id: 10, title: 'GCE June 2016', students: [], commentCount: 0 },
 ];
+
+// ─── Inverted Corner ─────────────────────────────────────────────────────────
+const InvertedCorner = ({ color, size = 26 }) => (
+  <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <Path
+      d={`M 0 0 L 0 ${size} L ${size} ${size} A ${size} ${size} 0 0 1 0 0 Z`}
+      fill={color}
+    />
+  </Svg>
+);
+
+// ─── Folder Year Card ─────────────────────────────────────────────────────────
+const CARD_COLOR = '#2d2d2d';
+const CORNER_SIZE = 26;
+
+const FolderYearCard = ({ yearData, isOpen, isFavorite, onToggle, onFavorite, onPaperSelect }) => (
+  <View style={styles.folderCardWrapper}>
+    {/* Back layer — peeks below to simulate stacked folder */}
+    <View style={styles.folderCardBack} />
+
+    {/* Tab row */}
+    <View style={styles.folderTabRow}>
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.88}
+        style={[styles.folderTab, { backgroundColor: CARD_COLOR }]}
+      >
+        <View style={styles.folderIconContainer}>
+          <Ionicons name="calendar-outline" size={22} color="#fff" />
+        </View>
+        <Text style={styles.folderTabTitle}>{yearData.year}</Text>
+        <View style={styles.folderYearBadge}>
+          <Text style={styles.folderYearBadgeText}>GCE</Text>
+        </View>
+      </TouchableOpacity>
+
+      <InvertedCorner color={CARD_COLOR} size={CORNER_SIZE} />
+
+      <View style={styles.folderTabSpacer}>
+        <TouchableOpacity style={styles.folderHeartButton} onPress={onFavorite}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={14}
+            color={isFavorite ? '#ff4d4d' : '#000'}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+
+    {/* Background strip behind the tab area */}
+    <View style={styles.folderTabBack} />
+
+    {/* Card body */}
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={onToggle}
+      style={[styles.folderBody, { backgroundColor: CARD_COLOR }]}
+    >
+      <Text style={styles.folderSubtitle} numberOfLines={1}>Past Papers & Answers</Text>
+      <Text style={styles.folderTitle}>GCE June {yearData.year}</Text>
+
+      <View style={styles.folderFooter}>
+        <View style={styles.paperCountBadge}>
+          <Ionicons name="document-outline" size={13} color="rgba(255,255,255,0.6)" />
+          <Text style={styles.paperCountText}>
+            {yearData.papers.length} Paper{yearData.papers.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+        <View style={[styles.folderArrow, isOpen && { transform: [{ rotate: '90deg' }] }]}>
+          <Ionicons name="chevron-forward" size={16} color="#2d2d2d" />
+        </View>
+      </View>
+    </TouchableOpacity>
+
+    {/* Dropdown */}
+    {isOpen && (
+      <View style={styles.folderDropdown}>
+        {yearData.papers.map((paper) => (
+          <TouchableOpacity
+            key={paper.id}
+            style={styles.folderDropdownItem}
+            onPress={() => onPaperSelect({ ...paper, year: yearData.year })}
+          >
+            <Text style={styles.folderDropdownText}>GCE June {yearData.year} - {paper.paper}</Text>
+            <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
+  </View>
+);
 
 const JunesModeScreen = () => {
   const navigation = useNavigation();
@@ -267,10 +359,10 @@ const JunesModeScreen = () => {
   };
   // QuestionMode tabs as in Ss.jsx
   const QuestionMode = [
-    { id: 1, name: 'All', icon: (<Ionicons name="grid-outline" size={15} color="black" />), color: '#fff' },
-    { id: 2, name: 'Junes', icon: '📚', color: '#fff' },
-    { id: 3, name: 'Topics', icon: '📐', color: '#fff' },
-    { id: 4, name: 'Customs exam', icon: (<Ionicons name="sparkles-outline" size={18} color="#a35dafff" />), color: '#fff' },
+    { id: 1, name: 'All', icon: <Ionicons name="grid-outline" size={15} color="black" />, color: '#fff' },
+    { id: 2, name: 'Junes', icon: <Ionicons name="calendar-outline" size={15} color="black" />, color: '#fff' },
+    { id: 3, name: 'Topics', icon: <Ionicons name="folder-outline" size={15} color="black" />, color: '#fff' },
+    { id: 4, name: 'Customs exam', icon: <Ionicons name="sparkles-outline" size={15} color="#a35daf" />, color: '#fff' },
   ];
 
   return (
@@ -299,7 +391,7 @@ const JunesModeScreen = () => {
           >
             <View style={styles.headerSection}>
               <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backIcon}>‹</Text>
+                <Ionicons name="chevron-back" size={24} color="#2d2d2d" />
               </TouchableOpacity>
 
               <View style={styles.illustrationContainer}>
@@ -321,7 +413,7 @@ const JunesModeScreen = () => {
                   <Text style={styles.statText}>{years.length} Years</Text>
                 </View>
                 <View style={[styles.statBadge, styles.statBadgeLight]}>
-                  <Text style={styles.statIcon}>📚</Text>
+                  <Ionicons name="library-outline" size={14} color="#fff" />
                   <Text style={styles.statText}>{selectedLevel}</Text>
                 </View>
               </View>
@@ -357,7 +449,7 @@ const JunesModeScreen = () => {
                   }
                 }}
               >
-                <Text style={styles.questionModeIcon}>{questionMode.icon}</Text>
+                {questionMode.icon}
                 <Text style={styles.questionModeName}>{questionMode.name}</Text>
               </TouchableOpacity>
             ))}
@@ -430,60 +522,15 @@ const JunesModeScreen = () => {
                   yearData.year.toString().includes(searchQuery.trim())
                 )
                 .map((yearData) => (
-                <View key={yearData.year} style={[styles.courseCard, { backgroundColor: '#2d2d2d' }]}>
-                  <View style={styles.courseHeader}>
-                    <View style={styles.courseIconContainer}>
-                      <Ionicons name="document-text-outline" size={24} color="#ccccccff" />
-                    </View>
-
-                    <View style={{ flexDirection: 'column' }}>
-                      <Text style={[styles.courseTitle, styles.courseTitleDark]}>GCE June {yearData.year}</Text>
-                      <Text style={styles.courseSubtitle}>{yearData.papers.length} Paper{yearData.papers.length !== 1 ? 's' : ''} Available</Text>
-                    </View>
-
-                    <TouchableOpacity style={styles.favoriteButton} onPress={() => handleToggleFavorite(yearData.year)}>
-                      <Ionicons
-                        name={favorites.includes(yearData.year) ? 'heart' : 'heart-outline'}
-                        size={15}
-                        color={favorites.includes(yearData.year) ? 'red' : '#2d2d2d'}
-                        style={styles.heartIcon}
-                      />
-                    </TouchableOpacity>
-
-                  </View>
-                  <View style={styles.courseFooter}>
-                    <View style={styles.studentsContainer}>
-                      <TouchableOpacity style={styles.commentButton}>
-                        <Text style={styles.commentIcon}>📄</Text>
-                        <Text style={styles.commentCount}>{yearData.papers.length}</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.arrowButton, styles.arrowButtonDark, openDropdown === yearData.year && { transform: [{ rotate: '90deg' }] }]}
-                      onPress={() => handleToggleDropdown(yearData.year)}
-                    >
-                      <Ionicons name="chevron-forward" size={15} color="black" style={styles.navButtonText} />
-                    </TouchableOpacity>
-                  </View>
-                  {/* Dropdown for papers */}
-                  {openDropdown === yearData.year && (
-                    <View style={styles.dropdownContainer}>
-                      {yearData.papers.map((paper) => (
-                        <TouchableOpacity
-                          key={paper.id}
-                          style={styles.dropdownItem}
-                          onPress={() => handlePaperSelect({
-                            ...paper,
-                            year: yearData.year
-                          })}
-                        >
-                          <Text style={styles.dropdownText}>GCE June {yearData.year} - {paper.paper}</Text>
-                          <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
+                <FolderYearCard
+                  key={yearData.year}
+                  yearData={yearData}
+                  isOpen={openDropdown === yearData.year}
+                  isFavorite={favorites.includes(yearData.year)}
+                  onToggle={() => handleToggleDropdown(yearData.year)}
+                  onFavorite={() => handleToggleFavorite(yearData.year)}
+                  onPaperSelect={handlePaperSelect}
+                />
               ))
             )}
           </View>
@@ -548,11 +595,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: verticalScale(12),
   },
-  backIcon: {
-    fontSize: 28,
-    color: '#2d2d2d',
-    fontWeight: '300',
-  },
   illustrationContainer: {
     position: 'absolute',
     right: scale(20),
@@ -601,9 +643,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#fff',
-  },
-  statIcon: {
-    fontSize: 14,
   },
   statText: {
     color: '#fff',
@@ -709,10 +748,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginLeft: 8,
   },
-  commentIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
   commentCount: {
     fontSize: 14,
     fontWeight: '600',
@@ -768,9 +803,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: scale(10),
     gap: scale(8),
-  },
-  questionModeIcon: {
-    fontSize: moderateScale(18),
   },
   questionModeName: {
     fontSize: moderateScale(11),
@@ -895,6 +927,175 @@ const styles = StyleSheet.create({
   closeModalText: {
     color: '#ef4444',
     fontWeight: '600',
+  },
+
+  // ── Folder Year Card ────────────────────────────────────────────────────────
+  folderCardWrapper: {
+    marginBottom: 22,
+    paddingBottom: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  folderCardBack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 28,
+    backgroundColor: '#4a4a4a',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  folderTabRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  folderTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  folderTabSpacer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    paddingBottom: 6,
+    paddingRight: 6,
+    borderTopRightRadius: 20,
+  },
+  folderTabBack: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: '#3a3a3a',
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+    zIndex: -1,
+  },
+  folderIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderTabTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  folderYearBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  folderYearBadgeText: {
+    fontSize: moderateScale(9),
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+  },
+  folderHeartButton: {
+    width: 30,
+    height: 30,
+    top: -6,
+    borderRadius: 15,
+    backgroundColor: '#d0d2d5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderBody: {
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    padding: 18,
+    marginTop: -1,
+  },
+  folderSubtitle: {
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginBottom: 4,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  folderTitle: {
+    fontSize: moderateScale(18),
+    fontWeight: 'bold',
+    color: '#fff',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  folderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  paperCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  paperCountText: {
+    fontSize: moderateScale(12),
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.65)',
+  },
+  folderArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  folderDropdown: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 8,
+    marginHorizontal: 4,
+    marginBottom: 4,
+    padding: 8,
+  },
+  folderDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  folderDropdownText: {
+    fontSize: moderateScale(14),
+    color: '#2d2d2d',
+    fontWeight: '500',
   },
 });
 export default JunesModeScreen;

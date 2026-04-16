@@ -15,6 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { examAPI } from '../services/api';
 import { getSubjectCode } from '../utils/subjectMapping';
@@ -85,6 +86,92 @@ const GRADIENT_COLORS = {
   7: ['#adf0f0', '#1e827d'],
   8: ['#dcdcdc', '#424242'],
 };
+
+// ─── Inverted Corner ─────────────────────────────────────────────────────────
+const InvertedCorner = ({ color, size = 26 }) => (
+  <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <Path
+      d={`M 0 0 L 0 ${size} L ${size} ${size} A ${size} ${size} 0 0 1 0 0 Z`}
+      fill={color}
+    />
+  </Svg>
+);
+
+// ─── Folder Topic Card ────────────────────────────────────────────────────────
+const TOPIC_CARD_COLOR = '#b8b8f0';
+const CORNER_SIZE = 26;
+
+const FolderTopicCard = ({ topic, isOpen, onToggle, onPaperSelect }) => (
+  <View style={styles.folderCardWrapper}>
+    {/* Back layer — peeks below to simulate stacked folder */}
+    <View style={styles.folderCardBack} />
+
+    {/* Tab row */}
+    <View style={styles.folderTabRow}>
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.88}
+        style={[styles.folderTab, { backgroundColor: TOPIC_CARD_COLOR }]}
+      >
+        <View style={styles.folderIconContainer}>
+          <Ionicons name="folder-open-outline" size={22} color="#2d2d2d" />
+        </View>
+        <Text style={styles.folderTabTitle} numberOfLines={1}>{topic.name}</Text>
+      </TouchableOpacity>
+
+      <InvertedCorner color={TOPIC_CARD_COLOR} size={CORNER_SIZE} />
+
+      <View style={styles.folderTabSpacer}>
+        <TouchableOpacity style={styles.folderBookmarkButton}>
+          <Ionicons name="bookmark-outline" size={14} color="#000" />
+        </TouchableOpacity>
+      </View>
+    </View>
+
+    {/* Background strip behind the tab area */}
+    <View style={styles.folderTabBack} />
+
+    {/* Card body */}
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={onToggle}
+      style={[styles.folderBody, { backgroundColor: TOPIC_CARD_COLOR }]}
+    >
+      <Text style={styles.folderSubtitle} numberOfLines={1}>
+        {topic.papers && topic.papers.length > 0
+          ? `Available in ${topic.papers.length} paper${topic.papers.length !== 1 ? 's' : ''}`
+          : 'Topic Questions'}
+      </Text>
+      <Text style={styles.folderTitle} numberOfLines={2}>{topic.name}</Text>
+
+      <View style={styles.folderFooter}>
+        <View style={styles.questionCountBadge}>
+          <Ionicons name="help-circle-outline" size={13} color="rgba(45,45,45,0.6)" />
+          <Text style={styles.questionCountText}>{topic.questionCount} Questions</Text>
+        </View>
+        <View style={[styles.folderArrow, isOpen && { transform: [{ rotate: '90deg' }] }]}>
+          <Ionicons name="chevron-forward" size={16} color="#2d2d2d" />
+        </View>
+      </View>
+    </TouchableOpacity>
+
+    {/* Dropdown */}
+    {isOpen && topic.papers && topic.papers.length > 0 && (
+      <View style={styles.folderDropdown}>
+        {topic.papers.map((paper) => (
+          <TouchableOpacity
+            key={paper}
+            style={styles.folderDropdownItem}
+            onPress={() => onPaperSelect(topic, paper)}
+          >
+            <Text style={styles.folderDropdownText}>{topic.name} - {paper}</Text>
+            <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
+  </View>
+);
 
 const TopicsModeScreen = () => {
   const navigation = useNavigation();
@@ -179,10 +266,10 @@ const TopicsModeScreen = () => {
   }, [subjectIdNum, selectedLevel, selectedPaper]);
   // QuestionMode tabs as in JunesModeScreen.jsx
   const QuestionMode = [
-    { id: 1, name: 'All', icon: (<Ionicons name="grid-outline" size={15} color="black" />), color: '#fff' },
-    { id: 2, name: 'Junes', icon: '📚', color: '#fff' },
-    { id: 3, name: 'Topics', icon: '📐', color: '#fff' },
-    { id: 4, name: 'Customs exam', icon: (<Ionicons name="sparkles-outline" size={18} color="#a35dafff" />), color: '#fff' },
+    { id: 1, name: 'All', icon: <Ionicons name="grid-outline" size={15} color="black" />, color: '#fff' },
+    { id: 2, name: 'Junes', icon: <Ionicons name="calendar-outline" size={15} color="black" />, color: '#fff' },
+    { id: 3, name: 'Topics', icon: <Ionicons name="folder-outline" size={15} color="black" />, color: '#fff' },
+    { id: 4, name: 'Customs exam', icon: <Ionicons name="sparkles-outline" size={15} color="#a35daf" />, color: '#fff' },
   ];
 
   const handleToggleDropdown = (id) => {
@@ -258,7 +345,7 @@ const TopicsModeScreen = () => {
           >
             <View style={styles.headerSection}>
               <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backIcon}>‹</Text>
+                <Ionicons name="chevron-back" size={24} color="#2d2d2d" />
               </TouchableOpacity>
 
               <View style={styles.illustrationContainer}>
@@ -276,7 +363,7 @@ const TopicsModeScreen = () => {
                   <Text style={styles.statText}>{topics.length} Topics</Text>
                 </View>
                 <View style={[styles.statBadge, styles.statBadgeLight]}>
-                  <Text style={styles.statIcon}>📚</Text>
+                  <Ionicons name="layers-outline" size={14} color="#fff" />
                   <Text style={styles.statText}>{selectedLevel}</Text>
                 </View>
               </View>
@@ -312,7 +399,7 @@ const TopicsModeScreen = () => {
                   }
                 }}
               >
-                <Text style={styles.questionModeIcon}>{questionMode.icon}</Text>
+                {questionMode.icon}
                 <Text style={styles.questionModeName}>{questionMode.name}</Text>
               </TouchableOpacity>
             ))}
@@ -412,53 +499,13 @@ const TopicsModeScreen = () => {
                 topic.name.toLowerCase().includes(searchQuery.toLowerCase())
               )
               .map((topic, index) => (
-              <View key={`${topic.name}-${index}`} style={[styles.courseCard, { backgroundColor: '#b8b8f0' }]}>
-                <View style={styles.courseHeader}>
-                  <View style={styles.courseIconContainer}>
-                    <Ionicons name="document-text-outline" size={24} color="#171717ff" />
-                  </View>
-
-                  <View >
-                    <Text style={styles.courseTitle}>{topic.name}</Text>
-                    {topic.papers && topic.papers.length > 0 && (
-                      <Text style={styles.courseSubtitle}>
-                        Available in {topic.papers.length} paper{topic.papers.length !== 1 ? 's' : ''}
-                      </Text>
-                    )}
-                  </View>
-
-                  <TouchableOpacity style={styles.bookmarkButton}>
-                    <Text style={styles.bookmarkIcon}>🔖</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.courseFooter}>
-                  <View style={styles.studentsContainer}>
-                    <Text style={styles.additionalCount}>Questions: {topic.questionCount}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.arrowButton, openDropdown === topic.name && { transform: [{ rotate: '90deg' }] }]}
-                    onPress={() => handleToggleDropdown(topic.name)}
-                  >
-                    <Ionicons name="chevron-forward" size={15} color="black" style={styles.navButtonText} />
-                  </TouchableOpacity>
-                </View>
-                {/* Dropdown for papers */}
-                {openDropdown === topic.name && topic.papers && topic.papers.length > 0 && (
-                  <View style={styles.dropdownContainer}>
-                    {topic.papers.map((paper) => (
-                      <TouchableOpacity 
-                        key={paper}
-                        style={styles.dropdownItem}
-                        onPress={() => handleTopicPaperSelect(topic, paper)}
-                      >
-                        <Text style={styles.dropdownText}>{topic.name} - {paper}</Text>
-                        <Ionicons name="chevron-forward-outline" size={20} color="#2d2d2d" style={styles.downloadIcon} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
+              <FolderTopicCard
+                key={`${topic.name}-${index}`}
+                topic={topic}
+                isOpen={openDropdown === topic.name}
+                onToggle={() => handleToggleDropdown(topic.name)}
+                onPaperSelect={handleTopicPaperSelect}
+              />
             ))
           )}
           </View>
@@ -522,11 +569,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: verticalScale(12),
   },
-  backIcon: {
-    fontSize: 28,
-    color: '#2d2d2d',
-    fontWeight: '300',
-  },
   illustrationContainer: {
     position: 'absolute',
     right: scale(20),
@@ -577,9 +619,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#fff',
   },
-  statIcon: {
-    fontSize: moderateScale(14),
-  },
   statText: {
     color: '#fff',
     fontSize: moderateScale(12),
@@ -611,17 +650,6 @@ const styles = StyleSheet.create({
   },
   courseIcon: {
     fontSize: 20,
-  },
-  bookmarkButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 18,
-    backgroundColor: 'rgba(134, 134, 134, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookmarkIcon: {
-    fontSize: 10,
   },
   courseSubtitle: {
     fontSize: moderateScale(10),
@@ -714,9 +742,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: scale(10),
     gap: scale(8),
-  },
-  questionModeIcon: {
-    fontSize: moderateScale(18),
   },
   questionModeName: {
     fontSize: moderateScale(11),
@@ -834,6 +859,167 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(14),
     color: '#2d2d2d',
     padding: 0,
+  },
+
+  // ── Folder Topic Card ────────────────────────────────────────────────────────
+  folderCardWrapper: {
+    marginBottom: 22,
+    paddingBottom: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  folderCardBack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 28,
+    backgroundColor: '#9898cc',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  folderTabRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  folderTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+    gap: 8,
+    maxWidth: '60%',
+  },
+  folderTabSpacer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    paddingBottom: 6,
+    paddingRight: 6,
+    borderTopRightRadius: 20,
+  },
+  folderTabBack: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: '#a8a8d8',
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+    zIndex: -1,
+  },
+  folderIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderTabTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#2d2d2d',
+    letterSpacing: 0.3,
+    flexShrink: 1,
+  },
+  folderBookmarkButton: {
+    width: 30,
+    height: 30,
+    top: -6,
+    borderRadius: 15,
+    backgroundColor: '#d0d2d5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderBody: {
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    padding: 18,
+    marginTop: -1,
+  },
+  folderSubtitle: {
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginBottom: 4,
+    color: 'rgba(45,45,45,0.5)',
+  },
+  folderTitle: {
+    fontSize: moderateScale(17),
+    fontWeight: 'bold',
+    color: '#2d2d2d',
+    lineHeight: 23,
+    marginBottom: 16,
+  },
+  folderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  questionCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  questionCountText: {
+    fontSize: moderateScale(12),
+    fontWeight: '600',
+    color: 'rgba(45,45,45,0.65)',
+  },
+  folderArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  folderDropdown: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 8,
+    marginHorizontal: 4,
+    marginBottom: 4,
+    padding: 8,
+  },
+  folderDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  folderDropdownText: {
+    fontSize: moderateScale(14),
+    color: '#2d2d2d',
+    fontWeight: '500',
+    flexShrink: 1,
+    marginRight: 8,
   },
 });
 

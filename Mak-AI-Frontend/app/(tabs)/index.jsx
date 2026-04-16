@@ -157,16 +157,16 @@ const Home = () => {
                 {/* Your Plan Section */}
                 <View style={styles.planSection}>
                     <Text style={styles.sectionTitleHeader}>Your plan</Text>
-                    
+
                     <View style={styles.gridContainer}>
                         {/* Large Card - Left (Explore) */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.largeCard}
                             onPress={() => router.push('/ExploreSubjects')}
                             activeOpacity={0.9}
                         >
                             <LinearGradient
-                                colors={['#FF5F8E', '#FF80AC']} // Vibrant Pink
+                                colors={['#FFB74D', '#FFCC80']} // Amber (Matches Start Now button)
                                 style={styles.cardGradient}
                             >
                                 <View style={styles.iconCircle}>
@@ -183,13 +183,13 @@ const Home = () => {
                         {/* Right Column - Stacked Cards */}
                         <View style={styles.rightColumn}>
                             {/* Top Card - Doc Analysis */}
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.smallCard}
                                 onPress={() => router.push({ pathname: '/(tabs)/Chat', params: { action: 'upload' } })}
                                 activeOpacity={0.9}
                             >
                                 <LinearGradient
-                                    colors={['#FFB038', '#FFD060']} // Warm Orange
+                                    colors={['#7085FC', '#A6B2FF']} // Soft Blue/Purple (Matches Flashcards)
                                     style={styles.cardGradient}
                                 >
                                     <View style={styles.iconCircleSmall}>
@@ -203,13 +203,13 @@ const Home = () => {
                             </TouchableOpacity>
 
                             {/* Bottom Card - Exam Gen */}
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.smallCard}
                                 onPress={() => router.push('/CustomsExamScreen')}
                                 activeOpacity={0.9}
                             >
                                 <LinearGradient
-                                    colors={['#9065FF', '#B090FF']} // Royal Purple
+                                    colors={['#7085FC', '#A6B2FF']} // Soft Blue/Purple (Matches Flashcards)
                                     style={styles.cardGradient}
                                 >
                                     <View style={styles.iconCircleSmall}>
@@ -563,4 +563,3 @@ const styles = StyleSheet.create({
         height: '100%',
     },
 })
-

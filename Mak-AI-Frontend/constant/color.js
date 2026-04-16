@@ -3,7 +3,7 @@ export const COLORS = {
     accent: '#7085FC',
 
     light: {
-        background: '#FFF9F9FF',
+        background: '#fdfdfdff',
         text: '#1C1C1E',
         card: '#FFFFFF',
         icon: '#000000',

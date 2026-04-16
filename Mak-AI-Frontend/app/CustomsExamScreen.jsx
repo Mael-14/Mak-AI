@@ -153,40 +153,41 @@ const CustomsExamScreen = () => {
     try {
       setLoading(true);
 
-      // Check if user is authenticated and has userData
+      // 1️⃣ Always check local storage first
+      const allLocalExams = await getAllCustomExams();
+      const localSubjectExams = allLocalExams.filter(exam => exam.subjectId === subjectIdNum);
+
+      if (localSubjectExams.length > 0) {
+        console.log('Loaded custom exams from local storage');
+        setExams(localSubjectExams);
+        return;
+      }
+
+      // 2️⃣ No local exams — try Firebase if authenticated
       if (!isAuthenticated || !userData?.uid) {
-        console.log('User not authenticated, falling back to local storage');
-        // Fallback to local storage if user is not authenticated
-        const allExams = await getAllCustomExams();
-        const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
-        setExams(subjectExams);
+        console.log('No local exams and user not authenticated');
+        setExams([]);
         return;
       }
 
       try {
-        // Fetch user-specific custom exams from database by subject
+        console.log('No local exams, fetching from Firebase for user:', userData.uid);
         const response = await examAPI.getUserCustomExamsBySubject(userData.uid, subjectIdNum);
 
         if (response.success) {
           setExams(response.data || []);
         } else {
-          console.error('Failed to fetch custom exams:', response.error);
-          // Fallback to local storage on API failure
-          const allExams = await getAllCustomExams();
-          const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
-          setExams(subjectExams);
+          console.error('Failed to fetch custom exams from Firebase:', response.error);
+          setExams([]);
         }
       } catch (apiError) {
         console.error('API error loading custom exams:', apiError);
-        // Fallback to local storage on API error
-        const allExams = await getAllCustomExams();
-        const subjectExams = allExams.filter(exam => exam.subjectId === subjectIdNum);
-        setExams(subjectExams);
+        setExams([]);
       }
     } catch (error) {
       console.error('Error loading exams:', error);
       Alert.alert('Error', 'Failed to load exam history');
-      setExams([]); // Set empty array on complete failure
+      setExams([]);
     } finally {
       setLoading(false);
     }
