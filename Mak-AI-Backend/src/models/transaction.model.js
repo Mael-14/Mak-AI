@@ -1,16 +1,22 @@
 const { db, admin } = require('../config/firebase');
 const { generateUUID } = require('../utils/uidManager');
 const axios = require('axios');
-const { PAWAPAY_DEPOSIT_URL } = require('../config/pawapayConfig');
+const { PAWAPAY_DEPOSIT_URL,
+    PAWAPAY_TRANSACTION_STATUS,
+    PAWAPAY_TRANSACTION_TYPE,
+    PAWAPAY_TRANSACTION_CANAL,
+    PAWAPAY_TRANSACTION_CURRENCY,
+    PAWAPAY_TRANSACTION_COUNTRY } = require('../config/pawapayConfig');
+
 const PAWAPAY_API_KEY = process.env.PAWAPAY_API_KEY || '';
 
 
 const TRANSACTIONS_COLLECTION = 'transactions';
-const TransactionType = 'Deposit';
-const TransactionCanal = 'MMO';
-const trasactionCurrency = 'XAF';
-const transactionStatus = 'Pending';
-const transactionCountry = 'CMR';
+const TransactionType = PAWAPAY_TRANSACTION_TYPE;
+const TransactionCanal = PAWAPAY_TRANSACTION_CANAL;
+const trasactionCurrency = PAWAPAY_TRANSACTION_CURRENCY;
+const transactionStatus = PAWAPAY_TRANSACTION_STATUS.PROCESSING;
+const transactionCountry = PAWAPAY_TRANSACTION_COUNTRY;
 
 const generateTransactionId = () => {
     return generateUUID();
@@ -60,6 +66,11 @@ const createDepositTransactionDocument = async (transactionData) => {
 
 const createPawapayDepositTransaction = async (transactionData) => {
     /*
+    This function is used to create a pawapay deposit transaction document via pawapay API by calling the pawapay API endpoint for deposit.
+    @param {Object} transactionData - Transaction data
+    @returns {Promise<Object>} The created pawapay deposit transaction document
+    @throws {Error} If the Pawapay API call fails
+
     transactionData = {
         deposit_id: string,
         amount: number,
@@ -69,54 +80,48 @@ const createPawapayDepositTransaction = async (transactionData) => {
         provider: string,
     }
     */
-   try {
-        const accountDetails = {
-            phoneNumber: transactionData.phone_number,
-            provider: transactionData.provider,
-        }
-        const payer = {
-            type: transactionData.canal,
-            accountDetails: accountDetails,
-        }
+    try {
         const transactionDoc = {
             depositId: transactionData.deposit_id,
             amount: String(transactionData.amount),
             currency: transactionData.currency,
-            payer: payer,
-        }
-
-        /**transaction for pawapay:
-        transactionDoc = {
-            depositId: string,
-            amount: string,
-            currency: string,
             payer: {
-                type: string,
+                type: 'MMO',
                 accountDetails: {
-                    phoneNumber: string,
-                    provider: string,
-                },
-            },
+                    phoneNumber: transactionData.phone_number.replace(/\D/g, ''), // Strip all non-digit characters (including +)
+                    provider: transactionData.provider,
+                }
+            }
         }
-        */
 
+        console.log('📝 [PAWAPAY] Request Payload:', JSON.stringify(transactionDoc, null, 2));
         const response = await axios.post(PAWAPAY_DEPOSIT_URL, transactionDoc, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${PAWAPAY_API_KEY}`,
             },
         });
+        console.log('🛰️ [PAWAPAY] API Response:', response.data);
         if (response.data.status === 'ACCEPTED') {
             return true;
         } else {
             return false;
         }
     } catch (error) {
+        if (error.response) {
+            console.error('❌ PawaPay API Rejection:', {
+                status: error.response.status,
+                data: error.response.data
+            });
+        } else {
+            console.error('❌ PawaPay Network Error:', error.message);
+        }
         return null;
     }
 }
 
 module.exports = {
+    TRANSACTIONS_COLLECTION,
     createDepositTransactionDocument,
     createPawapayDepositTransaction
 }

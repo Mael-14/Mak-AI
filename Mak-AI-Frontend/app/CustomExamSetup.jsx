@@ -547,20 +547,20 @@ const CustomExamSetup = () => {
         transparent={true}
         animationType="fade"
       >
-        <View style={styles.modalOverlay}>
+       // <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.lottieContainer}>
               <LottieView
                 source={require('../animations/aiflow.json')}
                 autoPlay
                 loop={true}
-                resizeMode="contain"
+                
                 style={styles.lottieAnim}
               />
             </View>
             <Text style={styles.loadingText}>Setting up exams and generating questions...</Text>
           </View>
-        </View>
+       // </View>
       </Modal>
     </View>
   );
@@ -585,8 +585,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   lottieAnim: {
-    width: width * 0.6,
-    height: width * 0.6,
+    width: 160,
+    height: 160,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
   },
   lottieContainer: {
     width: 160,

@@ -4,10 +4,14 @@ const { responseFormatter } = require('../../utils/responseFormatter');
 const { createPawapayDepositTransaction, createDepositTransactionDocument } = require('../../models/transaction.model');
 
 const createDepositTransaction = async (req, res, next) => {
-    const { amount, user_id, phone_number, provider } = req.body;
+    const { amount, phone_number, provider } = req.body;
+    const user_id = req.user.uid;
+    console.log('🏦 [DEPOSIT] Processing request for User:', user_id);
+    console.log('📦 [DEPOSIT] Payload:', { amount, phone_number, provider });
     try {
         // Get account id from user document
         const account_id = await userModel.getUserSpecificDataByUserId('account_id', user_id);
+        
         if (!account_id) {
             return res.status(404).json(responseFormatter.error('Account not found', 404));
         }
@@ -29,7 +33,7 @@ const createDepositTransaction = async (req, res, next) => {
         deposit_id: deposit_transaction.deposit_id,
         amount: deposit_transaction.amount,
         currency: deposit_transaction.currency,
-        canal: deposit_transaction.canal.toUpperCase(),
+        country: deposit_transaction.country || 'CMR',
         phone_number: deposit_transaction.phone_number,
         provider: deposit_transaction.provider,
        });
