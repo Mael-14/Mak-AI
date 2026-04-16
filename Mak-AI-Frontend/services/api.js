@@ -8,6 +8,46 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://mak-ai-ser
 // Debug flag - Set to true to see detailed logs
 const DEBUG_MODE = process.env.EXPO_PUBLIC_DEBUG_API === 'true' || false;
 
+const CACHE_VERSION = 'v1';
+const EXAM_CACHE_PREFIX = `@exam_cache_${CACHE_VERSION}`;
+
+const buildQuestionsCacheKey = (subjectCode, level) =>
+  `${EXAM_CACHE_PREFIX}:questions:${String(subjectCode)}:${String(level || 'all').replace(/\s+/g, '_').toLowerCase()}`;
+
+const buildTopicQuestionsCacheKey = (subjectCode, level, topic) =>
+  `${EXAM_CACHE_PREFIX}:questions_topic:${String(subjectCode)}:${String(level || 'all').replace(/\s+/g, '_').toLowerCase()}:${String(topic || 'all').trim().replace(/\s+/g, '_').toLowerCase()}`;
+
+const buildYearsCacheKey = (subjectId, level) =>
+  `${EXAM_CACHE_PREFIX}:years:${String(subjectId)}:${String(level || 'all').replace(/\s+/g, '_').toLowerCase()}`;
+
+const buildTopicsCacheKey = (subjectId, level, paper) =>
+  `${EXAM_CACHE_PREFIX}:topics:${String(subjectId)}:${String(level || 'all').replace(/\s+/g, '_').toLowerCase()}:${String(paper || 'all').replace(/\s+/g, '_').toLowerCase()}`;
+
+const readCache = async (key) => {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn(`Cache read failed for key ${key}:`, error?.message || error);
+    return null;
+  }
+};
+
+const writeCache = async (key, payload) => {
+  try {
+    await AsyncStorage.setItem(
+      key,
+      JSON.stringify({
+        ...payload,
+        cachedAt: new Date().toISOString(),
+      })
+    );
+  } catch (error) {
+    console.warn(`Cache write failed for key ${key}:`, error?.message || error);
+  }
+};
+
 if (DEBUG_MODE) {
   console.log('🔧 API Debug Mode Enabled');
   console.log('📍 Base URL:', API_BASE_URL);
@@ -331,13 +371,84 @@ export const examAPI = {
    * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
    */
   getQuestions: async (subjectCode, level = null) => {
+    const cacheKey = buildQuestionsCacheKey(subjectCode, level);
     try {
+      // Offline-first: use cached past papers first for this subject + level.
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        if (DEBUG_MODE) {
+          console.log(`📦 Using cached questions for ${subjectCode} (${level || 'all'})`);
+        }
+        return { ...cached, fromCache: true };
+      }
+
       const params = level ? { level } : {};
       const response = await api.get(`/exams/questions/${subjectCode}`, { params });
+
+      if (response?.data?.success && Array.isArray(response?.data?.data) && response.data.data.length > 0) {
+        await writeCache(cacheKey, response.data);
+      }
+
       // Returns { success: true, data: [questions...] }
       return response.data;
     } catch (error) {
       console.error(`Error fetching questions for ${subjectCode} (${level}):`, error);
+
+      // Fallback if network fails but cache exists.
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        return { ...cached, fromCache: true };
+      }
+
+      throw error;
+    }
+  },
+
+  /**
+   * Fetches questions for a specific subject + level + topic.
+   * Uses topic-local cache first, then falls back to subject questions and filters by topic.
+   * @param {string} subjectCode
+   * @param {string} level
+   * @param {string} topic
+   */
+  getQuestionsForTopic: async (subjectCode, level = null, topic) => {
+    const normalizedTopic = String(topic || '').toLowerCase().trim();
+    const cacheKey = buildTopicQuestionsCacheKey(subjectCode, level, normalizedTopic || 'all');
+
+    try {
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data)) {
+        if (DEBUG_MODE) {
+          console.log(`📦 Using cached topic questions for ${subjectCode} (${level || 'all'}) -> ${normalizedTopic || 'all'}`);
+        }
+        return { ...cached, fromCache: true };
+      }
+
+      const baseResponse = await examAPI.getQuestions(subjectCode, level);
+      const baseQuestions = Array.isArray(baseResponse?.data) ? baseResponse.data : [];
+
+      const filteredQuestions = normalizedTopic
+        ? baseQuestions.filter((q) =>
+            q?.topic?.toString().toLowerCase().trim() === normalizedTopic
+          )
+        : baseQuestions;
+
+      const topicPayload = {
+        success: true,
+        data: filteredQuestions,
+        examInfo: baseResponse?.examInfo || null,
+      };
+
+      await writeCache(cacheKey, topicPayload);
+      return topicPayload;
+    } catch (error) {
+      console.error(`Error fetching topic questions for ${subjectCode} (${level}) topic=${topic}:`, error);
+
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data)) {
+        return { ...cached, fromCache: true };
+      }
+
       throw error;
     }
   },
@@ -376,19 +487,37 @@ export const examAPI = {
    * @param {string} level - The level ('Ordinary Level' or 'Advance Level')
    */
   getYearsBySubjectId: async (subjectId, level) => {
+    const cacheKey = buildYearsCacheKey(subjectId, level);
     try {
+      // Local-first to avoid loading the same past-paper years repeatedly.
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        return { ...cached, fromCache: true };
+      }
+
       const response = await api.get(`/exams/years/${subjectId}`, {
         params: { level },
         paramsSerializer: {
           indexes: null // Don't use array notation for params
         }
       });
+
+      if (response?.data?.success && Array.isArray(response?.data?.data) && response.data.data.length > 0) {
+        await writeCache(cacheKey, response.data);
+      }
+
       return response.data;
     } catch (error) {
       console.error(`Error fetching years for subject ID ${subjectId} (${level}):`, error);
       if (error.response) {
         console.error('Response error:', error.response.data);
       }
+
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        return { ...cached, fromCache: true };
+      }
+
       throw error;
     }
   },
@@ -401,20 +530,51 @@ export const examAPI = {
    * @param {string} paper - Optional paper type (e.g., 'Paper 1', 'Paper 2')
    */
   getTopicsBySubjectId: async (subjectId, level, paper = null) => {
+    const cacheKey = buildTopicsCacheKey(subjectId, level, paper);
     try {
+      // Local-first to avoid reloading topic-linked past papers.
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        return { ...cached, fromCache: true };
+      }
+
       const params = { level };
       if (paper) {
         params.paper = paper;
       }
       const response = await api.get(`/exams/topics/${subjectId}`, { params });
+
+      if (response?.data?.success && Array.isArray(response?.data?.data) && response.data.data.length > 0) {
+        await writeCache(cacheKey, response.data);
+      }
+
       return response.data;
     } catch (error) {
       console.error(`Error fetching topics for subject ID ${subjectId} (${level}, ${paper || 'all papers'}):`, error);
       if (error.response) {
         console.error('Response error:', error.response.data);
       }
+
+      const cached = await readCache(cacheKey);
+      if (cached?.success && Array.isArray(cached?.data) && cached.data.length > 0) {
+        return { ...cached, fromCache: true };
+      }
+
       throw error;
     }
+  },
+
+  /**
+   * Reads cached topics for a subject + level + paper without triggering a network request.
+   * Returns null when nothing is cached yet.
+   */
+  getCachedTopicsBySubjectId: async (subjectId, level, paper = null) => {
+    const cacheKey = buildTopicsCacheKey(subjectId, level, paper);
+    const cached = await readCache(cacheKey);
+    if (cached?.success && Array.isArray(cached?.data)) {
+      return { ...cached, fromCache: true };
+    }
+    return null;
   },
 
   /**

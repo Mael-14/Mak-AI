@@ -116,19 +116,13 @@ export default function Exam({ route }) {
           return;
         }
 
-        // Fetch questions based on subject and level (existing API behavior)
-        const response = await examAPI.getQuestions(subjectCode, level || null);
+        // Local-first per-topic when topic is selected; otherwise local-first subject cache.
+        const response = topic
+          ? await examAPI.getQuestionsForTopic(subjectCode, level || null, topic)
+          : await examAPI.getQuestions(subjectCode, level || null);
 
         if (response.success) {
-          let questions = response.data;
-
-          // 4. THE FILTER: This will now work because 'topic' comes from useLocalSearchParams
-          if (topic) {
-            console.log("Filtering Exam Mode for topic:", topic);
-            questions = questions.filter(q =>
-              q.topic?.toString().toLowerCase().trim() === topic.toLowerCase().trim()
-            );
-          }
+          const questions = response.data;
 
           // 5. Update Header Info
           setExamInfo({
@@ -438,7 +432,7 @@ export default function Exam({ route }) {
           <View style={styles.congratsTrophyWrapper}>
             <Image source={require('../assets/trophy.png')} style={styles.congratsTrophy} />
             <LottieView
-              source={require('../animations/Success.json')}
+              source={require('../animations/aiflow.json')}
               autoPlay
               loop={false}
               style={styles.congratsLottie}

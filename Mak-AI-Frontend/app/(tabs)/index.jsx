@@ -4,13 +4,11 @@ import React, { useState, useEffect } from 'react'
 import ThemedView from '../../components/ThemedView'
 import { LinearGradient } from 'expo-linear-gradient'
 import ThemedText from '../../components/ThemedText'
-import SubjectCard from '../../components/SubjectCard'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
-import LevelSelectionAlert from '../../components/LevelSelectionAlert';
-import { moderateScale, verticalScale } from '../../utils/scaling'
+import { moderateScale, verticalScale, scale as scaleUtil } from '../../utils/scaling'
 import { auth } from '../../config/firebase';
 
 
@@ -25,38 +23,30 @@ const SIDE_INSET = (SCREEN_WIDTH - CAROUSEL_CARD_WIDTH) / 2
 
 const CAROUSEL_DATA = [
     {
-        id: '1',
-        title: 'Daily challenge',
-        subtitle: 'Do your plan before 09:00 AM',
-        color: ['#8bb7faff', '#131673ff'], // Purple/Lavender
-        //image: require('../../assets/redesign/daily_challenge.png'),
-        type: 'challenge'
-    },
-    {
         id: '2',
         title: 'Flashcards',
         subtitle: 'Boost your memory with AI',
         color: ['#60A5FA', '#3B82F6'], // Blue
+        gradientColors: ['#97bcf8', '#0c68fd'],
         image: require('../../assets/redesign/flashcards.png'),
         type: 'feature'
     },
     {
-        id: '3',
-        title: 'AI Tutor',
-        subtitle: 'Get help with any subject',
-        color: ['#FBBF24', '#F59E0B'], // Orange/Gold
-        image: require('../../assets/redesign/community.png'),
-        type: 'tutor'
+        id: '1',
+        title: 'Daily challenge',
+        subtitle: 'Do your plan before 09:00 AM',
+        color: ['#8bb7faff', '#131673ff'], // Purple/Lavender
+        image: require('../../assets/redesign/daily_challenge.png'),
+        type: 'challenge'
     }
 ];
 
 
 const Home = () => {
     const router = useRouter()
-    const [showLevelAlert, setShowLevelAlert] = useState(false)
-    const [selectedSubject, setSelectedSubject] = useState(null)
     const [energy, setEnergy] = useState(5)
     const [userName, setUserName] = useState('Learner');
+    const [activeIndex, setActiveIndex] = useState(0)
 
     useEffect(() => {
         const user = auth.currentUser;
@@ -72,30 +62,6 @@ const Home = () => {
         router.push('/Flashcards')
     }
 
-    const handleSubjectPress = (item) => {
-        setSelectedSubject(item)
-        setShowLevelAlert(true)
-    }
-
-    const handleLevelSelect = (level) => {
-        if (selectedSubject) {
-            router.push({
-                pathname: '/subject/[id]',
-                params: {
-                    id: selectedSubject.id.toString(),
-                    level: level
-                }
-            });
-        }
-        setSelectedSubject(null)
-    }
-    const SUBJECTS = [
-        { id: 1, title: 'Mathematics', image: require('../../assets/Maths.png') },
-        { id: 2, title: 'Biology', image: require('../../assets/Biology.png') },
-        { id: 3, title: 'Chemistry', image: require('../../assets/Chemistry.png') },
-        { id: 4, title: 'Physics', image: require('../../assets/Physics.png') },
-    ];
-
     const scheme = useColorScheme()
     const theme = COLORS[scheme] ?? COLORS.light
 
@@ -105,12 +71,12 @@ const Home = () => {
             style={[styles.carouselCard, { width: CAROUSEL_CARD_WIDTH, marginHorizontal: CAROUSEL_GAP / 2 }]}
             onPress={() => item.id === '2' ? router.push('/Flashcards') : null}
         >
-            <LinearGradient colors={item.color} style={styles.carouselGradient}>
+            <LinearGradient colors={item.gradientColors || item.color} style={styles.carouselGradient}>
                 <View style={styles.carouselContent}>
                     <Text style={styles.carouselTitle}>{item.title}</Text>
                     <Text style={styles.carouselSubtitle}>{item.subtitle}</Text>
 
-                    {item.type === 'challenge' && (
+                    {/* {item.type === 'challenge' && (
                         <View style={styles.participantsContainer}>
                             <View style={styles.avatarMini}><Text style={styles.avatarEmoji}>👩‍💻</Text></View>
                             <View style={[styles.avatarMini, { marginLeft: -10 }]}><Text style={styles.avatarEmoji}>👨‍🎓</Text></View>
@@ -119,7 +85,7 @@ const Home = () => {
                                 <Text style={styles.avatarCountText}>+4</Text>
                             </View>
                         </View>
-                    )}
+                    )} */}
                 </View>
                 <Image source={item.image} style={styles.carouselImage} resizeMode="contain" />
             </LinearGradient>
@@ -128,32 +94,6 @@ const Home = () => {
 
 
     const [tokens, setTokens] = useState(100) // Default token count
-    const [activeIndex, setActiveIndex] = useState(0)
-
-    const dynamicWeekDays = React.useMemo(() => {
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const today = new Date();
-        const currentDayIndex = today.getDay(); // 0-6 (Sun-Sat)
-
-        return days.map((day, index) => {
-            const date = new Date(today);
-            date.setDate(today.getDate() - currentDayIndex + index);
-            return {
-                day: day,
-                date: date.getDate().toString(),
-                fullDate: date,
-                active: index === currentDayIndex
-            };
-        });
-    }, []);
-
-    const handleScroll = (event) => {
-        const scrollOffset = event.nativeEvent.contentOffset.x;
-        const index = Math.round(scrollOffset / CAROUSEL_SNAP_INTERVAL);
-        if (index !== activeIndex) {
-            setActiveIndex(index);
-        }
-    };
 
     const getCurrentDate = () => {
         const options = { month: 'short', day: 'numeric', weekday: 'short' };
@@ -175,7 +115,7 @@ const Home = () => {
 
                 <TouchableOpacity style={styles.tokenBadge}>
                     <View >
-                        <Ionicons name="sparkles" size={14} color="#f6f647ff" />
+                        <Image source={require('../../assets/thunder.png')} style={styles.tokenIcon} resizeMode="contain" />
                     </View>
                     <Text style={styles.tokenText}> {tokens}</Text>
                     <View style={styles.plusCircleSmall}>
@@ -199,8 +139,6 @@ const Home = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={[styles.carouselList, { paddingHorizontal: SIDE_INSET - (CAROUSEL_GAP / 2) }]}
                             keyExtractor={(item) => item.id}
-                            onScroll={handleScroll}
-                            scrollEventThrottle={16}
                         />
 
                         {/* Carousel Indicators */}
@@ -216,32 +154,6 @@ const Home = () => {
                             ))}
                         </View>
 
-                        {/* Personal Time Table Header */}
-                        <View style={styles.calendarHeader}>
-                            <Text style={styles.sectionTitleNew}>Time Table</Text>
-                            <TouchableOpacity style={styles.setAction}>
-                                <Text style={styles.setText}>Set</Text>
-                                <Ionicons name="chevron-forward" size={14} color="#6366F1" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Calendar Strip */}
-                        <View style={styles.calendarContainer}>
-                            <FlatList
-                                data={dynamicWeekDays}
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                keyExtractor={(item, index) => index.toString()}
-                                renderItem={({ item }) => (
-                                    <View style={[styles.dateCard, item.active && styles.activeDateCard]}>
-                                        <Text style={[styles.dateDay, item.active && styles.activeDateText]}>{item.day}</Text>
-                                        <Text style={[styles.dateNumber, item.active && styles.activeDateText]}>{item.date}</Text>
-                                        {item.active && <View style={styles.activeDot} />}
-                                    </View>
-                                )}
-                            />
-                        </View>
-
                         {/* Your Plan Section */}
                         <View style={styles.sectionHeaderNew}>
                             <Text style={styles.sectionTitleNew}>Your plan</Text>
@@ -252,7 +164,7 @@ const Home = () => {
                             {/* Green Section - Library */}
                             <TouchableOpacity
                                 style={styles.bentoBox}
-                                onPress={() => router.push('/(tabs)/subject')}
+                                onPress={() => router.push('/subject')}
                             >
                                 <LinearGradient
                                     colors={['#4ADE80', '#166534']}
@@ -263,7 +175,7 @@ const Home = () => {
                                 <View style={styles.bentoHeader}>
                                     <View style={styles.bentoBadgeGreen}><Text style={styles.bentoBadgeTextGreen}>Library</Text></View>
                                 </View>
-                                <Text style={styles.bentoTitle}>Explore various GCE and Mock papers</Text>
+                                <Text style={styles.bentoTitle}>Explore various GCE past papers</Text>
                                 <Text style={styles.bentoSubtitle}>Access your past resources</Text>
                                 <View style={styles.bentoImagePlaceholder}>
                                     <Ionicons name="library" size={40} color="#FFF" style={{ opacity: 0.5 }} />
@@ -306,52 +218,51 @@ const Home = () => {
 
 
 
-                                {/* Blue Section - Community */}
+                                {/* Blue Section - Mock Exam */}
                                 <TouchableOpacity
                                     style={[styles.bentoBoxSmall, styles.bentoBlue]}
                                     onPress={() => router.push('/(tabs)/Chat')}
                                 >
+                                    <LinearGradient
+                                        colors={['#588cf6', '#3a7afa']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
                                     <View style={styles.bentoHeader}>
-                                        <View style={styles.bentoBadgeBlue}><Text style={styles.bentoBadgeTextBlue}>Social</Text></View>
+                                        <View style={styles.bentoBadgeBlue}><Text style={styles.bentoBadgeTextBlue}>regional</Text></View>
                                     </View>
-                                    <Text style={styles.bentoTitleSmall}>AI Community</Text>
-                                    <View style={styles.socialIcons}>
-                                        <Ionicons name="logo-instagram" size={18} color="#FFF" />
-                                        <Ionicons name="logo-youtube" size={18} color="#FFF" style={{ marginHorizontal: 10 }} />
-                                        <Ionicons name="logo-twitter" size={18} color="#FFF" />
-                                    </View>
+                                    <Text style={styles.bentoTitleSmall}>Mock exam past papers</Text>
+                                    {/* <Ionicons name="layers-outline" size={14} color="#fff" /> */}
+                                    <View style={styles.bentoImagePlaceholder}>
+                                    <Ionicons name="layers-outline" size={40} color="#FFF" style={{ opacity: 0.5 }} />
+                                </View>
+                                    
                                 </TouchableOpacity>
                             </View>
                         </View>
 
                         <View style={styles.sectionHeaderNew}>
-                            <Text style={styles.sectionTitleNew}>Recent Subjects</Text>
-                            <TouchableOpacity onPress={() => router.push('/(tabs)/subject')}>
-                                <Text style={styles.seeAllText}>See all</Text>
-                            </TouchableOpacity>
+                            <Text style={styles.sectionTitleNew}>Learning Focus</Text>
+                        </View>
+
+                        <View style={styles.focusCard}>
+                            <View style={styles.focusCardTopRow}>
+                                <View style={styles.focusBadge}>
+                                    <Ionicons name="sparkles" size={12} color="#4F46E5" />
+                                    <Text style={styles.focusBadgeText}>Stay consistent</Text>
+                                </View>
+                            </View>
+                            <Text style={styles.focusTitle}>Study with a clean, calm workflow.</Text>
+                            <Text style={styles.focusSubtitle}>
+                                Keep your next step simple: open a subject, revise with flashcards, and move forward with confidence.
+                            </Text>
                         </View>
                     </View>
                 }
-                data={SUBJECTS}
-                numColumns={2}
-                keyExtractor={(item) => item.id.toString()}
-                columnWrapperStyle={styles.columnWrapper}
+                data={[]}
                 contentContainerStyle={styles.listPaddingNew}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.subjectCardWrapper} onPress={() => handleSubjectPress(item)}>
-                        <SubjectCard title={item.title} image={item.image} />
-                    </TouchableOpacity>
-                )}
-            />
-
-            <LevelSelectionAlert
-                visible={showLevelAlert}
-                onClose={() => {
-                    setShowLevelAlert(false)
-                    setSelectedSubject(null)
-                }}
-                onSelectLevel={handleLevelSelect}
-                subjectTitle={selectedSubject?.title}
+                renderItem={null}
             />
         </SafeAreaView>
     )
@@ -389,6 +300,10 @@ const styles = StyleSheet.create({
         color: '#1F2937',
         marginRight: scale(6),
     },
+    tokenIcon: {
+        width: scale(20),
+        height: scale(20),
+    },
     plusCircleSmall: {
         width: scale(16),
         height: scale(16),
@@ -420,24 +335,6 @@ const styles = StyleSheet.create({
     avatarCount: { width: scale(28), height: scale(28), borderRadius: scale(14), backgroundColor: '#5B21B6', borderWidth: 2, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center' },
     avatarCountText: { fontSize: scale(10), fontWeight: '700', color: '#FFF' },
 
-    calendarContainer: { paddingVertical: scale(5), paddingLeft: scale(20) },
-    dateCard: {
-        width: scale(55),
-        height: scale(80),
-        borderRadius: scale(28),
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: scale(10),
-    },
-    activeDateCard: { backgroundColor: '#111', borderColor: '#111' },
-    dateDay: { fontSize: scale(12), color: '#9CA3AF', marginBottom: 4 },
-    dateNumber: { fontSize: scale(16), fontWeight: '700', color: '#1F2937' },
-    activeDateText: { color: '#FFF' },
-    activeDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFF', marginTop: 4 },
-
     sectionHeaderNew: { paddingHorizontal: scale(20), marginVertical: scale(15), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     sectionTitleNew: { fontSize: scale(24), fontWeight: '800', color: '#111' },
     seeAllText: { color: '#6366F1', fontWeight: '600' },
@@ -449,10 +346,10 @@ const styles = StyleSheet.create({
     bentoBadgeText: { fontSize: 10, fontWeight: '700', color: '#B45309' },
     bentoTitle: { fontSize: scale(22), fontWeight: '800', color: '#FFF', marginTop: scale(10) },
     bentoSubtitle: { fontSize: scale(14), color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-    bentoImagePlaceholder: { alignSelf: 'flex-end', marginTop: 10 },
+    bentoImagePlaceholder: { alignSelf: 'flex-end', marginTop: 5 },
 
     bentoRightColumn: { flex: 1, marginLeft: scale(5) },
-    bentoBoxSmall: { flex: 1, borderRadius: scale(28), padding: scale(15), marginBottom: scale(5), overflow: 'hidden' },
+    bentoBoxSmall: { flex: 1, borderRadius: scale(20), padding: scale(15), marginBottom: scale(5), overflow: 'hidden' },
     bentoSmallRow: { flexDirection: 'row', flex: 1, marginBottom: scale(5) },
     bentoBoxExtraSmall: {
         flex: 1,
@@ -508,28 +405,6 @@ const styles = StyleSheet.create({
         width: scale(6),
         backgroundColor: '#E5E7EB',
     },
-    calendarHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: scale(20),
-        marginTop: scale(5),
-        marginBottom: scale(5)
-    },
-    setAction: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        paddingVertical: scale(4),
-        paddingHorizontal: scale(10),
-        borderRadius: scale(12)
-    },
-    setText: {
-        fontSize: scale(14),
-        fontWeight: '600',
-        color: '#6366F1',
-        marginRight: scale(4)
-    },
     bentoBadgeGreen: {
         backgroundColor: 'rgba(255, 255, 255, 0.25)',
         paddingVertical: 4,
@@ -540,5 +415,52 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         color: '#FFF'
+    },
+
+    focusCard: {
+        marginHorizontal: scale(20),
+        marginTop: scale(4),
+        marginBottom: scale(24),
+        borderRadius: scale(22),
+        backgroundColor: '#FFFFFF',
+        padding: scale(18),
+        borderWidth: 1,
+        borderColor: '#EEF0F4',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 18,
+        elevation: 3,
+    },
+    focusCardTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        marginBottom: scale(12),
+    },
+    focusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: scale(6),
+        backgroundColor: '#F5F7FF',
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(6),
+        borderRadius: scale(999),
+    },
+    focusBadgeText: {
+        fontSize: scale(12),
+        fontWeight: '700',
+        color: '#374151',
+    },
+    focusTitle: {
+        fontSize: scale(18),
+        lineHeight: scale(24),
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: scale(8),
+    },
+    focusSubtitle: {
+        fontSize: scale(14),
+        lineHeight: scale(21),
+        color: '#6B7280',
     },
 })

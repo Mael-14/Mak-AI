@@ -5,6 +5,8 @@ import { Text, PlatformPressable } from '@react-navigation/elements';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constant/color';
+// import { HugeiconsIcon } from '@hugeicons/react-native';
+// import { Home01Icon } from '@hugeicons-pro/core-stroke-rounded';
 
 const Tab = createBottomTabNavigator()
 
@@ -110,13 +112,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
     width: '80%',
     alignSelf: 'center',
-    bottom: 40,
+    bottom: 5,
     borderRadius: 40,
     paddingHorizontal: 12,
     height: 50,
+    marginBottom: 5,
   },
   tabItem: {
     flexDirection: 'row',
