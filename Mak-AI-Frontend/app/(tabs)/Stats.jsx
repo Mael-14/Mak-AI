@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useColorScheme, Platform } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
@@ -16,9 +17,11 @@ const Stats = () => {
     const [stats, setStats] = useState(null);
     const [chartData, setChartData] = useState([]);
 
-    useEffect(() => {
-        fetchStatsSummary();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchStatsSummary();
+        }, [])
+    );
 
     const fetchStatsSummary = async () => {
         try {

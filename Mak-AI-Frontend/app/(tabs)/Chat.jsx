@@ -14,17 +14,20 @@ import {
   Pressable,
   FlatList,
   Modal,
+  Image,
+  Dimensions,
 } from 'react-native';
-import { 
-  ChevronLeft, 
-  Settings2, 
-  HelpCircle, 
-  Plus, 
-  Send, 
-  Edit2, 
-  RotateCcw, 
-  ThumbsUp, 
-  ThumbsDown, 
+
+import {
+  ChevronLeft,
+  Settings2,
+  HelpCircle,
+  Plus,
+  Send,
+  Edit2,
+  RotateCcw,
+  ThumbsUp,
+  ThumbsDown,
   Copy,
   History,
   MessageSquarePlus,
@@ -34,17 +37,20 @@ import {
   Camera,
   Mic,
   FileText,
+  Play,
+  Music,
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MathJaxProvider from '../../components/MathJaxProvider';
-import ImageAnalysisModal from '../../components/ImageAnalysisModal';
-import ImageUploadButton from '../../components/ImageUploadButton';
-import VoiceRecorder from '../../components/VoiceRecorder';
-import DocumentUploadModal from '../../components/DocumentUploadModal';
 import { multiModalAPI } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { useAudioRecorder, AudioModule } from 'expo-audio';
+import * as FileSystem from 'expo-file-system';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // ============================================================
 // CONFIGURATION - UPDATE THESE VALUES
@@ -52,16 +58,174 @@ import * as ImagePicker from 'expo-image-picker';
 const CONFIG = {
   // Replace with your n8n webhook URL after importing the workflow
   API_URL: 'https://n8n.srv1427812.hstgr.cloud/webhook/chat',
-  
+
   // Student level - can be made dynamic based on user profile
   STUDENT_LEVEL: 'A-Level', // or 'O-Level'
-  
+
   // Timeout for API requests (in milliseconds)
   TIMEOUT: 30000,
-  
+
   // Enable debug mode to see full response in console
   DEBUG: true,
 };
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getFileTypeLabel = (mimeType) => {
+  if (!mimeType) return 'Document';
+  if (mimeType === 'application/pdf') return 'PDF';
+  if (mimeType.includes('word')) return 'Word';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'Excel';
+  if (mimeType === 'text/plain') return 'Text';
+  return 'Document';
+};
+
+const formatVoiceDuration = (seconds) => {
+  if (!seconds) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const VOICE_WAVE_HEIGHTS = [6, 10, 16, 8, 18, 12, 20, 10, 16, 8, 14, 10];
+
+const getFileIconColor = (mimeType) => {
+  if (!mimeType) return '#6B7280';
+  if (mimeType === 'application/pdf') return '#EF4444';
+  if (mimeType.includes('word')) return '#2563EB';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '#059669';
+  return '#6B7280';
+};
+
+// ============================================================
+// MESSAGE COMPONENTS — defined outside AiChatScreen so they
+// are stable across re-renders and never cause WebView reloads
+// ============================================================
+
+const UserMessage = ({ text, time, hasImage, hasDocument, imageUri, document, audioUri, duration, hasVoice, onEdit, onRegenerate }) => (
+  <View style={styles.userMessageContainer}>
+
+    {/* ── Voice note card — standalone grey card, outside bubble ── */}
+    {hasVoice && audioUri && (
+      <View style={styles.voiceNoteCard}>
+        <View style={styles.voicePlayBtn}>
+          <Play size={14} color="#fff" fill="#fff" />
+        </View>
+        <View style={styles.voiceWaveRow}>
+          {VOICE_WAVE_HEIGHTS.map((h, i) => (
+            <View key={i} style={[styles.voiceWaveBar, { height: h }]} />
+          ))}
+        </View>
+        <Text style={styles.voiceNoteDuration}>{formatVoiceDuration(duration)}</Text>
+      </View>
+    )}
+
+    {/* ── Document card — standalone grey card, outside bubble ── */}
+    {hasDocument && document && (
+      <View style={styles.docAttachmentCard}>
+        <View style={[styles.docAttachmentIconBox, { backgroundColor: getFileIconColor(document.mimeType) + '22' }]}>
+          <FileText size={20} color={getFileIconColor(document.mimeType)} />
+        </View>
+        <View style={styles.docAttachmentInfo}>
+          <Text style={styles.docAttachmentName} numberOfLines={1}>{document.name}</Text>
+          <Text style={styles.docAttachmentMeta}>
+            {getFileTypeLabel(document.mimeType)}{document.size ? '  ·  ' + formatFileSize(document.size) : ''}
+          </Text>
+        </View>
+      </View>
+    )}
+
+    {/* ── Bubble — only for image + text ── */}
+    {(hasImage || !!text) && (
+      <View style={styles.userBubble}>
+        {hasImage && imageUri && (
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.messageImageThumb}
+            resizeMode="cover"
+            onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
+          />
+        )}
+        {!!text && <Text style={styles.userMessageText}>{text}</Text>}
+      </View>
+    )}
+
+    <Text style={styles.userTimeText}>{time}</Text>
+    <View style={styles.userActions}>
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEdit(text)}>
+        <Edit2 size={16} color="#666" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.actionButton} onPress={() => onRegenerate(text)}>
+        <RotateCcw size={16} color="#666" />
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const AiMessage = ({ title, text, time, isError, onCopy }) => (
+  <View style={styles.aiMessageContainer}>
+    <View style={[styles.aiAvatar, isError && styles.aiAvatarError]}>
+      <Text style={styles.aiAvatarText}>M</Text>
+    </View>
+    <View style={styles.aiMessageBody}>
+      <View style={[styles.aiContent, isError && styles.errorContent]}>
+        {title && <Text style={[styles.aiTitle, isError && styles.errorTitle]}>{title}</Text>}
+        <MathJaxProvider html={text} />
+        <Text style={styles.aiTimeText}>{time}</Text>
+      </View>
+      {!isError && (
+        <View style={styles.aiActions}>
+          <TouchableOpacity style={styles.actionButton}>
+            <ThumbsUp size={16} color="#999" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <ThumbsDown size={16} color="#999" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onCopy(text)}>
+            <Copy size={16} color="#999" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+const TypingIndicator = () => (
+  <View style={styles.aiMessageContainer}>
+    <View style={styles.aiAvatar}>
+      <Text style={styles.aiAvatarText}>M</Text>
+    </View>
+    <View style={[styles.aiContent, styles.typingContainer]}>
+      <View style={styles.typingRow}>
+        <ActivityIndicator size="small" color="#007AFF" />
+        <Text style={styles.typingText}>Mak is thinking...</Text>
+      </View>
+    </View>
+  </View>
+);
+
+const SalutationMessage = ({ studentLevel }) => (
+  <View style={styles.salutationContainer}>
+    <View style={styles.salutationContent}>
+      <Text style={styles.salutationTitle}>Hello! 👋</Text>
+      <Text style={styles.salutationText}>
+        I'm your GCE AI tutor. Ask me anything about {studentLevel} subjects:
+      </Text>
+    </View>
+  </View>
+);
+
+// ============================================================
 
 const AiChatScreen = ({ route }) => {
   const [messages, setMessages] = useState([]);
@@ -74,20 +238,25 @@ const AiChatScreen = ({ route }) => {
   const [conversations, setConversations] = useState([]);
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const scrollViewRef = useRef();
+  const recordingTimerRef = useRef(null);
 
   // Multi-modal states
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [imageAnalysis, setImageAnalysis] = useState(null);
-  const [documentAnalysis, setDocumentAnalysis] = useState(null);
-  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
-  const [isAnalyzingDocument, setIsAnalyzingDocument] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState(null); // { uri, duration }
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [attachments, setAttachments] = useState([]);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
-  const [showPlusImageModal, setShowPlusImageModal] = useState(false);
-  const [showPlusVoiceModal, setShowPlusVoiceModal] = useState(false);
+
+  // Audio recorder hook (expo-audio)
+  const audioRecorder = useAudioRecorder({
+    sampleRate: 44100,
+    numberOfChannels: 1,
+    bitRate: 128000,
+    extension: '.m4a',
+    outputFormat: 'mpeg_4',
+  });
 
   const { showError, showSuccess, showWarning } = useToast();
 
@@ -118,8 +287,8 @@ const AiChatScreen = ({ route }) => {
     try {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
-      
-      const chatTitle = chatMessages.length > 0 
+
+      const chatTitle = chatMessages.length > 0
         ? chatMessages[0].text.substring(0, 40) + (chatMessages[0].text.length > 40 ? '...' : '')
         : 'New Chat';
 
@@ -150,10 +319,10 @@ const AiChatScreen = ({ route }) => {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
       const filteredChats = existingChats.filter(c => c.id !== chatId);
-      
+
       await AsyncStorage.setItem(`chats_${userId}`, JSON.stringify(filteredChats));
       setConversations(filteredChats);
-      
+
       if (currentChatId === chatId) {
         setMessages([]);
         setIsNewChat(true);
@@ -172,7 +341,7 @@ const AiChatScreen = ({ route }) => {
       const chats = await AsyncStorage.getItem(`chats_${userId}`);
       const existingChats = chats ? JSON.parse(chats) : [];
       const chat = existingChats.find(c => c.id === chatId);
-      
+
       if (chat) {
         setMessages(chat.messages);
         setCurrentChatId(chatId);
@@ -233,6 +402,7 @@ const AiChatScreen = ({ route }) => {
           sessionId: sessionId,
           userId: userId,
           level: CONFIG.STUDENT_LEVEL,
+          inputType: 'text',
         }),
         signal: controller.signal,
       });
@@ -245,7 +415,7 @@ const AiChatScreen = ({ route }) => {
 
       // Get response text first
       const responseText = await response.text();
-      
+
       if (CONFIG.DEBUG) {
         console.log('📥 Raw response:', responseText.substring(0, 200));
       }
@@ -274,7 +444,7 @@ const AiChatScreen = ({ route }) => {
           timestamp: data.timestamp || new Date().toISOString(),
         };
       }
-      
+
       if (data && data.success === false && data.error) {
         throw new Error(data.error);
       }
@@ -308,239 +478,293 @@ const AiChatScreen = ({ route }) => {
   };
 
   /**
-   * Handle image upload from plus menu
+   * Show camera/gallery choice sheet
    */
   const handleImageUpload = () => {
-    setShowPlusImageModal(true);
+    setShowPlusMenu(false);
+    // Delay alert so the plus menu finishes closing first
+    setTimeout(() => {
+      Alert.alert(
+        'Add Image',
+        null,
+        [
+          // Delay picker launch so the alert finishes dismissing first (Android requirement)
+          { text: 'Take Photo', onPress: () => setTimeout(handleTakePhoto, 300) },
+          { text: 'Choose from Gallery', onPress: () => setTimeout(handleSelectFromGallery, 300) },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+        { cancelable: true }
+      );
+    }, 200);
   };
 
   /**
-   * Handle document upload from plus menu
+   * Handle document upload — directly opens file picker, no modal
    */
-  const handleDocumentUpload = () => {
-    // Trigger the document upload modal
-    setShowDocumentModal(true);
+  const handleDocumentUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedDocument(result.assets[0]);
+        setShowPlusMenu(false);
+      }
+    } catch (error) {
+      showError('Failed to select document. Please try again.');
+    }
   };
 
   /**
    * Handle voice recording from plus menu
    */
-  const handleVoiceRecordFromMenu = () => {
-    setShowPlusVoiceModal(true);
+  /**
+   * Start inline recording (WhatsApp-style)
+   */
+  const handleStartRecording = async () => {
+    setShowPlusMenu(false);
+    setTimeout(async () => {
+      try {
+        const { status } = await AudioModule.requestRecordingPermissionsAsync();
+        if (status !== 'granted') {
+          showError('Microphone permission is required to record audio');
+          return;
+        }
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
+        setIsRecording(true);
+        setRecordingDuration(0);
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
+      } catch (e) {
+        showError('Failed to start recording. Please try again.');
+      }
+    }, 250);
   };
 
   /**
-   * Handle camera photo from plus menu
+   * Stop recording and create voice chip (user then sends manually)
+   */
+  const handleStopRecording = async () => {
+    try {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      const capturedDuration = recordingDuration;
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      setIsRecording(false);
+      setRecordingDuration(0);
+      if (uri) {
+        setSelectedVoice({ uri, duration: capturedDuration });
+      }
+    } catch (e) {
+      setIsRecording(false);
+      setRecordingDuration(0);
+      showError('Failed to stop recording.');
+    }
+  };
+
+  /**
+   * Cancel recording without saving
+   */
+  const handleCancelRecording = async () => {
+    try {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (audioRecorder.isRecording) await audioRecorder.stop();
+    } catch (_) { }
+    setIsRecording(false);
+    setRecordingDuration(0);
+  };
+
+  /**
+   * Import an audio file from device storage
+   */
+  const handleImportAudio = async () => {
+    setShowPlusMenu(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['audio/*'],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets?.length > 0) {
+        const file = result.assets[0];
+        setSelectedVoice({ uri: file.uri, duration: 0, name: file.name });
+      }
+    } catch (e) {
+      showError('Failed to import audio file.');
+    }
+  };
+
+  const handleVoiceRecordFromMenu = handleStartRecording;
+
+  /**
+   * Take photo with camera
    */
   const handleTakePhoto = async () => {
     try {
-      // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         showError('Camera permission is required to take photos');
         return;
       }
-
-      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-        base64: false,
       });
-
-      // Handle result
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        setShowPlusImageModal(false);
-        handleImageSelected(imageUri);
-        showSuccess('Photo captured successfully!');
+      if (!result.canceled && result.assets?.length > 0) {
+        setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Camera error:', error);
       showError('Failed to take photo. Please try again.');
     }
   };
 
   /**
-   * Handle gallery selection from plus menu
+   * Pick image from gallery
    */
   const handleSelectFromGallery = async () => {
     try {
-      // Request media library permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         showError('Gallery permission is required to select photos');
         return;
       }
-
-      // Launch image library
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ['images'],
+        allowsEditing: false,
         quality: 0.8,
-        base64: false,
       });
-
-      // Handle result
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        setShowPlusImageModal(false);
-        handleImageSelected(imageUri);
-        showSuccess('Image selected successfully!');
+      if (!result.canceled && result.assets?.length > 0) {
+        setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Gallery error:', error);
       showError('Failed to select image. Please try again.');
     }
   };
 
   /**
-   * Handle image selection
+   * Send message with attachments — encodes files as base64 and routes by inputType
    */
-  const handleImageSelected = (imageUri) => {
-    setSelectedImage(imageUri);
-    setShowImageModal(true);
-  };
-
-  /**
-   * Handle image analysis
-   */
-  const handleImageAnalysis = async (imageUri) => {
+  const sendMessageWithAttachments = async (messageText, imageUri = null, documentData = null, voiceData = null) => {
     try {
-      setIsAnalyzingImage(true);
-      setImageAnalysis(null);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
 
-      // Try the new multi-modal API first, then fall back to existing endpoint
-      let response;
-      try {
-        response = await multiModalAPI.analyzeImage(imageUri, inputText || 'Analyze this image', sessionId, userId);
-      } catch (apiError) {
-        console.warn('Multi-modal API not available, falling back to existing endpoint');
-        // Fallback: Add image as attachment and send with existing text
-        response = await multiModalAPI.sendToExistingEndpoint(
-          inputText || 'Please analyze this image and help me understand what it shows.',
-          imageUri,
-          sessionId,
-          userId,
-          CONFIG.STUDENT_LEVEL
-        );
-      }
-
-      const analysisText = response?.response || response?.text || 'Analysis completed';
-      setImageAnalysis(analysisText);
-      return analysisText;
-    } catch (error) {
-      console.error('Image analysis error:', error);
-      throw error;
-    } finally {
-      setIsAnalyzingImage(false);
-    }
-  };
-
-  /**
-   * Handle document selection
-   */
-  const handleDocumentSelected = (document) => {
-    setSelectedDocument(document);
-  };
-
-  /**
-   * Handle document analysis
-   */
-  const handleDocumentAnalysis = async (document) => {
-    try {
-      setIsAnalyzingDocument(true);
-      setDocumentAnalysis(null);
-
-      // Try the new multi-modal API
-      const response = await multiModalAPI.analyzeDocument(
-        document.uri,
-        document.name,
-        inputText || 'Analyze this document',
-        sessionId,
-        userId
-      );
-
-      const analysisText = response?.response || response?.text || 'Document analysis completed';
-      setDocumentAnalysis(analysisText);
-      return analysisText;
-    } catch (error) {
-      console.error('Document analysis error:', error);
-      // Fallback for document analysis
-      const fallbackText = `I can see you've uploaded a document: "${document.name}". While I can't process this document directly in this demo, I can help you with questions about its content if you describe what it contains.`;
-      setDocumentAnalysis(fallbackText);
-      return fallbackText;
-    } finally {
-      setIsAnalyzingDocument(false);
-    }
-  };
-
-  /**
-   * Handle voice recording
-   */
-  const handleVoiceRecorded = async (audioUri, duration) => {
-    try {
-      // Add voice message to chat
-      const voiceMessage = {
-        id: Date.now().toString(),
-        type: 'user',
-        messageType: 'voice',
-        audioUri: audioUri,
-        duration: duration,
-        text: `🎵 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setMessages(prev => [...prev, voiceMessage]);
-      showSuccess('Voice message added to chat!');
-    } catch (error) {
-      console.error('Voice recording error:', error);
-      showError('Failed to process voice message');
-    }
-  };
-
-  /**
-   * Handle speech-to-text conversion
-   */
-  const handleTranscriptReady = (transcript) => {
-    setInputText(transcript);
-    showSuccess('Speech converted to text!');
-  };
-
-  /**
-   * Send message with attachments
-   */
-  const sendMessageWithAttachments = async (messageText, imageUri = null, documentData = null) => {
-    try {
-      let response;
-      let analysisResult = '';
+      let body;
 
       if (imageUri) {
-        // Handle image analysis
-        analysisResult = await handleImageAnalysis(imageUri);
-        response = {
-          text: analysisResult,
-          sessionId: sessionId,
-          timestamp: new Date().toISOString(),
+        // Encode image to base64
+        const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+        // Detect mime type from extension
+        const ext = imageUri.split('.').pop()?.toLowerCase() || 'jpeg';
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+        const imageMediaType = mimeMap[ext] || 'image/jpeg';
+
+        body = {
+          message: messageText || 'Please analyze this image.',
+          sessionId,
+          userId,
+          level: CONFIG.STUDENT_LEVEL,
+          inputType: 'image',
+          imageBase64: base64,
+          imageMediaType,
         };
       } else if (documentData) {
-        // Handle document analysis
-        analysisResult = await handleDocumentAnalysis(documentData);
-        response = {
-          text: analysisResult,
-          sessionId: sessionId,
-          timestamp: new Date().toISOString(),
+        let documentContent = '';
+        let documentBase64 = '';
+        if (documentData.mimeType === 'text/plain' && documentData.uri) {
+          try {
+            documentContent = await FileSystem.readAsStringAsync(documentData.uri, { encoding: FileSystem.EncodingType.UTF8 });
+          } catch (_) { documentContent = ''; }
+        } else if (documentData.uri) {
+          // Read PDF/Word/Excel as base64 for Anthropic document API
+          try {
+            documentBase64 = await FileSystem.readAsStringAsync(documentData.uri, { encoding: FileSystem.EncodingType.Base64 });
+          } catch (_) { documentBase64 = ''; }
+        }
+
+        body = {
+          message: messageText || 'Please analyze this document.',
+          sessionId,
+          userId,
+          level: CONFIG.STUDENT_LEVEL,
+          inputType: 'document',
+          documentName: documentData.name || 'document',
+          documentMimeType: documentData.mimeType || 'application/octet-stream',
+          documentContent,
+          documentBase64,
+        };
+      } else if (voiceData) {
+        // Encode audio to base64
+        const base64Audio = await FileSystem.readAsStringAsync(voiceData.uri, { encoding: FileSystem.EncodingType.Base64 });
+        const ext = voiceData.uri.split('.').pop()?.toLowerCase() || 'm4a';
+        const audioMimeMap = { m4a: 'audio/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', webm: 'audio/webm' };
+        const audioMimeType = audioMimeMap[ext] || 'audio/mp4';
+
+        body = {
+          message: messageText || '',
+          sessionId,
+          userId,
+          level: CONFIG.STUDENT_LEVEL,
+          inputType: 'voice',
+          audioBase64: base64Audio,
+          audioMimeType,
+          audioDuration: voiceData.duration || 0,
         };
       } else {
-        // Regular text message
-        response = await sendMessageToAI(messageText);
+        body = {
+          message: messageText,
+          sessionId,
+          userId,
+          level: CONFIG.STUDENT_LEVEL,
+          inputType: 'text',
+        };
       }
 
-      return response;
+      if (CONFIG.DEBUG) {
+        const logBody = { ...body };
+        if (logBody.imageBase64) logBody.imageBase64 = `[base64 ${logBody.imageBase64.length} chars]`;
+        if (logBody.audioBase64) logBody.audioBase64 = `[base64 ${logBody.audioBase64.length} chars]`;
+        console.log('📤 Sending multimodal request:', logBody);
+      }
+
+      const res = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseText = await res.text();
+      let data;
+      try { data = JSON.parse(responseText); } catch (_) {
+        throw new Error('AI service returned invalid response');
+      }
+
+      if (!res.ok) throw new Error((data && data.error) || `Server error: ${res.status}`);
+
+      if (data && data.success === true && data.response) {
+        return { text: data.response, sessionId: data.sessionId || sessionId, timestamp: data.timestamp || new Date().toISOString() };
+      }
+      if (data && data.success === false && data.error) throw new Error(data.error);
+      if (typeof data === 'string') return { text: data, sessionId, timestamp: new Date().toISOString() };
+      if (data && data.response) return { text: data.response, sessionId: data.sessionId || sessionId, timestamp: data.timestamp || new Date().toISOString() };
+
+      throw new Error('Invalid response format from server');
     } catch (error) {
+      if (error.name === 'AbortError') throw new Error('Request timeout. Please try again.');
       console.error('Send message with attachments error:', error);
       throw error;
     }
@@ -550,23 +774,27 @@ const AiChatScreen = ({ route }) => {
    * Handle sending a message
    */
   const handleSend = async () => {
-    if (inputText.trim() === '' && !selectedImage && !selectedDocument) return;
+    if (inputText.trim() === '' && !selectedImage && !selectedDocument && !selectedVoice) return;
 
     const userMessageText = inputText.trim();
-    
-    // Create user message with attachments
+    const capturedImage = selectedImage;
+    const capturedDocument = selectedDocument;
+    const capturedVoice = selectedVoice;
+
     const newMessage = {
       id: Date.now().toString(),
       type: 'user',
       text: userMessageText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      hasImage: !!selectedImage,
-      hasDocument: !!selectedDocument,
-      imageUri: selectedImage,
-      document: selectedDocument,
+      hasImage: !!capturedImage,
+      hasDocument: !!capturedDocument,
+      hasVoice: !!capturedVoice,
+      imageUri: capturedImage,
+      document: capturedDocument,
+      audioUri: capturedVoice?.uri,
+      duration: capturedVoice?.duration,
     };
 
-    // Create new chat ID if this is the first message
     let chatId = currentChatId;
     if (isNewChat) {
       chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -580,16 +808,13 @@ const AiChatScreen = ({ route }) => {
     setInputText('');
     setSelectedImage(null);
     setSelectedDocument(null);
-    setShowImageModal(false);
-    setShowDocumentModal(false);
+    setSelectedVoice(null);
     Keyboard.dismiss();
 
-    // Show typing indicator
     setIsTyping(true);
 
     try {
-      // Get AI response based on message type
-      const aiResponse = await sendMessageWithAttachments(userMessageText, selectedImage, selectedDocument);
+      const aiResponse = await sendMessageWithAttachments(userMessageText, capturedImage, capturedDocument, capturedVoice);
 
       setIsTyping(false);
 
@@ -668,10 +893,14 @@ const AiChatScreen = ({ route }) => {
   /**
    * Handle copying message text
    */
-  const handleCopyMessage = (text) => {
+  const handleCopyMessage = React.useCallback((text) => {
     // TODO: Implement clipboard copy
     Alert.alert('Copied', 'Message copied to clipboard');
-  };
+  }, []);
+
+  const handleEditMessage = React.useCallback((text) => {
+    setInputText(text);
+  }, []);
 
   /**
    * Handle regenerating response
@@ -697,121 +926,6 @@ const AiChatScreen = ({ route }) => {
     }
   };
 
-  /**
-   * User Message Component with multi-modal support
-   */
-  const UserMessage = ({ text, time, hasImage, hasDocument, imageUri, document, messageType, audioUri, duration, hasVoice }) => (
-    <View style={styles.userMessageContainer}>
-      <View style={styles.userBubble}>
-        {/* Voice Message */}
-        {hasVoice && audioUri && (
-          <View style={styles.voiceMessageContainer}>
-            <View style={styles.voiceIcon}>
-              <Text style={styles.voiceIconText}>🎵</Text>
-            </View>
-            <Text style={styles.voiceText}>Voice message ({duration}s)</Text>
-          </View>
-        )}
-        
-        {/* Image Attachment */}
-        {hasImage && imageUri && (
-          <View style={styles.imageContainer}>
-            <Text style={styles.attachmentText}>📷 Image attached</Text>
-          </View>
-        )}
-        
-        {/* Document Attachment */}
-        {hasDocument && document && (
-          <View style={styles.documentContainer}>
-            <Text style={styles.attachmentText}>📄 {document.name}</Text>
-          </View>
-        )}
-        
-        {/* Message Text */}
-        <Text style={styles.userMessageText}>{text}</Text>
-      </View>
-      <Text style={styles.userTimeText}>{time}</Text>
-      <View style={styles.userActions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => setInputText(text)}
-        >
-          <Edit2 size={16} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleRegenerate(text)}
-        >
-          <RotateCcw size={16} color="#666" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  /**
-   * AI Message Component with MathJax support
-   */
-  const AiMessage = ({ title, text, time, isError }) => (
-    <View style={styles.aiMessageContainer}>
-      <View style={[styles.aiContent, isError && styles.errorContent]}>
-        {title && <Text style={[styles.aiTitle, isError && styles.errorTitle]}>{title}</Text>}
-        <MathJaxProvider html={text} />
-        <Text style={styles.aiTimeText}>{time}</Text>
-      </View>
-      {!isError && (
-        <View style={styles.aiActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <ThumbsUp size={16} color="#666" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <ThumbsDown size={16} color="#666" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleCopyMessage(text)}
-          >
-            <Copy size={16} color="#666" />
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-
-  /**
-   * Typing Indicator Component
-   */
-  const TypingIndicator = () => (
-    <View style={styles.aiMessageContainer}>
-      <View style={[styles.aiContent, styles.typingContainer]}>
-        <View style={styles.typingRow}>
-          <ActivityIndicator size="small" color="#007AFF" />
-          <Text style={styles.typingText}>AI is thinking...</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  /**
-   * Welcome/Salutation Message Component
-   */
-  const SalutationMessage = () => (
-    <View style={styles.salutationContainer}>
-      <View style={styles.salutationContent}>
-        <Text style={styles.salutationTitle}>Hello! 👋</Text>
-        <Text style={styles.salutationText}>
-          I'm your GCE AI tutor. Ask me anything about {CONFIG.STUDENT_LEVEL} subjects:
-        </Text>
-        {/* <View style={styles.subjectChips}>
-          {['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History'].map((subject) => (
-            <View key={subject} style={styles.chip}>
-              <Text style={styles.chipText}>{subject}</Text>
-            </View>
-          ))}
-        </View> */}
-        {/* <Text style={styles.examplePrompt}>Try: "Explain photosynthesis with steps" or "Solve: $x^2 - 5x + 6 = 0$"</Text> */}
-      </View>
-    </View>
-  );
 
   /**
    * Sidebar Component - Shows past conversations
@@ -901,13 +1015,13 @@ const AiChatScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setShowSidebar(!showSidebar)}
           >
@@ -919,17 +1033,17 @@ const AiChatScreen = ({ route }) => {
           </View>
           <View style={styles.headerRight}>
             <View style={styles.settingsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.headerButton}
                 onPress={() => setShowDropdown(!showDropdown)}
               >
                 <Settings2 size={20} color={showDropdown ? "#007AFF" : "#000"} />
               </TouchableOpacity>
-              
+
               {/* Dropdown Menu */}
               {showDropdown && (
                 <View style={styles.dropdown}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.dropdownItem}
                     onPress={handleHistory}
                     activeOpacity={0.7}
@@ -938,7 +1052,7 @@ const AiChatScreen = ({ route }) => {
                     <Text style={styles.dropdownText}>History</Text>
                   </TouchableOpacity>
                   <View style={styles.dropdownDivider} />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.dropdownItem}
                     onPress={handleNewChat}
                     activeOpacity={0.7}
@@ -957,7 +1071,7 @@ const AiChatScreen = ({ route }) => {
 
         {/* Overlay to close dropdown */}
         {showDropdown && (
-          <Pressable 
+          <Pressable
             style={styles.dropdownOverlay}
             onPress={() => setShowDropdown(false)}
           />
@@ -965,7 +1079,7 @@ const AiChatScreen = ({ route }) => {
 
         {/* Overlay to close plus menu */}
         {showPlusMenu && (
-          <Pressable 
+          <Pressable
             style={styles.dropdownOverlay}
             onPress={() => setShowPlusMenu(false)}
           />
@@ -974,10 +1088,10 @@ const AiChatScreen = ({ route }) => {
         {/* Message Area */}
         {isNewChat && messages.length === 0 ? (
           <View style={styles.messageList}>
-            <SalutationMessage />
+            <SalutationMessage studentLevel={CONFIG.STUDENT_LEVEL} />
           </View>
         ) : (
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
@@ -985,21 +1099,21 @@ const AiChatScreen = ({ route }) => {
           >
             {messages.length > 0 && (
               <Text style={styles.dateSeparator}>
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'short', 
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'short',
                   day: 'numeric',
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                  hour: '2-digit',
+                  minute: '2-digit'
                 })}
               </Text>
             )}
-            
+
             {messages.map((msg) => (
               msg.type === 'user' ? (
-                <UserMessage 
-                  key={msg.id} 
-                  text={msg.text} 
+                <UserMessage
+                  key={msg.id}
+                  text={msg.text}
                   time={msg.time}
                   hasImage={msg.hasImage}
                   hasDocument={msg.hasDocument}
@@ -1008,14 +1122,17 @@ const AiChatScreen = ({ route }) => {
                   document={msg.document}
                   audioUri={msg.audioUri}
                   duration={msg.duration}
+                  onEdit={handleEditMessage}
+                  onRegenerate={handleRegenerate}
                 />
               ) : (
-                <AiMessage 
-                  key={msg.id} 
-                  title={msg.title} 
-                  text={msg.text} 
+                <AiMessage
+                  key={msg.id}
+                  title={msg.title}
+                  text={msg.text}
                   time={msg.time}
                   isError={msg.isError}
+                  onCopy={handleCopyMessage}
                 />
               )
             ))}
@@ -1034,7 +1151,7 @@ const AiChatScreen = ({ route }) => {
                   {attachment.type === 'voice' && '🎵 '}
                   {attachment.name || `${attachment.type} attachment`}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
                   style={styles.removeAttachment}
                 >
@@ -1048,7 +1165,7 @@ const AiChatScreen = ({ route }) => {
         {/* Plus Menu Drop-up */}
         {showPlusMenu && (
           <View style={styles.plusMenuContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
                 setShowPlusMenu(false);
@@ -1060,10 +1177,10 @@ const AiChatScreen = ({ route }) => {
               </View>
               <Text style={styles.plusMenuText}>Analyze Image</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.menuDivider} />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
                 setShowPlusMenu(false);
@@ -1075,13 +1192,12 @@ const AiChatScreen = ({ route }) => {
               </View>
               <Text style={styles.plusMenuText}>Import Document</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.menuDivider} />
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.plusMenuItem}
               onPress={() => {
-                setShowPlusMenu(false);
                 handleVoiceRecordFromMenu();
               }}
             >
@@ -1090,48 +1206,139 @@ const AiChatScreen = ({ route }) => {
               </View>
               <Text style={styles.plusMenuText}>Record Voice</Text>
             </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity
+              style={styles.plusMenuItem}
+              onPress={handleImportAudio}
+            >
+              <View style={styles.plusMenuIcon}>
+                <Music size={18} color="#8B5CF6" />
+              </View>
+              <Text style={styles.plusMenuText}>Import Audio</Text>
+            </TouchableOpacity>
           </View>
         )}
 
         {/* Input Area */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity 
-            style={styles.plusButton}
-            onPress={() => setShowPlusMenu(!showPlusMenu)}
-          >
-            <Plus size={24} color={showPlusMenu ? "#007AFF" : "#000"} />
-          </TouchableOpacity>
-          
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask a GCE question..."
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={500}
-              editable={!isTyping}
-            />
-          </View>
+          {/* Image attachment chip */}
+          {selectedImage && (
+            <View style={styles.imageChipRow}>
+              <View style={styles.imageChipWrapper}>
+                <Image source={{ uri: selectedImage }} style={styles.imageChip} resizeMode="cover" />
+                <TouchableOpacity style={styles.imageChipRemove} onPress={() => setSelectedImage(null)}>
+                  <X size={13} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
-          <TouchableOpacity 
-            style={[
-              styles.sendButton, 
-              (!inputText.trim() && attachments.length === 0 || isTyping) && styles.sendButtonDisabled
-            ]} 
-            onPress={handleSend}
-            disabled={!inputText.trim() && attachments.length === 0 || isTyping}
-          >
-            {isTyping ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <Send 
-                size={20} 
-                color={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "#ccc"} 
-                fill={(inputText.trim() || attachments.length > 0) ? "#007AFF" : "none"} 
-              />
-            )}
-          </TouchableOpacity>
+          {/* Voice attachment chip */}
+          {selectedVoice && !isRecording && (
+            <View style={styles.docChipRow}>
+              <View style={styles.voiceInputChip}>
+                <View style={styles.voiceInputPlayBtn}>
+                  <Play size={13} color="#fff" fill="#fff" />
+                </View>
+                <View style={styles.voiceInputWave}>
+                  {[6, 10, 16, 8, 18, 12, 14, 9].map((h, i) => (
+                    <View key={i} style={[styles.voiceInputBar, { height: h }]} />
+                  ))}
+                </View>
+                <Text style={styles.voiceInputDuration}>{formatVoiceDuration(selectedVoice.duration)}</Text>
+                <TouchableOpacity onPress={() => setSelectedVoice(null)} style={styles.docChipRemove}>
+                  <X size={14} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Document attachment chip */}
+          {selectedDocument && (
+            <View style={styles.docChipRow}>
+              <View style={styles.docChip}>
+                <View style={[styles.docChipIconBox, { backgroundColor: getFileIconColor(selectedDocument.mimeType) + '18' }]}>
+                  <FileText size={16} color={getFileIconColor(selectedDocument.mimeType)} />
+                </View>
+                <View style={styles.docChipInfo}>
+                  <Text style={styles.docChipName} numberOfLines={1}>{selectedDocument.name}</Text>
+                  <Text style={styles.docChipMeta}>
+                    {getFileTypeLabel(selectedDocument.mimeType)}{selectedDocument.size ? '  ·  ' + formatFileSize(selectedDocument.size) : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedDocument(null)} style={styles.docChipRemove}>
+                  <X size={14} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Input row */}
+          {isRecording ? (
+            /* ── WhatsApp-style recording bar ── */
+            <View style={styles.recordingBar}>
+              <TouchableOpacity style={styles.recordingCancelBtn} onPress={handleCancelRecording}>
+                <Trash2 size={22} color="#EF4444" />
+              </TouchableOpacity>
+
+              <View style={styles.recordingInfo}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingTimer}>{formatVoiceDuration(recordingDuration)}</Text>
+                <View style={styles.recordingWave}>
+                  {[6, 12, 18, 10, 16, 8, 14, 12, 18, 10].map((h, i) => (
+                    <View key={i} style={[styles.recordingWaveBar, { height: h }]} />
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.recordingSendBtn} onPress={handleStopRecording}>
+                <Send size={20} color="#fff" fill="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* ── Normal input row ── */
+            <View style={styles.inputRow}>
+              <TouchableOpacity
+                style={styles.plusButton}
+                onPress={() => setShowPlusMenu(!showPlusMenu)}
+              >
+                <Plus size={24} color={showPlusMenu ? "#007AFF" : "#000"} />
+              </TouchableOpacity>
+
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder={selectedDocument ? 'Add instructions...' : selectedVoice ? 'Add a note...' : 'Ask a GCE question...'}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  maxLength={500}
+                  editable={!isTyping}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  ((!inputText.trim() && !selectedDocument && !selectedImage && !selectedVoice) || isTyping) && styles.sendButtonDisabled
+                ]}
+                onPress={handleSend}
+                disabled={(!inputText.trim() && !selectedDocument && !selectedImage && !selectedVoice) || isTyping}
+              >
+                {isTyping ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <Send
+                    size={20}
+                    color={(inputText.trim() || selectedDocument || selectedImage || selectedVoice) ? "#007AFF" : "#ccc"}
+                    fill={(inputText.trim() || selectedDocument || selectedImage || selectedVoice) ? "#007AFF" : "none"}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -1148,92 +1355,6 @@ const AiChatScreen = ({ route }) => {
         </>
       )}
 
-      {/* Multi-modal Modals */}
-      <ImageAnalysisModal
-        visible={showImageModal}
-        imageUri={selectedImage}
-        onClose={() => {
-          setShowImageModal(false);
-          setSelectedImage(null);
-          setImageAnalysis(null);
-        }}
-        onAnalyze={handleImageAnalysis}
-        isAnalyzing={isAnalyzingImage}
-        analysisResult={imageAnalysis}
-      />
-
-      <DocumentUploadModal
-        visible={showDocumentModal}
-        onClose={() => {
-          setShowDocumentModal(false);
-          setSelectedDocument(null);
-          setDocumentAnalysis(null);
-        }}
-        onDocumentSelected={handleDocumentSelected}
-        onAnalyze={handleDocumentAnalysis}
-        selectedDocument={selectedDocument}
-        isAnalyzing={isAnalyzingDocument}
-        analysisResult={documentAnalysis}
-      />
-
-      {/* Image Upload Modal from Plus Menu */}
-      <Modal
-        visible={showPlusImageModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowPlusImageModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.imageModalContent}>
-            <View style={styles.imageModalHeader}>
-              <Text style={styles.imageModalTitle}>Select Image Source</Text>
-              <TouchableOpacity
-                onPress={() => setShowPlusImageModal(false)}
-                style={styles.imageModalClose}
-              >
-                <X size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.imageModalOption}
-              onPress={handleTakePhoto}
-            >
-              <Camera size={24} color="#007AFF" />
-              <View style={styles.imageModalOptionText}>
-                <Text style={styles.imageModalOptionTitle}>Take Photo</Text>
-                <Text style={styles.imageModalOptionDesc}>Capture a new image with your camera</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.imageModalOption}
-              onPress={handleSelectFromGallery}
-            >
-              <FileText size={24} color="#10B981" />
-              <View style={styles.imageModalOptionText}>
-                <Text style={styles.imageModalOptionTitle}>Choose from Gallery</Text>
-                <Text style={styles.imageModalOptionDesc}>Select an existing image from your photos</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Voice Recorder Modal from Plus Menu */}
-      {showPlusVoiceModal && (
-        <VoiceRecorder 
-          onVoiceRecorded={(uri, duration) => {
-            handleVoiceRecorded(uri, duration);
-            setShowPlusVoiceModal(false);
-          }}
-          onTranscriptReady={(transcript) => {
-            setInputText(prev => prev + transcript);
-            setShowPlusVoiceModal(false);
-          }}
-          mode="speak-to-text"
-        />
-      )}
     </SafeAreaView>
   );
 };
@@ -1241,7 +1362,7 @@ const AiChatScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F2F0',
+    backgroundColor: '#fdfdfdff',
   },
   header: {
     flexDirection: 'row',
@@ -1249,8 +1370,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#F5F2F0',
-    marginTop: 20,
+    backgroundColor: '#fdfdfdff',
+    //marginTop: 20,
     zIndex: 1000,
   },
   headerCenter: {
@@ -1279,6 +1400,7 @@ const styles = StyleSheet.create({
   },
   messageListContent: {
     paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 20,
   },
   dateSeparator: {
@@ -1292,12 +1414,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   userBubble: {
-    backgroundColor: '#D1D5FF',
+    backgroundColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
     borderBottomRightRadius: 4,
     maxWidth: '85%',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -1322,30 +1445,49 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   aiMessageContainer: {
+    flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 24,
     width: '100%',
   },
+  aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1A2F6E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  aiAvatarError: {
+    backgroundColor: '#FF4444',
+  },
+  aiAvatarText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  aiMessageBody: {
+    flex: 1,
+  },
   aiContent: {
-    width: '100%',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: 'transparent',
+    paddingBottom: 4,
   },
   errorContent: {
-    backgroundColor: '#FFF3F3',
+    backgroundColor: '#FFF0F0',
     borderLeftWidth: 3,
     borderLeftColor: '#FF4444',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   aiTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
     color: '#007AFF',
   },
   errorTitle: {
@@ -1353,45 +1495,86 @@ const styles = StyleSheet.create({
   },
   aiTimeText: {
     fontSize: 10,
-    color: '#999',
-    marginTop: 8,
+    color: '#aaa',
+    marginTop: 6,
   },
   aiActions: {
     flexDirection: 'row',
-    marginTop: 12,
+    marginTop: 8,
     gap: 16,
   },
   actionButton: {
     padding: 4,
   },
   typingContainer: {
-    opacity: 0.8,
+    paddingVertical: 4,
   },
   typingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   typingText: {
     fontStyle: 'italic',
-    color: '#666',
+    color: '#888',
+    fontSize: 14,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderRadius: 24,
     margin: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 10,
+  },
+  docChipRow: {
+    paddingHorizontal: 4,
+    paddingBottom: 6,
+  },
+  docChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  docChipIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  docChipInfo: {
+    flex: 1,
+  },
+  docChipName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  docChipMeta: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  docChipRemove: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   plusButton: {
     padding: 8,
@@ -1650,30 +1833,134 @@ const styles = StyleSheet.create({
   multiModalButtonText: {
     fontSize: 16,
   },
-  voiceMessageContainer: {
+  // ── Voice note card inside sent message ──
+  voiceNoteCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF3CD',
-    padding: 8,
-    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 4,
+    gap: 10,
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+    minWidth: 180,
   },
-  voiceIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FF6B6B',
+  voicePlayBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#6B7280',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    flexShrink: 0,
   },
-  voiceIconText: {
+  voiceWaveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flex: 1,
+  },
+  voiceWaveBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#6B7280',
+    opacity: 0.8,
+  },
+  voiceNoteDuration: {
     fontSize: 12,
-    color: '#FFF',
+    color: '#374151',
+    fontWeight: '500',
+    flexShrink: 0,
   },
-  voiceText: {
-    fontSize: 14,
-    color: '#856404',
+  // ── Recording bar (replaces input row while recording) ──
+  recordingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 10,
+  },
+  recordingCancelBtn: {
+    padding: 8,
+  },
+  recordingInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 25,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  recordingTimer: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    minWidth: 36,
+  },
+  recordingWave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flex: 1,
+  },
+  recordingWaveBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#EF4444',
+    opacity: 0.6,
+  },
+  recordingSendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // ── Voice chip in input bar (imported or recorded) ──
+  voiceInputChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  voiceInputPlayBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceInputWave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flex: 1,
+  },
+  voiceInputBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#007AFF',
+    opacity: 0.6,
+  },
+  voiceInputDuration: {
+    fontSize: 12,
+    color: '#374151',
     fontWeight: '500',
   },
   imageContainer: {
@@ -1681,6 +1968,41 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     marginBottom: 4,
+  },
+  // Image chip in input bar
+  imageChipRow: {
+    paddingHorizontal: 4,
+    paddingBottom: 6,
+  },
+  imageChipWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  imageChip: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: '#E5E7EB',
+  },
+  imageChipRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Image thumbnail inside message bubble
+  messageImageThumb: {
+    width: SCREEN_WIDTH * 0.65,
+    height: SCREEN_WIDTH * 0.5,
+    marginHorizontal: -16,
+    marginTop: -12,
+    marginBottom: 8,
+    backgroundColor: '#E5E7EB',
   },
   documentContainer: {
     backgroundColor: '#E8F5E8',
@@ -1692,6 +2014,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2E7D32',
     fontWeight: '500',
+  },
+  docAttachmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 4,
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+  },
+  docAttachmentIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: '#fff',
+  },
+  docAttachmentInfo: {
+    flex: 1,
+  },
+  docAttachmentName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  docAttachmentMeta: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
   },
   // Plus menu styles
   plusMenuContainer: {

@@ -7,7 +7,6 @@ const authRoutes = require('./routes/auth');
 const healthRoutes = require('./routes/health');
 const examRoutes = require('./routes/examRoutes');
 const depositRoutes = require('./routes/depositRoutes');
-const notificationsRoute = require('./routes/notificationsRoute');
 
 const app = express();
 
@@ -41,7 +40,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/deposit', depositRoutes);
-app.use('/api/notifications', notificationsRoute);
 
 // 404 handler
 app.use((req, res) => {

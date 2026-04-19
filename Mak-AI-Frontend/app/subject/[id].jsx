@@ -194,8 +194,8 @@ const SubjectScreen = () => {
 
   const QuestionMode = [
     { id: 1, name: 'All', icon: <Ionicons name="grid-outline" size={14} color="black" />, route: null },
-    { id: 2, name: 'Junes', icon: '📅', route: '/JunesModeScreen' },
-    { id: 3, name: 'Topics', icon: '📂', route: '/TopicsModeScreen' },
+    { id: 2, name: 'Junes', icon: <Ionicons name="calendar-outline" size={14} color="black" />, route: '/JunesModeScreen' },
+    { id: 3, name: 'Topics', icon: <Ionicons name="folder-outline" size={14} color="black" />, route: '/TopicsModeScreen' },
     { id: 4, name: 'Customs exam', icon: <Ionicons name="sparkles-outline" size={14} color="#a35daf" />, route: '/CustomsExamScreen' },
   ];
 
@@ -208,7 +208,7 @@ const SubjectScreen = () => {
       students: ['https://i.pravatar.cc/150?img=1', 'https://i.pravatar.cc/150?img=2', 'https://i.pravatar.cc/150?img=3'],
       additionalCount: 3,
       backgroundColor: '#2d2d2d',
-      icon: '📄',
+      icon: 'document-text-outline',
       route: '/JunesModeScreen',
     },
     {
@@ -219,7 +219,7 @@ const SubjectScreen = () => {
       students: ['https://i.pravatar.cc/150?img=4', 'https://i.pravatar.cc/150?img=5', 'https://i.pravatar.cc/150?img=6'],
       additionalCount: 12,
       backgroundColor: '#b8b8f0',
-      icon: '📚',
+      icon: 'library-outline',
       route: '/TopicsModeScreen',
     },
     {
@@ -230,7 +230,7 @@ const SubjectScreen = () => {
       students: ['https://i.pravatar.cc/150?img=7', 'https://i.pravatar.cc/150?img=8', 'https://i.pravatar.cc/150?img=9'],
       additionalCount: 12,
       backgroundColor: '#c5c5d8',
-      icon: '🤖',
+      icon: 'hardware-chip-outline',
       route: '/CustomsExamScreen',
     },
   ];
@@ -248,7 +248,7 @@ const SubjectScreen = () => {
           <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerGradient}>
             <View style={styles.headerSection}>
               <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backIcon}>‹</Text>
+                <Ionicons name="chevron-back" size={15} color="#2d2d2d" />
               </TouchableOpacity>
               <View style={styles.illustrationContainer}>
                 <Image source={subject.image} style={styles.illustrationImage} resizeMode="contain" />
@@ -259,7 +259,7 @@ const SubjectScreen = () => {
               </View>
               <View style={styles.statsContainer}>
                 <View style={styles.statBadge}><View style={styles.dotIcon} /><Text style={styles.statText}>10 Junes</Text></View>
-                <View style={[styles.statBadge, styles.statBadgeLight]}><Text style={styles.statIcon}>📅</Text><Text style={styles.statText}>{selectedLevel}</Text></View>
+                <View style={[styles.statBadge, styles.statBadgeLight]}><Ionicons name="calendar-outline" size={14} color="#fff" /><Text style={styles.statText}>{selectedLevel}</Text></View>
               </View>
             </View>
           </LinearGradient>
@@ -274,7 +274,7 @@ const SubjectScreen = () => {
                 style={styles.questionModeTab}
                 onPress={() => mode.route && router.push({ pathname: mode.route, params: { subjectId: subjectId.toString(), subjectName: subject.title, level: selectedLevel } })}
               >
-                <Text style={styles.questionModeIcon}>{mode.icon}</Text>
+                {mode.icon}
                 <Text style={styles.questionModeName}>{mode.name}</Text>
               </TouchableOpacity>
             ))}
@@ -347,11 +347,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: verticalScale(12),
   },
-  backIcon: {
-    fontSize: 28,
-    color: '#2d2d2d',
-    fontWeight: '300'
-  },
   illustrationContainer: {
     position: 'absolute',
     right: scale(20),
@@ -380,7 +375,6 @@ const styles = StyleSheet.create({
   },
   statBadgeLight: { backgroundColor: 'rgba(255,255,255,0.4)' },
   dotIcon: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
-  statIcon: { fontSize: moderateScale(14) },
   statText: { color: '#fff', fontSize: moderateScale(12), fontWeight: '600' },
 
   // Mode tabs
@@ -397,7 +391,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16), paddingVertical: verticalScale(6),
     borderRadius: 12, marginRight: scale(10), gap: scale(8),
   },
-  questionModeIcon: { fontSize: moderateScale(16) },
   questionModeName: { fontSize: moderateScale(11), fontWeight: '600', color: '#2d2d2d' },
 
   contentContainer: { flex: 1 },

@@ -277,7 +277,68 @@ const generateMathJaxHTML = (text, isError = false) => {
   `;
 };
 
-const MathJaxProvider = ({ html, fontSize = "18px" }) => {
+/**
+ * Wrap raw HTML in the MathJax/KaTeX template without additional markdown parsing
+ */
+const wrapInHtmlTemplate = (htmlContent) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="initKatex()"></script>
+      <script>
+        function initKatex() {
+          renderMathInElement(document.getElementById('content'), {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '\\\\[', right: '\\\\]', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\\\(', right: '\\\\)', display: false}
+            ],
+            throwOnError: false,
+            trust: true,
+            strict: false
+          });
+          
+          setTimeout(function() {
+            const height = Math.max(
+              document.body.scrollHeight,
+              document.documentElement.scrollHeight,
+              document.body.offsetHeight
+            );
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              height: height
+            }));
+          }, 100);
+        }
+      </script>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 15px;
+          line-height: 1.6;
+          color: #000;
+          background-color: transparent;
+          padding: 8px;
+        }
+        .katex { font-size: 1.1em !important; }
+      </style>
+    </head>
+    <body>
+      <div id="content">
+        ${htmlContent}
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+const MathJaxProvider = ({ html, fontSize = "18px", useRawHtml = false }) => {
   const [height, setHeight] = useState(30);
   const webViewRef = useRef(null);
   const [contentKey, setContentKey] = useState(0);
@@ -289,7 +350,7 @@ const MathJaxProvider = ({ html, fontSize = "18px" }) => {
     setContentKey(prev => prev + 1);
   }, [html]);
 
-  const fullHtml = generateMathJaxHTML(html);
+  const fullHtml = useRawHtml ? wrapInHtmlTemplate(html) : generateMathJaxHTML(html);
 
   const handleMessage = (event) => {
     try {

@@ -1,5 +1,5 @@
 
-import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Dimensions, PixelRatio, useColorScheme, Platform } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Dimensions, PixelRatio, useColorScheme, Platform, ScrollView } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import ThemedView from '../../components/ThemedView'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -130,53 +130,126 @@ const Home = () => {
                     </View>
                 </TouchableOpacity>
             </View>
-            <FlatList
-                data={SUBJECT}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                ListHeaderComponent={
-                    /* 2. Scaled Banner */
-                    <View style={{ marginBottom: scale(5) }}>
-                        <View style={styles.bannerContainer}>
-                            <LinearGradient colors={['#7085FC', '#A6B2FF']} style={styles.bannerGradient}>
-                                <View style={styles.bannerContent}>
-                                    <Text style={styles.bannerTitle}>Flashcards</Text>
-                                    <Text style={styles.bannerSubtitle}>
-                                        Study the most frequent definitions
-                                    </Text>
-                                    <TouchableOpacity style={styles.startButton} onPress={() => router.push('/Flashcards')}>
-                                        <Text style={styles.startButtonText}>Start Now</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <Image
-                                    source={require('../../assets/Card.png')}
-                                    style={styles.cardImage}
-                                    resizeMode='contain'
-                                />
-                            </LinearGradient>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                {/* 2. Scaled Banner */}
+                <View style={{ marginBottom: scale(5) }}>
+                    <View style={styles.bannerContainer}>
+                        <LinearGradient colors={['#7085FC', '#A6B2FF']} style={styles.bannerGradient}>
+                            <View style={styles.bannerContent}>
+                                <Text style={styles.bannerTitle}>Flashcards</Text>
+                                <Text style={styles.bannerSubtitle}>
+                                    Study the most frequent definitions
+                                </Text>
+                                <TouchableOpacity style={styles.startButton} onPress={() => router.push('/Flashcards')}>
+                                    <Text style={styles.startButtonText}>Start Now</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Image
+                                source={require('../../assets/Card.png')}
+                                style={styles.cardImage}
+                                resizeMode='contain'
+                            />
+                        </LinearGradient>
 
-                        </View>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Subject</Text>
-                            <TouchableOpacity>
-                                <Text style={styles.seeAllText}>See all</Text>
+                    </View>
+                </View>
+
+                {/* Your Plan Section */}
+                <View style={styles.planSection}>
+                    <Text style={styles.sectionTitleHeader}>Your plan</Text>
+
+                    <View style={styles.gridContainer}>
+                        {/* Large Card - Left (Explore) */}
+                        <TouchableOpacity
+                            style={styles.largeCard}
+                            onPress={() => router.push('/ExploreSubjects')}
+                            activeOpacity={0.9}
+                        >
+                            <LinearGradient
+                                colors={['#FFB74D', '#FFCC80']} // Amber (Matches Start Now button)
+                                style={styles.cardGradient}
+                            >
+                                <View style={styles.iconCircle}>
+                                    <Ionicons name="library" size={moderateScale(24)} color="#FFF" />
+                                </View>
+                                <Text style={styles.largeCardTitle}>Explore GCE & Mock Papers</Text>
+                                <Text style={styles.largeCardSubtitle}>120+ Resources</Text>
+                                <View style={styles.cardArrow}>
+                                    <Ionicons name="arrow-forward" size={16} color="#FFF" />
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        {/* Right Column - Stacked Cards */}
+                        <View style={styles.rightColumn}>
+                            {/* Top Card - Doc Analysis */}
+                            <TouchableOpacity
+                                style={styles.smallCard}
+                                onPress={() => router.push({ pathname: '/(tabs)/Chat', params: { action: 'upload' } })}
+                                activeOpacity={0.9}
+                            >
+                                <LinearGradient
+                                    colors={['#7085FC', '#A6B2FF']} // Soft Blue/Purple (Matches Flashcards)
+                                    style={styles.cardGradient}
+                                >
+                                    <View style={styles.iconCircleSmall}>
+                                        <Ionicons name="document-text" size={moderateScale(20)} color="#FFF" />
+                                    </View>
+                                    <Text style={styles.smallCardText}>Doc Analysis</Text>
+                                    <View style={styles.cardArrowSmall}>
+                                        <Ionicons name="arrow-forward" size={12} color="#FFF" />
+                                    </View>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            {/* Bottom Card - Exam Gen */}
+                            <TouchableOpacity
+                                style={styles.smallCard}
+                                onPress={() => router.push('/CustomsExamScreen')}
+                                activeOpacity={0.9}
+                            >
+                                <LinearGradient
+                                    colors={['#7085FC', '#A6B2FF']} // Soft Blue/Purple (Matches Flashcards)
+                                    style={styles.cardGradient}
+                                >
+                                    <View style={styles.iconCircleSmall}>
+                                        <Ionicons name="create" size={moderateScale(20)} color="#FFF" />
+                                    </View>
+                                    <Text style={styles.smallCardText}>Exam Gen</Text>
+                                    <View style={styles.cardArrowSmall}>
+                                        <Ionicons name="arrow-forward" size={12} color="#FFF" />
+                                    </View>
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
                     </View>
-                }
-                columnWrapperStyle={styles.columnWrapper}
-                contentContainerStyle={styles.listPadding}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.subjectCardWrapper} onPress={() => handleSubjectPress(item)}>
+                </View>
 
-                        <SubjectCard
-                            title={item.title}
-                            image={item.image}
-                        />
-
+                {/* Daily Tips Section (Replacing "On Going") */}
+                <View style={styles.tipsSection}>
+                    <View style={styles.sectionHeaderRow}>
+                        <Text style={styles.sectionTitleHeader}>Daily Tips</Text>
+                        <TouchableOpacity>
+                            <Text style={styles.seeAllTips}>Read all</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.tipsCard} activeOpacity={0.9}>
+                        <LinearGradient
+                            colors={['#F3F4F6', '#E5E7EB']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.tipsGradient}
+                        >
+                            <View style={styles.tipsContent}>
+                                <Text style={styles.tipLabel}>STUDY TIP</Text>
+                                <Text style={styles.tipTitle}>Improve focus with Active Recall</Text>
+                            </View>
+                        </LinearGradient>
                     </TouchableOpacity>
-                )}
-            />
+                </View>
+
+            </ScrollView>
+
 
             <LevelSelectionAlert
                 visible={showLevelAlert}
@@ -293,4 +366,200 @@ const styles = StyleSheet.create({
     seeAllText: { color: '#7986CB', fontWeight: '600' },
     listPadding: { paddingHorizontal: scale(20), paddingTop: scale(20), paddingBottom: scale(40) },
     columnWrapper: { justifyContent: 'space-between' },
+    scrollContent: {
+        paddingHorizontal: scale(16),
+        paddingBottom: scale(40),
+    },
+    planSection: {
+        marginTop: scale(10),
+    },
+    sectionTitleHeader: {
+        fontSize: scale(22),
+        fontWeight: '800',
+        color: '#1F2937',
+        marginBottom: scale(15),
+    },
+    gridContainer: {
+        flexDirection: 'row',
+        gap: scale(12),
+        height: scale(200),
+    },
+    largeCard: {
+        flex: 1.2,
+        borderRadius: scale(20),
+        overflow: 'hidden',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+    },
+    rightColumn: {
+        flex: 1,
+        gap: scale(12),
+    },
+    smallCard: {
+        flex: 1,
+        borderRadius: scale(20),
+        overflow: 'hidden',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    cardGradient: {
+        flex: 1,
+        padding: scale(15),
+        justifyContent: 'center',
+    },
+    badgeLabel: {
+        position: 'absolute',
+        top: scale(10),
+        left: scale(10),
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: scale(8),
+        paddingVertical: scale(2),
+        borderRadius: scale(10),
+    },
+    badgeLabelText: {
+        color: '#FFF',
+        fontSize: scale(10),
+        fontWeight: '600',
+    },
+    largeCardTitle: {
+        fontSize: scale(18),
+        fontWeight: '700',
+        color: '#FFF',
+        marginTop: scale(15),
+    },
+    largeCardSubtitle: {
+        fontSize: scale(12),
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: scale(5),
+    },
+    cardIconBottom: {
+        position: 'absolute',
+        bottom: scale(-5),
+        right: scale(-5),
+    },
+    smallCardIcon: {
+        marginBottom: scale(5),
+    },
+    smallCardText: {
+        fontSize: scale(14),
+        fontWeight: '700',
+        color: '#FFF',
+    },
+    iconCircle: {
+        width: scale(45),
+        height: scale(45),
+        borderRadius: scale(22.5),
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: scale(10),
+    },
+    iconCircleSmall: {
+        width: scale(36),
+        height: scale(36),
+        borderRadius: scale(18),
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: scale(5),
+    },
+    cardArrow: {
+        position: 'absolute',
+        top: scale(20),
+        right: scale(20),
+        width: scale(28),
+        height: scale(28),
+        borderRadius: scale(14),
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cardArrowSmall: {
+        position: 'absolute',
+        top: scale(15),
+        right: scale(15),
+        width: scale(22),
+        height: scale(22),
+        borderRadius: scale(11),
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    tipsSection: {
+        marginTop: scale(25),
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: scale(12),
+    },
+    seeAllTips: {
+        fontSize: scale(14),
+        color: '#7085FC',
+        fontWeight: '600',
+    },
+    tipsCard: {
+        borderRadius: scale(24),
+        overflow: 'hidden',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+    },
+    tipsGradient: {
+        flexDirection: 'row',
+        padding: scale(20),
+        alignItems: 'center',
+    },
+    tipsContent: {
+        flex: 1,
+    },
+    tipLabel: {
+        fontSize: scale(10),
+        fontWeight: '800',
+        color: '#9CA3AF',
+        letterSpacing: 1,
+        marginBottom: scale(6),
+    },
+    tipTitle: {
+        fontSize: scale(16),
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: scale(12),
+    },
+    tipProgressContainer: {
+        height: scale(6),
+        backgroundColor: '#E5E7EB',
+        borderRadius: scale(3),
+        width: '80%',
+        marginBottom: scale(6),
+    },
+    tipProgressBar: {
+        height: '100%',
+        backgroundColor: '#7085FC',
+        borderRadius: scale(3),
+    },
+    tipMetric: {
+        fontSize: scale(11),
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    tipIllustrationContainer: {
+        width: scale(80),
+        height: scale(80),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    tipIllustration: {
+        width: '100%',
+        height: '100%',
+    },
 })

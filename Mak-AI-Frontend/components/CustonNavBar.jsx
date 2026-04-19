@@ -11,6 +11,13 @@ const Tab = createBottomTabNavigator()
 
 // 1. Removed TypeScript interfaces and added the arrow function syntax
 const CustomNavBar = ({ state, descriptors, navigation }) => {
+  const focusedRouteName = state.routes[state.index].name;
+
+  // 2. Define which screens should hide the tab bar
+  // Note: Ensure this matches the actual filename/route name in your (tabs) folder
+  if (focusedRouteName === 'Chat') {
+    return null;
+  }
   const scheme = useColorScheme()
   const bg = COLORS.accent
   const secondary = scheme === 'light'
@@ -19,13 +26,18 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
   const { colors } = useTheme();
   const { buildHref } = useLinkBuilder();
 
+  // Hide nav bar on Chat screen
+  if (state.routes[state.index]?.name === 'Chat') {
+    return null;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: secondary }]}>
       {state.routes.map((route, index) => {
 
 
         // Only render these specific tabs (case-insensitive): home, stats, profile, onboarding
-        const allowedTabs = ['index', 'Stats', 'Chat', 'profile', 'ExamMode'];
+        const allowedTabs = ['index', 'Stats', 'Chat', 'profile'];
         if (!allowedTabs.includes(String(route.name))) {
           return null; // Skip rendering all other tabs
         }
