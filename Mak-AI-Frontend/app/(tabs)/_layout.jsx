@@ -1,4 +1,4 @@
-import { StyleSheet, View, ActivityIndicator } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Tabs, useRouter, useSegments } from 'expo-router'
 import CustomNavBar from '../../components/CustonNavBar'
@@ -6,8 +6,10 @@ import { useNavigationState } from '@react-navigation/native';
 import { isOnboardingCompleted } from '../../utils/onboardingStorage';
 import { useAuth } from '../../context/AuthContext';
 import SplashScreen from '../../components/SplashScreen';
+import LottieView from 'lottie-react-native';
 
 const _layout = () => {
+    const [tabBarVisible, setTabBarVisible] = useState(true);
     const [showSplash, setShowSplash] = useState(true);
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
     const router = useRouter();
@@ -28,6 +30,14 @@ const _layout = () => {
 
         return () => clearTimeout(splashTimer);
     }, []);
+
+    useEffect(() => {
+        if (currentRouteName === 'Chat') {
+            setTabBarVisible(false);
+        } else {
+            setTabBarVisible(true);
+        }
+    }, [currentRouteName]);
 
     const checkOnboardingStatus = async () => {
         setIsCheckingOnboarding(true);
@@ -61,7 +71,7 @@ const _layout = () => {
                         }
                     }
                 }
-                
+
                 // If onboarding completed and on onboarding screen, redirect to login
                 if (currentRoute === 'OnboardingScreen' && !isAuthenticated) {
                     router.replace('/LoginScreen');
@@ -81,7 +91,7 @@ const _layout = () => {
             setIsCheckingOnboarding(false);
         }
     };
-    
+
     // Re-check when auth state changes
     useEffect(() => {
         if (isInitialized && !authLoading) {
@@ -98,15 +108,25 @@ const _layout = () => {
     if (authLoading || !isInitialized || isCheckingOnboarding) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#7085FC" />
+                <LottieView
+                    source={require('../../animations/Loading animation blue.json')}
+                    autoPlay
+                    loop
+                    style={styles.loadingAnimation}
+                />
             </View>
         );
     }
 
     return (
         <Tabs
-            tabBar={(props) => <CustomNavBar {...props} />}
-            screenOptions={{ headerShown: false }}
+            tabBar={(props) => tabBarVisible ? <CustomNavBar {...props} /> : null}
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    display: tabBarVisible ? 'flex' : 'none'
+                }
+            }}
         >
             <Tabs.Screen name='index' options={{ title: 'Home' }} />
             <Tabs.Screen name='Chat' options={{ title: 'Chat' }} />
@@ -123,5 +143,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#fff',
+    },
+    loadingAnimation: {
+        width: 100,
+        height: 100,
     },
 })

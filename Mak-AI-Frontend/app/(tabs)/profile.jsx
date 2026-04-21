@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
+import DayStreak from '../../components/DayStreak';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { auth } from '../../config/firebase';
 import { scale, verticalScale, moderateScale } from '../../utils/scaling';
 import { examAPI } from '../../services/api';
+
 const Profile = () => {
     const router = useRouter();
     const user = auth.currentUser;
+
     const userName = user?.displayName || 'Learner';
     const firstLetter = userName.charAt(0).toUpperCase();
     const [stats, setStats] = useState(null);
+    const [showStreakModal, setShowStreakModal] = useState(false);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -63,11 +67,35 @@ const Profile = () => {
                         <Text style={styles.statNumber}>5</Text>
                         <Text style={styles.statLabel}>Energy</Text>
                     </View>
-                    <View style={[styles.statBox, styles.statBorder]}>
+                    <TouchableOpacity
+                        style={[styles.statBox, styles.statBorder]}
+                        onPress={() => setShowStreakModal(true)}
+                        activeOpacity={0.7}
+                    >
                         <Ionicons name="flame" size={20} color="#FF4500" />
                         <Text style={styles.statNumber}>{stats?.streak || 0}</Text>
                         <Text style={styles.statLabel}>Streaks</Text>
-                    </View>
+                    </TouchableOpacity>
+
+                    {/* Streak Animation Modal */}
+                    <Modal
+                        visible={showStreakModal}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={() => setShowStreakModal(false)}
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalCard}>
+                                <TouchableOpacity
+                                    style={styles.modalClose}
+                                    onPress={() => setShowStreakModal(false)}
+                                >
+                                    <Ionicons name="close" size={24} color="#6B7280" />
+                                </TouchableOpacity>
+                                <DayStreak streak={stats?.streak || 0} />
+                            </View>
+                        </View>
+                    </Modal>
                 </View>
 
                 {/* 3. Settings List */}
@@ -80,6 +108,12 @@ const Profile = () => {
                         title="My Favorites"
                         color="#EC4899" // A nice vibrant pink/rose
 
+                    />
+                    <ProfileItem
+                        icon="document-text-outline"
+                        title="Paper 2"
+                        color="#10B981" // Emerald green
+                        onPress={() => router.push('/Paper2')}
                     />
                     <ProfileItem
                         icon="log-out-outline"
@@ -195,6 +229,24 @@ const styles = StyleSheet.create({
         fontSize: moderateScale(40),
         fontWeight: '800',
         color: '#FFF',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: 28,
+        width: '100%',
+        paddingBottom: 32,
+        overflow: 'hidden',
+    },
+    modalClose: {
+        alignSelf: 'flex-end',
+        padding: 16,
     },
 });
 

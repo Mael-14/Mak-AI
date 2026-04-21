@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
-  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -23,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { examAPI } from '../services/api';
+import LottieView from 'lottie-react-native';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -408,7 +408,12 @@ const CustomsExamScreen = () => {
       >
         {loading && exams.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <ActivityIndicator size="large" color="#3F51B5" />
+            <LottieView
+              source={require('../animations/Loading (Buffering).json')}
+              autoPlay
+              loop
+              style={styles.loadingAnimation}
+            />
             <Text style={styles.loadingText}>Loading exam history...</Text>
           </View>
         ) : exams.length === 0 ? (
@@ -510,6 +515,10 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: moderateScale(14),
     fontWeight: '600',
+  },
+  loadingAnimation: {
+    width: scale(86),
+    height: scale(86),
   },
   headerContainer: {
     borderBottomLeftRadius: 30,

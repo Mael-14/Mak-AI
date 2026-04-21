@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LottieView from 'lottie-react-native';
 
 const SplashScreen = () => {
     return (
@@ -15,9 +16,10 @@ const SplashScreen = () => {
                 
                 {/* Loading Animation */}
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator 
-                        size="large" 
-                        color="#7085FC" 
+                    <LottieView
+                        source={require('../animations/Loading animation blue.json')}
+                        autoPlay
+                        loop
                         style={styles.loader}
                     />
                 </View>
@@ -51,7 +53,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loader: {
-        transform: [{ scale: 1.2 }],
+        width: 96,
+        height: 96,
     },
 });
 

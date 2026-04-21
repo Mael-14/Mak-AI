@@ -143,7 +143,7 @@ const CARD_COLOR = '#2d2d2d';
 const CORNER_SIZE = 26;
 
 const FolderYearCard = ({ yearData, isOpen, isFavorite, onToggle, onFavorite, onPaperSelect }) => (
-  <View style={styles.folderCardWrapper}>
+  <View style={[styles.folderCardWrapper, isOpen && styles.folderCardWrapperOpen]}>
     {/* Back layer — peeks below to simulate stacked folder */}
     <View style={styles.folderCardBack} />
 
@@ -183,7 +183,11 @@ const FolderYearCard = ({ yearData, isOpen, isFavorite, onToggle, onFavorite, on
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={onToggle}
-      style={[styles.folderBody, { backgroundColor: CARD_COLOR }]}
+      style={[
+        styles.folderBody,
+        { backgroundColor: CARD_COLOR },
+        isOpen && styles.folderBodyOpen,
+      ]}
     >
       <Text style={styles.folderSubtitle} numberOfLines={1}>Past Papers & Answers</Text>
       <Text style={styles.folderTitle}>GCE June {yearData.year}</Text>
@@ -933,13 +937,16 @@ const styles = StyleSheet.create({
   folderCardWrapper: {
     marginBottom: 22,
     paddingBottom: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
     borderRadius: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 8,
+  },
+  folderCardWrapperOpen: {
+    paddingBottom: 0,
   },
   folderCardBack: {
     position: 'absolute',
@@ -1029,6 +1036,10 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: -1,
   },
+  folderBodyOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
   folderSubtitle: {
     fontSize: moderateScale(10),
     fontWeight: '700',
@@ -1076,26 +1087,35 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   folderDropdown: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 8,
-    marginHorizontal: 4,
-    marginBottom: 4,
-    padding: 8,
+    backgroundColor: CARD_COLOR,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginTop: -1,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    paddingTop: 2,
+    paddingBottom: 14,
+    paddingHorizontal: 18,
+    overflow: 'hidden',
   },
   folderDropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: 14,
+    paddingHorizontal: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    marginBottom: 0,
   },
   folderDropdownText: {
     fontSize: moderateScale(14),
-    color: '#2d2d2d',
+    color: '#fff',
     fontWeight: '500',
+    flexShrink: 1,
+    marginRight: 8,
   },
 });
 export default JunesModeScreen;
