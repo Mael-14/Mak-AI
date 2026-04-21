@@ -290,19 +290,13 @@ export default function Exam({ route }) {
           return;
         }
 
-        // Fetch questions based on subject and level (existing API behavior)
-        const response = await examAPI.getQuestions(subjectCode, level || null);
+        // Local-first per-topic when topic is selected; otherwise local-first subject cache.
+        const response = topic
+          ? await examAPI.getQuestionsForTopic(subjectCode, level || null, topic)
+          : await examAPI.getQuestions(subjectCode, level || null);
 
         if (response.success) {
-          let questions = response.data;
-
-          // 4. THE FILTER: This will now work because 'topic' comes from useLocalSearchParams
-          if (topic) {
-            console.log("Filtering Exam Mode for topic:", topic);
-            questions = questions.filter(q =>
-              q.topic?.toString().toLowerCase().trim() === topic.toLowerCase().trim()
-            );
-          }
+          const questions = response.data;
 
           // 5. Update Header Info
           setExamInfo({
@@ -656,10 +650,10 @@ export default function Exam({ route }) {
   if (showCongrats) {
     return (
       <React.Fragment>
-        <StreakModal 
-          visible={showStreakModal} 
-          streak={newStreak} 
-          onClose={() => setShowStreakModal(false)} 
+        <StreakModal
+          visible={showStreakModal}
+          streak={newStreak}
+          onClose={() => setShowStreakModal(false)}
         />
         <Modal isVisible={true} animationIn="zoomIn" animationOut="zoomOut" backdropOpacity={0.7}>
           <View style={styles.congratsModal}>
@@ -781,10 +775,10 @@ export default function Exam({ route }) {
 
     return (
       <React.Fragment>
-        <StreakModal 
-          visible={showStreakModal} 
-          streak={newStreak} 
-          onClose={() => setShowStreakModal(false)} 
+        <StreakModal
+          visible={showStreakModal}
+          streak={newStreak}
+          onClose={() => setShowStreakModal(false)}
         />
         <SafeAreaView style={styles.mainContainer}>
           <View style={[styles.mainContainer, styles.backgroundContainer]}>

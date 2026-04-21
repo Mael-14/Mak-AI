@@ -7,15 +7,16 @@ import {
   Dimensions,
   Animated,
   Alert,
-  ActivityIndicator,
   ScrollView,
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import LottieView from 'lottie-react-native';
 import { examAPI } from '../services/api';
 import { scale, verticalScale, moderateScale } from '../utils/scaling';
 import MathJaxProvider from '../components/MathJaxProvider';
+import QuestionMeasurer from '../components/QuestionMeasurer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -33,10 +34,13 @@ export default function Revision() {
   });
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showExplanationModal, setShowExplanationModal] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const position = useRef(new Animated.ValueXY()).current;
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [heightsCache, setHeightsCache] = useState(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   // Simple approach: Fetch questions using subjectCode + level
   useEffect(() => {
@@ -53,15 +57,13 @@ export default function Revision() {
 
         console.log('Fetching questions for subjectCode:', subjectCode, 'level:', level);
 
-        // Simple approach: Use subjectCode + level to fetch questions
-        const response = await examAPI.getQuestions(subjectCode, level);
+        // Local-first per-topic when topic is selected; otherwise local-first subject cache.
+        const response = topic
+          ? await examAPI.getQuestionsForTopic(subjectCode, level, topic)
+          : await examAPI.getQuestions(subjectCode, level);
 
         if (response.success) {
-          // Filter by topic if provided
-          let questions = response.data;
-          if (topic) {
-            questions = questions.filter(q => q.topic === topic);
-          }
+          const questions = response.data;
 
           // Format questions to match UI structure
           const formattedQuestions = questions.map(q => ({
@@ -86,6 +88,7 @@ export default function Revision() {
           });
 
           setQuizData(sortedQuestions);
+          setIsPreparing(true);
 
           // Update exam info
           setExamInfo({
@@ -119,11 +122,34 @@ export default function Revision() {
     loadQuestions();
   }, [subjectCode, level, topic]);
 
-  if (loading) {
+  if (loading || isPreparing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2d2d2d" />
-        <Text style={styles.loadingText}>Loading questions...</Text>
+        <Modal visible={true} transparent={true} animationType="fade">
+          <View style={styles.loadingModalOverlay}>
+            <View style={styles.loadingModalCard}>
+              <LottieView
+                source={require('../animations/Loading animation blue.json')}
+                autoPlay
+                loop
+                style={styles.loadingAnimation}
+              />
+              <Text style={styles.loadingTitle}>Preparing Revision Mode</Text>
+              <Text style={styles.loadingText}>
+                {isPreparing ? 'Optimizing layouts for you...' : 'Loading questions...'}
+              </Text>
+            </View>
+          </View>
+        </Modal>
+        {isPreparing && (
+          <QuestionMeasurer 
+            quizData={quizData} 
+            onMeasured={(data) => {
+              setHeightsCache(data);
+              setIsPreparing(false);
+            }} 
+          />
+        )}
       </View>
     );
   }
@@ -170,6 +196,22 @@ export default function Revision() {
 
   const setShowHint = () => {
     Alert.alert('Hint', currentQuestion.hint, [{ text: 'OK' }]);
+  };
+
+  const answeredCount = Object.keys(selectedOptions).length;
+  const correctCount = quizData.reduce((count, question, index) => {
+    return selectedOptions[index] === question.correct ? count + 1 : count;
+  }, 0);
+
+  const handleReviewAgain = () => {
+    setShowCompletionModal(false);
+    setCurrentQuestionIndex(0);
+    setShowExplanationModal(false);
+  };
+
+  const handleDone = () => {
+    setShowCompletionModal(false);
+    router.back();
   };
 
   const cardAnimationStyle = {
@@ -220,7 +262,10 @@ export default function Revision() {
               </TouchableOpacity>
             </View>
             <View style={styles.questionSection}>
-              <MathJaxProvider html={currentQuestion.question} />
+              <MathJaxProvider 
+                html={currentQuestion.question} 
+                preCalculatedHeight={heightsCache ? heightsCache[`q_${currentQuestionIndex}`] : null}
+              />
             </View>
           </View>
 
@@ -251,7 +296,10 @@ export default function Revision() {
                     <Text style={[styles.optionLetter, { color: indicatorTextColor }]}>{option.label}</Text>
                   </View>
                   <View style={styles.optionMathWrap} pointerEvents="none">
-                    <MathJaxProvider html={option.value} />
+                    <MathJaxProvider 
+                      html={option.value} 
+                      preCalculatedHeight={heightsCache ? heightsCache[`o_${currentQuestionIndex}_${option.label}`] : null}
+                    />
                   </View>
                   {isSelected && (
                     <Ionicons
@@ -288,14 +336,7 @@ export default function Revision() {
             style={styles.revisionPill}
             onPress={() => {
               if (currentQuestionIndex === totalQuestions - 1) {
-                Alert.alert(
-                  'Completed!',
-                  `You have completed all ${totalQuestions} questions!`,
-                  [
-                    { text: 'Review Again', onPress: () => setCurrentQuestionIndex(0) },
-                    { text: 'Done', onPress: () => router.back() },
-                  ]
-                );
+                setShowCompletionModal(true);
               }
             }}
           >
@@ -347,7 +388,10 @@ export default function Revision() {
               <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.modalBody}>
                   <Text style={styles.explanationLabel}>Question Explanation</Text>
-                  <MathJaxProvider html={currentQuestion.explanation} />
+                  <MathJaxProvider 
+                    html={currentQuestion.explanation} 
+                    preCalculatedHeight={heightsCache ? heightsCache[`e_${currentQuestionIndex}`] : null}
+                  />
 
                   {selectedOptions[currentQuestionIndex] && (
                     <View style={styles.answerBox}>
@@ -362,13 +406,58 @@ export default function Revision() {
                           </Text>
                         </View>
                         <View style={styles.answerValueWrap}>
-                          <MathJaxProvider html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} />
+                          <MathJaxProvider 
+                            html={currentQuestion.options.find(opt => opt.label === currentQuestion.correct)?.value} 
+                            preCalculatedHeight={heightsCache ? heightsCache[`o_${currentQuestionIndex}_${currentQuestion.correct}`] : null}
+                          />
                         </View>
                       </View>
                     </View>
                   )}
                 </View>
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Completion modal */}
+        <Modal
+          visible={showCompletionModal}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setShowCompletionModal(false)}
+        >
+          <View style={styles.completionOverlay}>
+            <View style={styles.completionCard}>
+              <View style={styles.completionIconWrap}>
+                <Ionicons name="trophy" size={28} color="#fff" />
+              </View>
+
+              <Text style={styles.completionTitle}>Session Completed</Text>
+              <Text style={styles.completionSubtitle}>
+                You reached the end of this revision set.
+              </Text>
+
+              <View style={styles.completionStatsRow}>
+                <View style={styles.completionStatBox}>
+                  <Text style={styles.completionStatValue}>{answeredCount}/{totalQuestions}</Text>
+                  <Text style={styles.completionStatLabel}>Answered</Text>
+                </View>
+                <View style={styles.completionStatDivider} />
+                <View style={styles.completionStatBox}>
+                  <Text style={styles.completionStatValue}>{correctCount}</Text>
+                  <Text style={styles.completionStatLabel}>Correct</Text>
+                </View>
+              </View>
+
+              <View style={styles.completionButtonRow}>
+                <TouchableOpacity style={styles.secondaryCompletionButton} onPress={handleReviewAgain}>
+                  <Text style={styles.secondaryCompletionButtonText}>Review Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.primaryCompletionButton} onPress={handleDone}>
+                  <Text style={styles.primaryCompletionButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -692,6 +781,115 @@ const styles = StyleSheet.create({
   answerLabelText: { fontSize: 13, fontWeight: '700', color: '#FFF' },
   answerValueWrap: { flex: 1, minHeight: 30 },
 
+  // Completion modal
+  completionOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: scale(20),
+  },
+  completionCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: scale(22),
+    alignItems: 'center',
+    shadowColor: '#000E38',
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  completionIconWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#062171',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  completionTitle: {
+    fontSize: moderateScale(20),
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  completionSubtitle: {
+    fontSize: moderateScale(13),
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  completionStatsRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: '#EEF1FB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D8DCF0',
+    marginBottom: 18,
+  },
+  completionStatBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  completionStatDivider: {
+    width: 1,
+    backgroundColor: '#D8DCF0',
+  },
+  completionStatValue: {
+    fontSize: moderateScale(18),
+    fontWeight: '800',
+    color: '#062171',
+  },
+  completionStatLabel: {
+    fontSize: moderateScale(11),
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  completionButtonRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryCompletionButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryCompletionButtonText: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#334155',
+  },
+  primaryCompletionButton: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: '#062171',
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryCompletionButtonText: {
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   // ── Loading ────────────────────────────────────────────────────────────────
   loadingContainer: {
     flex: 1,
@@ -699,6 +897,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f0f4f8',
   },
-  loadingText: { marginTop: 16, fontSize: 15, color: '#64748b', fontWeight: '500' },
+  loadingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: scale(20),
+  },
+  loadingModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    paddingVertical: verticalScale(18),
+    paddingHorizontal: scale(16),
+    borderWidth: 1,
+    borderColor: '#D8DCF0',
+    shadowColor: '#000E38',
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  loadingAnimation: {
+    width: scale(160),
+    height: scale(120),
+    marginBottom: verticalScale(6),
+  },
+  loadingTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: '800',
+    color: '#062171',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   backButtonText: { marginTop: 16, fontSize: 15, color: '#000E38', fontWeight: '600' },
 });

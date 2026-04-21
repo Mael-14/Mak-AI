@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react'
 import ThemedView from '../../components/ThemedView'
 import { LinearGradient } from 'expo-linear-gradient'
 import ThemedText from '../../components/ThemedText'
-import SubjectCard from '../../components/SubjectCard'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../../constant/color'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
-import LevelSelectionAlert from '../../components/LevelSelectionAlert';
-import { moderateScale, verticalScale } from '../../utils/scaling'
+import { moderateScale, verticalScale, scale as scaleUtil } from '../../utils/scaling'
 import { auth } from '../../config/firebase';
+import LevelSelectionAlert from '../../components/LevelSelectionAlert';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -20,10 +19,11 @@ const scale = (size) => (SCREEN_WIDTH / 375) * size
 
 const Home = () => {
     const router = useRouter()
-    const [showLevelAlert, setShowLevelAlert] = useState(false)
-    const [selectedSubject, setSelectedSubject] = useState(null)
     const [energy, setEnergy] = useState(5)
     const [userName, setUserName] = useState('Learner');
+    const [activeIndex, setActiveIndex] = useState(0)
+    const [showLevelAlert, setShowLevelAlert] = useState(false)
+    const [selectedSubject, setSelectedSubject] = useState(null)
 
     useEffect(() => {
         const user = auth.currentUser;

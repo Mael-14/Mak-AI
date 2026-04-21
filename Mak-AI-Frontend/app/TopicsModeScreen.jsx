@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -22,6 +21,7 @@ import { getSubjectCode } from '../utils/subjectMapping';
 import ModeSelectionModal from '../components/ModeSelectionModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { verticalScale, moderateScale, scale } from '../utils/scaling';
+import LottieView from 'lottie-react-native';
 
 // Subject data mapping - matches the subjects from home screen
 const SUBJECTS_DATA = {
@@ -194,6 +194,14 @@ const TopicsModeScreen = () => {
   const [selectedTopicPaper, setSelectedTopicPaper] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const extractAvailablePapers = (topicList = []) => {
+    const papers = new Set();
+    topicList.forEach(topic => {
+      (topic.papers || []).forEach(paper => papers.add(paper));
+    });
+    return Array.from(papers).sort();
+  };
+
   // Animation refs
   const [headerOpacityAnim] = useState(new Animated.Value(0));
   const [headerTranslateYAnim] = useState(new Animated.Value(-30));
@@ -230,40 +238,37 @@ const TopicsModeScreen = () => {
     ]).start();
   }, []);
   
-  // Fetch topics when component mounts or when paper selection changes
-  useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await examAPI.getTopicsBySubjectId(
-          subjectIdNum, 
-          selectedLevel, 
-          selectedPaper || undefined
-        );
-        if (response.success && response.data) {
-          setTopics(response.data);
-          // Extract unique papers from topics
-          const papers = new Set();
-          response.data.forEach(topic => {
-            topic.papers.forEach(paper => papers.add(paper));
-          });
-          setAvailablePapers(Array.from(papers).sort());
-        } else {
-          setError(response.error || 'Failed to fetch topics');
-        }
-      } catch (err) {
-        console.error('Error fetching topics:', err);
-        setError(err.message || 'Failed to load topics');
-      } finally {
-        setLoading(false);
+  const loadTopics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await examAPI.getTopicsBySubjectId(
+        subjectIdNum,
+        selectedLevel,
+        selectedPaper || undefined
+      );
+
+      if (response.success && response.data) {
+        setTopics(response.data);
+        setAvailablePapers(extractAvailablePapers(response.data));
+      } else {
+        setError(response.error || 'Failed to fetch topics');
       }
-    };
-    
-    if (subjectIdNum && selectedLevel) {
-      fetchTopics();
+    } catch (err) {
+      console.error('Error fetching topics:', err);
+      setError(err.message || 'Failed to load topics');
+    } finally {
+      setLoading(false);
     }
   }, [subjectIdNum, selectedLevel, selectedPaper]);
+
+  // Fetch topics when component mounts or when paper selection changes
+  useEffect(() => {
+    if (subjectIdNum && selectedLevel) {
+      loadTopics();
+    }
+  }, [subjectIdNum, selectedLevel, selectedPaper, loadTopics]);
   // QuestionMode tabs as in JunesModeScreen.jsx
   const QuestionMode = [
     { id: 1, name: 'All', icon: <Ionicons name="grid-outline" size={15} color="black" />, color: '#fff' },
@@ -465,7 +470,12 @@ const TopicsModeScreen = () => {
           <View style={styles.coursesContainer}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#2d2d2d" />
+              <LottieView
+                source={require('../animations/Loading (Buffering).json')}
+                autoPlay
+                loop
+                style={styles.loadingAnimation}
+              />
               <Text style={styles.loadingText}>Loading topics...</Text>
             </View>
           ) : error ? (
@@ -474,16 +484,7 @@ const TopicsModeScreen = () => {
               <TouchableOpacity 
                 style={styles.retryButton}
                 onPress={() => {
-                  setError(null);
-                  setLoading(true);
-                  examAPI.getTopicsBySubjectId(subjectIdNum, selectedLevel, selectedPaper || undefined)
-                    .then(response => {
-                      if (response.success && response.data) {
-                        setTopics(response.data);
-                      }
-                    })
-                    .catch(err => setError(err.message))
-                    .finally(() => setLoading(false));
+                  loadTopics();
                 }}
               >
                 <Text style={styles.retryButtonText}>Retry</Text>
@@ -796,8 +797,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  loadingAnimation: {
+    width: scale(84),
+    height: scale(84),
+  },
   loadingText: {
-    marginTop: 12,
+    marginTop: 6,
     fontSize: 16,
     color: '#666',
   },

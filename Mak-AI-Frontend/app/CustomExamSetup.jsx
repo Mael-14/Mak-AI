@@ -12,6 +12,7 @@ import {
   Easing,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -19,6 +20,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { verticalScale, moderateScale, scale } from '../utils/scaling';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
+import { examAPI } from '../services/api';
 import { saveCustomExam } from '../utils/examStorage';
 
 const { width } = Dimensions.get('window');
@@ -96,6 +98,9 @@ const CustomExamSetup = () => {
   const [duration, setDuration] = useState('45');
   const [numQuestions, setNumQuestions] = useState('20');
   const [includeTopics, setIncludeTopics] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [topicsError, setTopicsError] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Animation Refs
@@ -145,31 +150,74 @@ const CustomExamSetup = () => {
     { label: 'Mixed', value: 'Mixed', icon: 'shuffle-variant' },
   ];
 
-  const durations = ['15', '30', '45', '60', '90'];
-  const questionCounts = ['5', '10', '15', '20', '25', '30'];
+  const selectedLevel = level || 'Ordinary Level';
 
-  // Subject-specific topics
-  const getTopicsBySubject = () => {
-    const topicMap = {
-      1: ['Algebra', 'Geometry', 'Calculus', 'Trigonometry', 'Statistics', 'Probability', 'Vectors', 'Matrices', 'Functions', 'Logarithms', 'Sequences'], // Mathematics
-      2: ['Cell Biology', 'Genetics', 'Evolution', 'Ecology', 'Physiology', 'Biochemistry', 'Anatomy', 'Microbiology', 'Botany', 'Zoology'], // Biology
-      3: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Thermodynamics', 'Equilibrium', 'Redox', 'Kinetics', 'Electrochemistry', 'Periodicity'], // Chemistry
-      4: ['Mechanics', 'Thermodynamics', 'Waves', 'Electricity', 'Magnetism', 'Optics', 'Modern Physics', 'Nuclear Physics', 'Relativity'], // Physics
-      5: ['Programming', 'Data Structures', 'Algorithms', 'Databases', 'Networks', 'Web Development', 'Security', 'Cloud Computing', 'AI/ML'], // Computer Science
-      6: ['Statistics', 'Probability', 'Distributions', 'Hypothesis Testing', 'Regression', 'Correlation', 'Sampling', 'Inference'], // Math Stats
-      7: ['Physical Geography', 'Human Geography', 'Climatology', 'Geomorphology', 'Biogeography', 'Urban Geography', 'Development', 'Resources'], // Geography
-      8: ['Complex Numbers', 'Matrices', 'Differential Equations', 'Numerical Methods', 'Optimization', 'Linear Programming', 'Calculus', 'Sequences'], // Further Math
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTopics = async () => {
+      try {
+        setTopicsLoading(true);
+        setTopicsError(null);
+
+        const cachedResponse = await examAPI.getCachedTopicsBySubjectId(subjectIdNum, selectedLevel);
+        if (cachedResponse?.success && Array.isArray(cachedResponse.data) && cachedResponse.data.length > 0) {
+          if (!isMounted) return;
+          setTopics(cachedResponse.data);
+        }
+
+        const response = await examAPI.getTopicsBySubjectId(subjectIdNum, selectedLevel);
+        if (!isMounted) return;
+
+        if (response?.success && Array.isArray(response.data)) {
+          setTopics(response.data);
+        } else {
+          setTopicsError(response?.error || 'Failed to load topics for this subject.');
+          if (!cachedResponse?.success) {
+            setTopics([]);
+          }
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Error fetching topics:', error);
+        setTopicsError(error.message || 'Failed to load topics for this subject.');
+        setTopics([]);
+      } finally {
+        if (isMounted) {
+          setTopicsLoading(false);
+        }
+      }
     };
 
-    return topicMap[subjectIdNum] || [];
-  };
+    fetchTopics();
 
-  const topics = getTopicsBySubject();
+    return () => {
+      isMounted = false;
+    };
+  }, [subjectIdNum, selectedLevel]);
 
   const handleTopicToggle = (topic) => {
     setIncludeTopics((prev) =>
       prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic]
     );
+  };
+
+  const handleRetryTopics = () => {
+    setTopicsError(null);
+    setTopicsLoading(true);
+    examAPI.getTopicsBySubjectId(subjectIdNum, selectedLevel)
+      .then((response) => {
+        if (response?.success && Array.isArray(response.data)) {
+          setTopics(response.data);
+        } else {
+          setTopicsError(response?.error || 'Failed to load topics for this subject.');
+        }
+      })
+      .catch((error) => {
+        console.error('Error retrying topics:', error);
+        setTopicsError(error.message || 'Failed to load topics for this subject.');
+      })
+      .finally(() => setTopicsLoading(false));
   };
 
   const handleStartExam = async () => {
@@ -358,12 +406,7 @@ const CustomExamSetup = () => {
     <View style={styles.container}>
       {/* Animated Header */}
       <Animated.View style={[styles.headerContainer, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
-        <LinearGradient
-          colors={subject.colors || ['#ccc', '#aaa']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
+        <View style={styles.headerGradient}>
           <SafeAreaView edges={['top']} style={styles.safeAreaHeader}>
             <View style={styles.headerContent}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -371,26 +414,22 @@ const CustomExamSetup = () => {
               </TouchableOpacity>
               <Text style={styles.headerTitle}>{subject.title} Custom Exam</Text>
               <View style={{ width: 40 }} />
-
-              {/* Large Floating Icon/Badge
-            <View style={styles.floatingIcon}>
-               <Image source={subject.image} style={styles.floatingImage} resizeMode="contain" />
-            </View> */}
             </View>
-
-
           </SafeAreaView>
-        </LinearGradient>
+        </View>
       </Animated.View>
 
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <Animated.View
         style={{
+          flex: 1,
           opacity: contentOpacity,
           transform: [{ translateY: contentTranslateY }]
         }}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Difficulty Selection */}
         <View style={styles.card}>
           <SectionHeader title="Select Difficulty" icon="stats-chart" />
@@ -458,33 +497,31 @@ const CustomExamSetup = () => {
           {/* Duration */}
           <View style={[styles.card, { flex: 1, marginRight: 8 }]}>
             <SectionHeader title="Duration" icon="time" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-              {durations.map((dur) => (
-                <TouchableOpacity
-                  key={dur}
-                  style={[styles.chip, duration === dur && styles.chipActive]}
-                  onPress={() => setDuration(dur)}
-                >
-                  <Text style={[styles.chipText, duration === dur && styles.chipTextActive]}>{dur}m</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Enter minutes"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={duration}
+              onChangeText={setDuration}
+              maxLength={3}
+            />
+            <Text style={styles.inputHint}>minutes</Text>
           </View>
 
           {/* Count */}
           <View style={[styles.card, { flex: 1, marginLeft: 8 }]}>
             <SectionHeader title="Questions" icon="list" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-              {questionCounts.map((count) => (
-                <TouchableOpacity
-                  key={count}
-                  style={[styles.chip, numQuestions === count && styles.chipActive]}
-                  onPress={() => setNumQuestions(count)}
-                >
-                  <Text style={[styles.chipText, numQuestions === count && styles.chipTextActive]}>{count}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Enter number"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={numQuestions}
+              onChangeText={setNumQuestions}
+              maxLength={3}
+            />
+            <Text style={styles.inputHint}>questions</Text>
           </View>
         </View>
 
@@ -497,20 +534,44 @@ const CustomExamSetup = () => {
           </View>
 
           <View style={styles.topicsGrid}>
-            {topics.map((topic) => {
-              const isSelected = includeTopics.includes(topic);
-              return (
-                <TouchableOpacity
-                  key={topic}
-                  activeOpacity={0.7}
-                  style={[styles.topicPill, isSelected && styles.topicPillActive]}
-                  onPress={() => handleTopicToggle(topic)}
-                >
-                  <Text style={[styles.topicText, isSelected && styles.topicTextActive]}>{topic}</Text>
-                  {isSelected && <Ionicons name="close-circle" size={14} color="#FFF" style={{ marginLeft: 4 }} />}
+            {topicsLoading ? (
+              <View style={styles.topicsLoadingState}>
+                <Text style={styles.topicsLoadingText}>Loading available topics...</Text>
+              </View>
+            ) : topicsError ? (
+              <View style={styles.topicsErrorState}>
+                <Text style={styles.topicsErrorText}>{topicsError}</Text>
+                <TouchableOpacity style={styles.topicsRetryButton} onPress={handleRetryTopics}>
+                  <Text style={styles.topicsRetryButtonText}>Retry</Text>
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+            ) : topics.length === 0 ? (
+              <View style={styles.topicsLoadingState}>
+                <Text style={styles.topicsLoadingText}>No topics available for this subject.</Text>
+              </View>
+            ) : (
+              topics.map((topic) => {
+                const topicName = typeof topic === 'string' ? topic : topic.name;
+                const topicCount = typeof topic === 'string' ? null : topic.questionCount;
+                const isSelected = includeTopics.includes(topicName);
+                return (
+                  <TouchableOpacity
+                    key={topicName}
+                    activeOpacity={0.7}
+                    style={[styles.topicPill, isSelected && styles.topicPillActive]}
+                    onPress={() => handleTopicToggle(topicName)}
+                  >
+                    <Text style={[styles.topicText, isSelected && styles.topicTextActive]}>{topicName}</Text>
+                    {typeof topicCount === 'number' && (
+                      <Text style={[styles.topicCountText, isSelected && styles.topicCountTextActive]}>
+                        {topicCount}
+                      </Text>
+                    )}
+                    {isSelected && <Ionicons name="close-circle" size={14} color="#FFF" style={{ marginLeft: 4 }} />}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
 
@@ -540,7 +601,8 @@ const CustomExamSetup = () => {
         </View>
 
         <View style={{ height: 40 }} />
-      </Animated.ScrollView>
+        </ScrollView>
+      </Animated.View>
 
       <Modal
         visible={isGenerating}
@@ -551,10 +613,9 @@ const CustomExamSetup = () => {
           <View style={styles.modalContent}>
             <View style={styles.lottieContainer}>
               <LottieView
-                source={require('../animations/aiflow.json')}
+                source={require('../animations/scan document.json')}
                 autoPlay
                 loop={true}
-                resizeMode="contain"
                 style={styles.lottieAnim}
               />
             </View>
@@ -569,59 +630,58 @@ const CustomExamSetup = () => {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(15,23,42,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 30,
+    borderRadius: 18,
+    padding: 28,
     alignItems: 'center',
-    width: '80%',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    width: '85%',
+    maxWidth: 320,
+    shadowColor: '#062171',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
     elevation: 8,
   },
   lottieAnim: {
-    width: width * 0.6,
-    height: width * 0.6,
+    width: 240,
+    height: 180,
+    marginBottom: 12,
   },
   lottieContainer: {
-    width: 160,
-    height: 160,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    marginBottom: 16,
   },
   loadingText: {
-    marginTop: 20,
-    fontSize: moderateScale(16),
+    fontSize: moderateScale(15),
     fontWeight: '600',
-    color: '#3F51B5',
+    color: '#1F2937',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#F8F9FB',
   },
   headerContainer: {
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'visible',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+    elevation: 6,
+    shadowColor: '#062171',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
     zIndex: 10,
   },
   headerGradient: {
-    paddingBottom: verticalScale(40),
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: verticalScale(12),
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    backgroundColor: '#062171',
   },
   safeAreaHeader: {
     //
@@ -630,73 +690,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: scale(20),
-    paddingTop: verticalScale(10),
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(8),
+    paddingBottom: verticalScale(6),
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     color: '#FFF',
-    fontSize: moderateScale(18),
+    fontSize: moderateScale(17),
     fontWeight: '700',
     textAlign: 'center',
     flex: 1,
+    letterSpacing: 0.3,
   },
-  floatingIcon: {
-    position: 'absolute',
-    bottom: -30,
-    alignSelf: 'center',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  floatingImage: {
-    width: 50,
-    height: 50,
-  },
+
 
   // Content
   scrollContent: {
-    paddingTop: verticalScale(50),
-    paddingHorizontal: scale(20),
-    paddingBottom: 40,
+    paddingTop: verticalScale(20),
+    paddingHorizontal: scale(18),
+    paddingBottom: verticalScale(40),
   },
   card: {
     backgroundColor: '#FFF',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: scale(16),
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(14),
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(14),
   },
   sectionTitle: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(13),
     fontWeight: '700',
-    color: '#333',
+    color: '#1F2937',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   subtitle: {
     fontSize: moderateScale(12),
@@ -708,16 +751,16 @@ const styles = StyleSheet.create({
   // Complexity Grid
   rowGrid: {
     flexDirection: 'row',
-    gap: scale(10),
+    gap: scale(12),
   },
   difficultyBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(14),
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#EFEFEF',
-    backgroundColor: '#F9F9F9',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
   },
   optionLabel: {
     fontSize: moderateScale(12),
@@ -734,26 +777,26 @@ const styles = StyleSheet.create({
 
   // Question Type List
   listColumn: {
-    gap: verticalScale(10),
+    gap: verticalScale(12),
   },
   typeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: scale(12),
-    backgroundColor: '#F9F9F9',
+    padding: scale(14),
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   typeRowActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#3F51B5',
+    backgroundColor: '#EEF1FB',
+    borderColor: '#062171',
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E0E0E0',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -761,11 +804,11 @@ const styles = StyleSheet.create({
   typeText: {
     flex: 1,
     fontSize: moderateScale(14),
-    color: '#444',
+    color: '#374151',
     fontWeight: '500',
   },
   typeTextActive: {
-    color: '#3F51B5',
+    color: '#062171',
     fontWeight: '700',
   },
 
@@ -773,52 +816,82 @@ const styles = StyleSheet.create({
   dualRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: verticalScale(0),
+    marginBottom: verticalScale(14),
+    gap: scale(8),
   },
-  chipScroll: {
-    paddingVertical: 4,
-  },
-  chip: {
+  inputField: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
+    paddingVertical: 12,
+    fontSize: moderateScale(15),
+    fontWeight: '500',
+    color: '#1F2937',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
   },
-  chipActive: {
-    backgroundColor: '#3F51B5',
-    borderColor: '#3F51B5',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#555',
-  },
-  chipTextActive: {
-    color: '#FFF',
+  inputHint: {
+    fontSize: moderateScale(11),
+    color: '#999',
+    fontWeight: '500',
+    textAlign: 'left',
   },
 
   // Topics Grid
   topicsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
+  },
+  topicsLoadingState: {
+    width: '100%',
+    paddingVertical: verticalScale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topicsLoadingText: {
+    fontSize: moderateScale(13),
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  topicsErrorState: {
+    width: '100%',
+    paddingVertical: verticalScale(12),
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  topicsErrorText: {
+    fontSize: moderateScale(13),
+    color: '#B42318',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  topicsRetryButton: {
+    backgroundColor: '#062171',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  topicsRetryButtonText: {
+    color: '#FFF',
+    fontSize: moderateScale(12),
+    fontWeight: '700',
   },
   topicPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 22,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   topicPillActive: {
-    backgroundColor: '#3F51B5',
-    borderColor: '#3F51B5',
+    backgroundColor: '#062171',
+    borderColor: '#062171',
   },
   topicText: {
     fontSize: 12,
@@ -828,35 +901,52 @@ const styles = StyleSheet.create({
   topicTextActive: {
     color: '#FFF',
   },
+  topicCountText: {
+    marginLeft: 8,
+    fontSize: moderateScale(11),
+    fontWeight: '700',
+    color: '#6B7280',
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  topicCountTextActive: {
+    color: '#062171',
+    backgroundColor: '#DCE4FF',
+  },
 
   // Summary Card
   summaryCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginTop: verticalScale(10),
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    marginTop: verticalScale(12),
+    shadowColor: '#062171',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   summaryGradient: {
-    padding: scale(20),
+    padding: scale(18),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#062171',
   },
   summaryDetails: {
     flex: 1,
   },
   summaryTitle: {
     color: '#FFF',
-    fontSize: moderateScale(16),
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: moderateScale(15),
+    fontWeight: '800',
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
   summarySub: {
-    color: '#BBB',
+    color: 'rgba(255,255,255,0.8)',
     fontSize: moderateScale(12),
     fontWeight: '500',
   },
@@ -864,15 +954,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 10,
+    gap: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   startBtnText: {
-    color: '#2d2d2d',
+    color: '#062171',
     fontWeight: '700',
     fontSize: moderateScale(13),
+    letterSpacing: 0.3,
   },
 });
 

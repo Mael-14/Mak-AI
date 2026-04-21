@@ -338,17 +338,17 @@ const wrapInHtmlTemplate = (htmlContent) => {
   `;
 };
 
-const MathJaxProvider = ({ html, fontSize = "18px", useRawHtml = false }) => {
-  const [height, setHeight] = useState(30);
+const MathJaxProvider = ({ html, fontSize = "18px", useRawHtml = false, preCalculatedHeight = null }) => {
+  const [height, setHeight] = useState(preCalculatedHeight || 30);
   const webViewRef = useRef(null);
   const [contentKey, setContentKey] = useState(0);
 
   // Reset height and force re-render when content changes
   useEffect(() => {
     console.log('Content changed, resetting height');
-    setHeight(30);
+    setHeight(preCalculatedHeight || 30);
     setContentKey(prev => prev + 1);
-  }, [html]);
+  }, [html, preCalculatedHeight]);
 
   const fullHtml = useRawHtml ? wrapInHtmlTemplate(html) : generateMathJaxHTML(html);
 

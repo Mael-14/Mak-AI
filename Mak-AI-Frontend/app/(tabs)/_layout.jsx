@@ -1,4 +1,4 @@
-import { StyleSheet, View, ActivityIndicator } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Tabs, useRouter, useSegments } from 'expo-router'
 import CustomNavBar from '../../components/CustonNavBar'
@@ -6,6 +6,7 @@ import { useNavigationState } from '@react-navigation/native';
 import { isOnboardingCompleted } from '../../utils/onboardingStorage';
 import { useAuth } from '../../context/AuthContext';
 import SplashScreen from '../../components/SplashScreen';
+import LottieView from 'lottie-react-native';
 
 const _layout = () => {
     const [tabBarVisible, setTabBarVisible] = useState(true);
@@ -107,7 +108,12 @@ const _layout = () => {
     if (authLoading || !isInitialized || isCheckingOnboarding) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#7085FC" />
+                <LottieView
+                    source={require('../../animations/Loading animation blue.json')}
+                    autoPlay
+                    loop
+                    style={styles.loadingAnimation}
+                />
             </View>
         );
     }
@@ -137,5 +143,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#fff',
+    },
+    loadingAnimation: {
+        width: 100,
+        height: 100,
     },
 })
